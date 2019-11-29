@@ -144,8 +144,8 @@ void HybridBrinkmanTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REA
     if (f_3Dmesh) {
         gmesh = CreateGMesh3D(n_s, h_s);
     }else{
-        //gmesh = CreateGMesh(n_s, h_s);
-        gmesh = CreateGMeshRefPattern(n_s, h_s);
+        gmesh = CreateGMesh(n_s, h_s);
+        //gmesh = CreateGMeshRefPattern(n_s, h_s);
         //gmesh = CreateGMeshCurve();
         //gmesh = CreateGMeshCurveBlend();
         //gmesh = CreateGMeshCurveBlendSimple();
@@ -741,7 +741,7 @@ TPZGeoMesh *HybridBrinkmanTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec
 
                 
                 gel->SetSubElement(isub, 0);
-                gel->SetFather(-1);
+                gel->SetFatherIndex(-1);
             }
             gmesh->DeleteElement(gel);
         }
@@ -851,7 +851,7 @@ TPZGeoMesh *HybridBrinkmanTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec
             }
             gel->GetNodeIndices(nodeindices);
             elementid = gel->Id();
-            gmesh->ElementVec()[elementid]->SetFather(-1);
+            gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
             delete gmesh->ElementVec()[elementid];
             gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >> (elementid, nodeindices, fmatID,*gmesh);
 
@@ -1508,7 +1508,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son1 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son1->SetFather(father);
-    son1->SetFather(father->Index());
+    son1->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 11;
@@ -1518,7 +1518,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son2 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son2->SetFather(father);
-    son2->SetFather(father->Index());
+    son2->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 13;
@@ -1528,7 +1528,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son3 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son3->SetFather(father);
-    son3->SetFather(father->Index());
+    son3->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 15;
@@ -1538,7 +1538,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son4 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son4->SetFather(father);
-    son4->SetFather(father->Index());
+    son4->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 17;
@@ -1548,7 +1548,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son5 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son5->SetFather(father);
-    son5->SetFather(father->Index());
+    son5->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 19;
@@ -1558,7 +1558,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son6 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son6->SetFather(father);
-    son6->SetFather(father->Index());
+    son6->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 21;
@@ -1568,7 +1568,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son7 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son7->SetFather(father);
-    son7->SetFather(father->Index());
+    son7->SetFatherIndex(father->Index());
     elementid++;
 
     TopolQuadrilateral[0] = 23;
@@ -1578,7 +1578,7 @@ TPZAutoPointer<TPZRefPattern> HybridBrinkmanTest::CreateGMeshObstacle(TPZManVect
 
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son8 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     son8->SetFather(father);
-    son8->SetFather(father->Index());
+    son8->SetFatherIndex(father->Index());
     elementid++;
     
     //InsertLowerDimMaterial(geomesh);
@@ -2366,38 +2366,38 @@ TPZCompEl *HybridBrinkmanTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh
 
 void HybridBrinkmanTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
     
-    sol.resize(4);
-    dsol.Resize(3,3);
+//    sol.resize(4);
+//    dsol.Resize(3,3);
+//
+//    STATE xv = x[0];
+//    STATE yv = x[1];
+//    STATE theta = atan(yv/xv);
+//    STATE r=sqrt(xv*xv+yv*yv);
+//
+//    STATE v_x =  -r*sin(theta);
+//    STATE v_y =  r*cos(theta);
+//    STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
+//    STATE p =   3.;
+//
+//    //    STATE v_x =  xv;
+//    //    STATE v_y =  0;
+//    //    STATE p =   0.;
+//
+//
+//    sol[0] = v_x; // x direction
+//    sol[1] = v_y; // y direction
+//    sol[2] = 0.;
+//    sol[3] = p; //
+//
+//    dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
+//    dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
     
-    STATE xv = x[0];
-    STATE yv = x[1];
-    STATE theta = atan(yv/xv);
-    STATE r=sqrt(xv*xv+yv*yv);
     
-    STATE v_x =  -r*sin(theta);
-    STATE v_y =  r*cos(theta);
-    STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
-    STATE p =   3.;
-    
-    //    STATE v_x =  xv;
-    //    STATE v_y =  0;
-    //    STATE p =   0.;
-    
-    
-    sol[0] = v_x; // x direction
-    sol[1] = v_y; // y direction
-    sol[2] = 0.;
-    sol[3] = p; //
-    
-    dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-    dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-    
-    
-    sol[0] = 1.; // x direction
-    sol[1] = 0.; // y direction
-    sol[3] = 0.;
-    dsol(0,0)= 0.;
-    dsol(1,1)= 0.;
+//    sol[0] = 1.; // x direction
+//    sol[1] = 0.; // y direction
+//    sol[3] = 0.;
+//    dsol(0,0)= 0.;
+//    dsol(1,1)= 0.;
     
 //        dsol.Resize(3,3);
 //        sol.Resize(4);
@@ -2498,77 +2498,77 @@ void HybridBrinkmanTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TP
     
     // Stokes : : Artigo Botti, Di Pietro, Droniou
     
-//    dsol.Resize(3,3);
-//    sol.Resize(4);
-//
-//
-//    //Applying rotation:
-//    TPZVec<REAL> x_in = x;
-//    TPZVec<REAL> x_rot(3,0.);
-//
-//    f_InvT.Apply(x_in,x_rot);
-//    x[0] = x_rot[0];
-//    x[1] = x_rot[1];
-//
-//    REAL x1 = x[0];
-//    REAL x2 = x[1];
-//
-//    REAL e = exp(1.);
-//
-//    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//    v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
-//    v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-//    STATE pressure= cos(x1)*sin(x2);
-//
-//    f_T.Apply(v_Dirichlet, vbc_rot);
-//    v_Dirichlet = vbc_rot;
-//
-//    sol[0]=v_Dirichlet[0];
-//    sol[1]=v_Dirichlet[1];
-//    sol[2]=v_Dirichlet[2];
-//    sol[3]=pressure;
-//
-//
-//    // GradU * Rt
-//    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//    // vx direction
-//    GradU(0,0)= -1.*cos(x1)*sin(x2);
-//    GradU(0,1)= cos(x2)*sin(x1);
-//
-//    // vy direction
-//    GradU(1,0)= -1.*cos(x2)*sin(x1);
-//    GradU(1,1)= cos(x1)*sin(x2);
-//
-//    TPZFMatrix<STATE> R = f_T.Mult();
-//    TPZFMatrix<STATE> Rt(3,3,0.);
-//    R.Transpose(&Rt);
-//
-////    GradU.Print("GradU = ");
-////    R.Print("R = ");
-////    Rt.Print("Rt = ");
-//
-//    GradU.Multiply(Rt,GradURt);
-////    GradURt.Print("GradURt = ");
-//
-//    R.Multiply(GradURt,RGradURt);
-////    RGradURt.Print("RGradURt = ");
-//
-//    // vx direction
-//    dsol(0,0)= RGradURt(0,0);
-//    dsol(0,1)= RGradURt(0,1);
-//    dsol(0,2)= RGradURt(0,2);
-//
-//    // vy direction
-//    dsol(1,0)= RGradURt(1,0);
-//    dsol(1,1)= RGradURt(1,1);
-//    dsol(1,2)= RGradURt(1,2);
-//
-//    // vz direction
-//    dsol(2,0)= RGradURt(2,0);
-//    dsol(2,1)= RGradURt(2,1);
-//    dsol(2,2)= RGradURt(2,2);
+    dsol.Resize(3,3);
+    sol.Resize(4);
+
+
+    //Applying rotation:
+    TPZVec<REAL> x_in = x;
+    TPZVec<REAL> x_rot(3,0.);
+
+    f_InvT.Apply(x_in,x_rot);
+    x[0] = x_rot[0];
+    x[1] = x_rot[1];
+
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+
+    REAL e = exp(1.);
+
+    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+
+    v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
+    v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
+    STATE pressure= cos(x1)*sin(x2);
+
+    f_T.Apply(v_Dirichlet, vbc_rot);
+    v_Dirichlet = vbc_rot;
+
+    sol[0]=v_Dirichlet[0];
+    sol[1]=v_Dirichlet[1];
+    sol[2]=v_Dirichlet[2];
+    sol[3]=pressure;
+
+
+    // GradU * Rt
+    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+
+    // vx direction
+    GradU(0,0)= -1.*cos(x1)*sin(x2);
+    GradU(0,1)= cos(x2)*sin(x1);
+
+    // vy direction
+    GradU(1,0)= -1.*cos(x2)*sin(x1);
+    GradU(1,1)= cos(x1)*sin(x2);
+
+    TPZFMatrix<STATE> R = f_T.Mult();
+    TPZFMatrix<STATE> Rt(3,3,0.);
+    R.Transpose(&Rt);
+
+//    GradU.Print("GradU = ");
+//    R.Print("R = ");
+//    Rt.Print("Rt = ");
+
+    GradU.Multiply(Rt,GradURt);
+//    GradURt.Print("GradURt = ");
+
+    R.Multiply(GradURt,RGradURt);
+//    RGradURt.Print("RGradURt = ");
+
+    // vx direction
+    dsol(0,0)= RGradURt(0,0);
+    dsol(0,1)= RGradURt(0,1);
+    dsol(0,2)= RGradURt(0,2);
+
+    // vy direction
+    dsol(1,0)= RGradURt(1,0);
+    dsol(1,1)= RGradURt(1,1);
+    dsol(1,2)= RGradURt(1,2);
+
+    // vz direction
+    dsol(2,0)= RGradURt(2,0);
+    dsol(2,1)= RGradURt(2,1);
+    dsol(2,2)= RGradURt(2,2);
     
     // Darcy : : Artigo Botti, Di Pietro, Droniou
     
@@ -2734,16 +2734,16 @@ void HybridBrinkmanTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFM
     // Stokes : : Artigo Botti, Di Pietro, Droniou
     
     
-//    f_s[0] = -3.*sin(x1)*sin(x2);
-//    f_s[1] = -1.*cos(x1)*cos(x2);
-//
-//    f_T.Apply(f_s, f_rot);
-//    f_s = f_rot;
-//
-//
-//    f[0] = f_s[0]; // x direction
-//    f[1] = f_s[1]; // y direction
-//    f[2] = f_s[2];
+    f_s[0] = -3.*sin(x1)*sin(x2);
+    f_s[1] = -1.*cos(x1)*cos(x2);
+
+    f_T.Apply(f_s, f_rot);
+    f_s = f_rot;
+
+
+    f[0] = f_s[0]; // x direction
+    f[1] = f_s[1]; // y direction
+    f[2] = f_s[2];
     
     
     // Darcy : : Artigo Botti, Di Pietro, Droniou
@@ -3247,29 +3247,29 @@ TPZMultiphysicsCompMesh *HybridBrinkmanTest::CMesh_m(TPZGeoMesh *gmesh, int Spac
     val2(1,0) = 0.0; // vy -> 0
     
     val2(1,0) = 0.0;
-    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fdirichlet, val1, val2);
-    //BC_bott->SetBCForcingFunction(0, solp);
+    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann, val1, val2);
+    BC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_bott);
 
     val2(1,0) = 0.0; // vx -> 0
-    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fdirichlet, val1, val2);
-    //BC_top->SetBCForcingFunction(0, solp);
+    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann, val1, val2);
+    BC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_top);
 
-    val2(0,0) = 1.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+    //val2(0,0) = 1.0;
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
 
     val2(0,0) = 0.0;
     TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
-    //BC_right->SetBCForcingFunction(0, solp);
+    BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
 
     if (f_Holemesh){
         val2(0,0) = 0.0;
         TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
-        //BC_hole->SetBCForcingFunction(0, solp);
+        BC_hole->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_hole);
     }
 
@@ -3301,20 +3301,20 @@ TPZMultiphysicsCompMesh *HybridBrinkmanTest::CMesh_m(TPZGeoMesh *gmesh, int Spac
     
     
     // 3.1 - Material para tração tangencial 1D nos contornos
-    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet, val1, val2);
-    //matLambdaBC_bott->SetBCForcingFunction(0, solp);
+    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann, val1, val2);
+    matLambdaBC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
     
-    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet, val1, val2);
-    //matLambdaBC_top->SetBCForcingFunction(0, solp);
+    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann, val1, val2);
+    matLambdaBC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_top);
   
     TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann, val1, val2);
-//    matLambdaBC_left->SetBCForcingFunction(0, solp);
+    matLambdaBC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_left);
     
     TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann, val1, val2);
-//    matLambdaBC_right->SetBCForcingFunction(0, solp);
+    matLambdaBC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_right);
 
     if (f_Holemesh){
