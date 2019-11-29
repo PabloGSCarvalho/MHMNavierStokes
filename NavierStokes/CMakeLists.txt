@@ -3,7 +3,7 @@ file(GLOB sources *.cpp)
 
 set(Mymain main.cpp ${sources} ${headers})
 
-add_executable(CreepStokes ${Mymain})
+add_executable(NavierStokes ${Mymain})
 
-target_link_libraries(CreepStokes pz)
+target_link_libraries(NavierStokes pz)
 

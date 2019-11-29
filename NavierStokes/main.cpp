@@ -11,19 +11,15 @@
 #include "TPZVTKGeoMesh.h"
 #include "pzanalysis.h"
 #include "pzbndcond.h"
-#include "DarcyPTest.h"
 #include "StokesTest.h"
 #include "BrinkmanTest.h"
 #include "HybridBrinkmanTest.h"
 #include "MHMStokesTest.h"
-#include "CoupledTest.h"
 #include "tpzarc3d.h"
 #include "tpzgeoblend.h"
 #include "pzgengrid.h"
 
-#include "TPZCouplingDSMaterial.h"
 #include "TPZStokesMaterial.h"
-#include "TPZDarcyPMaterial.h"
 #include <pzgeoel.h>
 #include "pzgeoelbc.h"
 #include "pzfmatrix.h"
@@ -63,7 +59,7 @@ const REAL Pi=M_PI;
 
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
 
-bool DarcyDomain = false, StokesDomain = false , BrinkmanDomain = false, CoupledDomain = false;
+bool StokesDomain = false , BrinkmanDomain = false;
 
 bool HybridBrinkmanDomain = true, MHMStokesDomain = false;
 
@@ -169,9 +165,6 @@ int main(int argc, char *argv[])
             
         }
         
-    }else if (DarcyDomain) {
-        DarcyPTest * Test1 = new DarcyPTest();
-        Test1->Run(SpaceHDiv, pOrder, nx, ny, hx, hy,visco,permeability,theta);
     }
     else if (StokesDomain)
     {
@@ -245,22 +238,6 @@ int main(int argc, char *argv[])
             //h_level = h_level*2;
         }
         
-    }
-    else  if(CoupledDomain)
-    {
-        int h_level = 64;
-        
-        //double hx=1.,hy=1.; //Dimensões em x e y do domínio
-        double hx=Pi,hy=2.; //Dimensões em x e y do domínio (acoplamento)
-        int nelx=h_level, nely=h_level; //Número de elementos em x e y
-        int nx=nelx+1 ,ny=nely+1; //Número de nos em x  y
-        int pOrder = 2; //Ordem polinomial de aproximação
-        STATE hE=hx/h_level;
-        STATE s0=12.;
-        STATE sigma=s0*(pOrder*pOrder)/hE;
-        
-        CoupledTest  * Test3 = new CoupledTest();
-        Test3->Run(SpaceHDiv, pOrder, nx, ny, hx, hy,visco,permeability,theta,sigma);
     }
     
     return 0;
