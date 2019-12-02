@@ -1,5 +1,5 @@
 /*
- *  TPZMHMBrinkmanMaterial.cpp
+ *  TPZMHMNavierStokesMaterial.cpp
  *  PZ
  *
  *  Created by Pablo Carvalho on 10/05/2016.
@@ -7,7 +7,7 @@
  *
  */
 
-#include "TPZMHMBrinkmanMaterial.h"
+#include "TPZMHMNavierStokesMaterial.h"
 #include "pzbndcond.h"
 #include "pzaxestools.h"
 #include "TPZMatWithMem.h"
@@ -15,7 +15,7 @@
 
 using namespace std;
 
-void TPZMHMBrinkmanMaterial::FillDataRequirementsInterface(TPZMaterialData &data, TPZVec<TPZMaterialData > &datavec_left, TPZVec<TPZMaterialData > &datavec_right)
+void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &data, TPZVec<TPZMaterialData > &datavec_left, TPZVec<TPZMaterialData > &datavec_right)
 {
     TPZMaterial::FillDataRequirementsInterface(data, datavec_left, datavec_right);
     int nref_left = datavec_left.size();
@@ -24,12 +24,8 @@ void TPZMHMBrinkmanMaterial::FillDataRequirementsInterface(TPZMaterialData &data
     
 }
 
-void TPZMHMBrinkmanMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef){
+void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef){
  
-    // DebugStop();
-    // Verificar que
-    // os termos mistos devem estar sem viscosidade!
-    
     //2 = 1 Vel space + 1 Press space for datavecleft
     int nrefleft =  datavecleft.size();
     if (nrefleft != 4 ) {
@@ -44,7 +40,6 @@ void TPZMHMBrinkmanMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<T
    //     DebugStop();
     }
     
-    
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
     
@@ -54,11 +49,12 @@ void TPZMHMBrinkmanMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<T
     
     // Setting the phis
     // V - left
-    
     TPZFNMatrix<9,REAL>  &tan = datavecright[pindex].axes;
+    TPZManVector<STATE,3> u_n = datavecleft[vindex].sol[0];
+    TPZManVector<STATE,3> Lambda_n = datavecright[pindex].sol[0];
+
     
     int nshapeV , nshapeP , nshapeLambda;
-    
     nshapeV = datavecleft[vindex].fVecShapeIndex.NElements();
     nshapeP = datavecleft[pindex].phi.Rows();
     nshapeLambda = datavecright[pindex].phi.Rows();
@@ -92,6 +88,14 @@ void TPZMHMBrinkmanMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<T
             phiVi(e,0)=Normalvec(e,ivec1)*datavecleft[vindex].phi(iphi1,0);
         }
         
+        STATE Lambda_dot_phiV = 0.;
+        
+        for (int e=0; e< 3 ; e++) {
+            Lambda_dot_phiV += phiVi(e,0)*Lambda_n[e];
+        }
+        
+        ef(i1) += -weight*Lambda_dot_phiV;
+        
         // K12 e K21 - (test V left) * (trial Lambda right)
         for(int j1 = 0; j1 < nshapeLambda; j1++)
         {
@@ -103,21 +107,39 @@ void TPZMHMBrinkmanMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<T
             for (int e=0; e< 3 ; e++) {
                 lambda_j(e,0) = phiLamb(j1,0)*tan(0,e);
             }
-            
             STATE fact = fMultiplier * weight * InnerVec(phiVi,lambda_j);
             ek(i1,j1+nshapeV) += fact;
             ek(j1+nshapeV,i1) += fact;
         }
         
     }
-    
-    
+
+
+    for(int i1 = 0; i1 < nshapeLambda; i1++)
+    {
+        // Var. Sigma, Sn :
+        TPZFNMatrix<9, STATE> lambda_i(3,1,0.);
+        TPZFNMatrix<9, STATE> phiLamb = datavecright[pindex].phi;
+        
+        // Tangencial comp. vector (t x t)Sn :
+        for (int e=0; e< 3 ; e++) {
+            lambda_i(e,0) = phiLamb(i1,0)*tan(0,e);
+        }
+
+        STATE phiLambda_dot_U = 0.;
+        for (int e=0; e< 3 ; e++) {
+            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
+        }
+        
+        // Var. Sigma, Sn :
+        ef(i1+nshapeV) += -weight*phiLambda_dot_U;
+    }
     
 }
 
 
 
-void TPZMHMBrinkmanMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
+void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
     
     
     int nshapeV , nshapeLambda;
@@ -284,7 +306,7 @@ void TPZMHMBrinkmanMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL
 }
 
 
-void TPZMHMBrinkmanMaterial::ContributeBCInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
+void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
     
     
     
@@ -995,7 +1017,7 @@ void TPZMHMBrinkmanMaterial::ContributeBCInterface(TPZMaterialData &data, TPZVec
 }
 
 
-TPZManVector<REAL,3> TPZMHMBrinkmanMaterial::ComputeNormal(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright){
+TPZManVector<REAL,3> TPZMHMNavierStokesMaterial::ComputeNormal(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright){
 
     int vindex = VIndex();
     int pindex = PIndex();
@@ -1020,7 +1042,7 @@ TPZManVector<REAL,3> TPZMHMBrinkmanMaterial::ComputeNormal(TPZMaterialData &data
     
 }
 
-TPZFMatrix<STATE> TPZMHMBrinkmanMaterial::Transpose(TPZFMatrix<STATE> &MatrixU ){
+TPZFMatrix<STATE> TPZMHMNavierStokesMaterial::Transpose(TPZFMatrix<STATE> &MatrixU ){
 
     int dim = Dimension();
     TPZFMatrix<STATE> MatrixUt(dim,dim);

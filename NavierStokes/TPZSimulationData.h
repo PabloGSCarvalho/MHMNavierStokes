@@ -55,6 +55,15 @@ protected:
     /** Testing shape function */
     bool m_testshape;
     
+    /** @brief Number of iteration */
+    int m_n_iterations;
+    
+    /** @brief Residue overal tolerance */
+    REAL m_epsilon_res;
+    
+    /** @brief Correction overal tolerance */
+    REAL m_epsilon_cor;
+    
 public:
     
     /** default constructor */
@@ -161,6 +170,37 @@ public:
     bool GetShapeTest(){
         return m_testshape;
     }
+    
+    /** @brief Set Newton iterations */
+    void Set_n_iterations(int n_iterations){
+        m_n_iterations = n_iterations;
+    }
+    
+    /** @brief Get Newton iterations  */
+    REAL Get_n_iterations(){
+        return m_n_iterations;
+    }
+    
+    /** @brief Set residue tolerance */
+    void Set_epsilon_res(REAL epsilon_res){
+        m_epsilon_res = epsilon_res;
+    }
+    
+    /** @brief Get residue tolerance  */
+    REAL Get_epsilon_res(){
+        return m_epsilon_res;
+    }
+    
+    /** @brief Set correction tolerance */
+    void Set_epsilon_cor(REAL epsilon_cor){
+        m_epsilon_cor = epsilon_cor;
+    }
+    
+    /** @brief Get correction tolerance  */
+    REAL Get_epsilon_cor(){
+        return m_epsilon_cor;
+    }
+    
 };
 
 #endif /* TPZSimulationData_h */
