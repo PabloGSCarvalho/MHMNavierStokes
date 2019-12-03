@@ -49,11 +49,13 @@
 #include "TPZSpStructMatrix.h"
 #include "pzinterpolationspace.h"
 #include "pztrnsform.h"
+#include "TPZSimulationData.h"
+#include "TPZNSAnalysis.h"
 
 using namespace std;
 using namespace pzshape;
 
-enum ProblemType {ObstacleP,ConvergenceP};
+enum NSProblemType {NSObstacle,NSConvergence};
 
 class NavierStokesTest{
 private:
@@ -130,7 +132,7 @@ private:
     
     MElementType feltype;
     
-    TPZVec<TPZCompMesh * > f_mesh_vector;
+    TPZManVector<TPZCompMesh *, 2> f_mesh_vector;
     
     std::map<int,TPZManVector<REAL,3>> f_HoleCoord; //Dado o indice do elemento 2D, devolve a coord do hole associado
 
@@ -239,8 +241,8 @@ public:
         f_is_hdivFull = true;
     };
 
-    void SetProblemType(ProblemType type){
-        if(type==ObstacleP){
+    void SetProblemType(NSProblemType type){
+        if(type==NSObstacle){
             f_Holemesh = true;
         }
     };

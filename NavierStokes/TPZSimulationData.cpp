@@ -22,6 +22,13 @@ TPZSimulationData::TPZSimulationData()
     m_n_iterations = 0;
     m_epsilon_res = 0;
     m_epsilon_cor = 0;
+    m_is_initial_state_Q  = false;
+    m_is_current_state_Q  = false;
+    m_must_accept_solution_Q = false;
+    m_volumetric_material_id.resize(1);
+    m_volumetric_material_id[0]=1;
+    m_optimizeBandwidth_Q = false;
+    
 }
 
 TPZSimulationData::~TPZSimulationData()
@@ -43,6 +50,11 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_n_iterations                      = other.m_n_iterations;
     m_epsilon_res                       = other.m_epsilon_res;
     m_epsilon_cor                       = other.m_epsilon_cor;
+    m_is_initial_state_Q                = other.m_is_initial_state_Q;
+    m_is_current_state_Q                = other.m_is_current_state_Q;
+    m_must_accept_solution_Q            = other.m_must_accept_solution_Q;
+    m_volumetric_material_id            = other.m_volumetric_material_id;
+    m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
 }
 
 TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
@@ -61,6 +73,11 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_n_iterations                      = other.m_n_iterations;
         m_epsilon_res                       = other.m_epsilon_res;
         m_epsilon_cor                       = other.m_epsilon_cor;
+        m_is_initial_state_Q                = other.m_is_initial_state_Q;
+        m_is_current_state_Q                = other.m_is_current_state_Q;
+        m_must_accept_solution_Q            = other.m_must_accept_solution_Q;
+        m_volumetric_material_id            = other.m_volumetric_material_id;
+        m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
     }
     return *this;
 }
@@ -82,6 +99,7 @@ void TPZSimulationData::Print()
     std::cout << " m_n_iterations = " << m_n_iterations << std::endl;
     std::cout << " m_epsilon_res = " << m_epsilon_res << std::endl;
     std::cout << " m_epsilon_cor = " << m_epsilon_cor << std::endl;
+    std::cout << " m_volumetric_material_id = " << &m_volumetric_material_id << std::endl;
     std::cout << std::endl;
     
 }

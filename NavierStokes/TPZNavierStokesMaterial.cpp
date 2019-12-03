@@ -661,9 +661,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
         C_term_f += InnerVec(GradUn_phiU, phiVi);
         
-        ef(i) += -weight * C_term_f;  // C - Trilinear terms
+        ef(i) += -weight * C_term_f*0.;  // C - Trilinear terms
         
-        // matrix A - gradV
+        // A, C e D - velocity X velocity
         for(int j = 0; j < nshapeV; j++){
             int jphi = datavec[vindex].fVecShapeIndex[j].second;
             int jvec = datavec[vindex].fVecShapeIndex[j].first;
@@ -710,40 +710,16 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
         
-            ek(i,j) += weight * C_term;  // C - Trilinear terms
+            ek(i,j) += weight * C_term*0.;  // C - Trilinear terms
             
-            ek(i,j) += weight * D_term;  // D - Trilinear terms
+            ek(i,j) += weight * D_term*0.;  // D - Trilinear terms
             
         }
         
-        // matrix C + D - Trilinear terms
-        for(int j = 0; j < nshapeV; j++){
-            int jphi = datavec[vindex].fVecShapeIndex[j].second;
-            int jvec = datavec[vindex].fVecShapeIndex[j].first;
-            STATE PhiVj_dot_phiVi = 0.0;
-            
-            for (int e=0; e<3; e++) {
-                phiVj(e,0) = phiV(jphi,0)*Normalvec(e,jvec);
-                PhiVj_dot_phiVi += phiVj(e,0)*phiVi(e,0);
-            }
 
-            ek(i,j) += weight * PhiVj_dot_phiVi;
-            
-            TPZFNMatrix<9,STATE> GradVj(3,3,0.),GradVjt(3,3,0.),Duj(3,3,0.);
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradVj(e,f) = Normalvec(e,jvec)*dphiVx(f,jphi)+GradNormalvec[jvec](e,f)*phiV(jphi,0);
-                    GradVjt(f,e) = Normalvec(e,jvec)*dphiVx(f,jphi)+GradNormalvec[jvec](e,f)*phiV(jphi,0);
-                }
-            }
-
-            ek(i,j) += 0.;
-            
-            //ek(i,j) += 2. * weight * fViscosity * val;
-        }
         
         
-        // matrix B - pressure and velocity
+        // B - pressure and velocity
         for (int j = 0; j < nshapeP; j++) {
             
             TPZManVector<REAL,3> GradPj(3,0.);

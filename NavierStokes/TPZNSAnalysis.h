@@ -73,7 +73,7 @@ public:
     }
 
     /// Configurate internal analysis objects and linked them through the memory shared pointer
-    void ConfigurateAnalysis(DecomposeType decompose_geo, TPZCompMesh * cmesh_M, TPZManVector<TPZCompMesh * , 2> & mesh_vec, TPZStack<std::string> & post_pro_var_res, TPZStack<std::string> & post_pro_var_geo);
+    void ConfigurateAnalysis(DecomposeType decompose_geo, TPZSimulationData * simulation_data, TPZCompMesh * cmesh_M, TPZManVector<TPZCompMesh * , 2> & mesh_vec, TPZVec<std::string> & var_names);
     
     /// Execute the evolution for a single time step
     void ExecuteOneTimeStep();
@@ -90,11 +90,25 @@ public:
     // Update parameters
     void UpdateParameters();
     
-    /// Update solution state x = x_n
-    void UpdateState();
-    
     // Adjust integration orders
     void AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * cmesh_d);
+    
+    /// Update the memory with the converged time step solution
+    void AcceptTimeStepSolution();
+    
+    /// Execute a single newton iteration
+    void ExecuteNewtonInteration();
+    
+    /// Load the current state for the hdiv and 2 meshes
+    void LoadCurrentState();
+    
+    /// Load the last state for the hdiv and 2 meshes
+    void LoadLastState();
+    
+    /// Update solution state x = x_n
+    void UpdateState(){
+        m_U_Plus = m_U_n;
+    }
     
     /** @brief Set Residue error */
     void Set_error(STATE error)

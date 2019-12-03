@@ -51,6 +51,9 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     // V - left
     TPZFNMatrix<9,REAL>  &tan = datavecright[pindex].axes;
     TPZManVector<STATE,3> u_n = datavecleft[vindex].sol[0];
+    
+    STATE sLambda_n = datavecright[pindex].sol[0][0];
+    
     TPZManVector<STATE,3> Lambda_n = datavecright[pindex].sol[0];
 
     
@@ -90,11 +93,11 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         
         STATE Lambda_dot_phiV = 0.;
         
-        for (int e=0; e< 3 ; e++) {
-            Lambda_dot_phiV += phiVi(e,0)*Lambda_n[e];
-        }
-        
-        ef(i1) += -weight*Lambda_dot_phiV;
+//        for (int e=0; e< 3 ; e++) {
+//            Lambda_dot_phiV += phiVi(e,0)*Lambda_n[e];
+//        }
+//
+//        ef(i1) += -weight*Lambda_dot_phiV;
         
         // K12 e K21 - (test V left) * (trial Lambda right)
         for(int j1 = 0; j1 < nshapeLambda; j1++)
@@ -126,13 +129,13 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
             lambda_i(e,0) = phiLamb(i1,0)*tan(0,e);
         }
 
-        STATE phiLambda_dot_U = 0.;
-        for (int e=0; e< 3 ; e++) {
-            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
-        }
-        
-        // Var. Sigma, Sn :
-        ef(i1+nshapeV) += -weight*phiLambda_dot_U;
+//        STATE phiLambda_dot_U = 0.;
+//        for (int e=0; e< 3 ; e++) {
+//            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
+//        }
+//        
+//        // Var. Sigma, Sn :
+//        ef(i1+nshapeV) += -weight*phiLambda_dot_U;
     }
     
 }

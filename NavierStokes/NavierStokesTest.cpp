@@ -240,7 +240,46 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
 #endif
     
     
-    //Resolvendo o Sistema:
+    //Resolvendo o Sistema Não-Linear:
+    
+    TPZSimulationData *sim_data= new TPZSimulationData;
+    sim_data->SetNthreads(0);
+    sim_data->SetOptimizeBandwidthQ(false);
+    sim_data->Set_n_iterations(1);
+    TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
+    
+    TPZVec<std::string> var_name(2);
+    var_name[0]="V";
+    var_name[1]="P";
+    
+    NS_analysis->ConfigurateAnalysis(ELDLt, sim_data, cmesh_m, f_mesh_vector, var_name);
+    
+    NS_analysis->ExecuteTimeEvolution();
+ 
+    
+    //Calculo do erro
+    std::cout << "Comuting Error " << std::endl;
+    TPZManVector<REAL,6> Errors;
+    ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
+    NS_analysis->SetExact(Sol_exact);
+    NS_analysis->SetThreadsForError(3);
+    NS_analysis->PostProcessError(Errors,false);
+    
+    ErroOut <<"  //  Ordem = "<< pOrder << "  //  Tamanho da malha = "<< n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << std::endl;
+    ErroOut <<" " << std::endl;
+    //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
+    ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
+    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
+    ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
+    ErroOut <<"-------------" << std::endl;
+    ErroOut.flush();
+    
+    
+    
+    return;
+    
+    
+    
     int numthreads = 3;
     
     bool optimizeBandwidth = false; //Impede a renumeração das equacoes do problema (para obter o mesmo resultado do Oden)
@@ -347,20 +386,20 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     //Calculo do erro
     std::cout << "Comuting Error " << std::endl;
-    TPZManVector<REAL,6> Errors;
-    ofstream ErroOut("Error_Brinkman.txt", std::ofstream::app);
+    TPZManVector<REAL,6> Errors2;
+    ofstream ErroOut2("Error_Brinkman.txt", std::ofstream::app);
     an.SetExact(Sol_exact);
     an.SetThreadsForError(3);
-    an.PostProcessError(Errors,false);
+    an.PostProcessError(Errors2,false);
     
-    ErroOut <<"  //  Ordem = "<< pOrder << "  //  Tamanho da malha = "<< n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << std::endl;
-    ErroOut <<" " << std::endl;
+    ErroOut2 <<"  //  Ordem = "<< pOrder << "  //  Tamanho da malha = "<< n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << std::endl;
+    ErroOut2 <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
-    ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
-    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
-    ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
-    ErroOut <<"-------------" << std::endl;
-    ErroOut.flush();
+    ErroOut2 <<"Norma L2 - V = "<< Errors2[1] << std::endl;
+    ErroOut2 <<"Semi-norma H1/Hdiv - V = "<< Errors2[2] << std::endl;
+    ErroOut2 <<"Norma L2 - P = "<< Errors2[4] << std::endl;
+    ErroOut2 <<"-------------" << std::endl;
+    ErroOut2.flush();
     
     //Pós-processamento (paraview):
     std::cout << "Post Processing " << std::endl;

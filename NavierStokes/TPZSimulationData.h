@@ -46,7 +46,7 @@ protected:
     /** Physical dimension of the domain */
     int m_dimesion;
     
-    /** Number of thread */
+    /** Number of threads */
     int m_n_threads;
 
     /** Viscosity coeficient */
@@ -63,6 +63,18 @@ protected:
     
     /** @brief Correction overal tolerance */
     REAL m_epsilon_cor;
+    
+    bool m_is_initial_state_Q;
+    
+    bool m_is_current_state_Q;
+    
+    bool m_optimizeBandwidth_Q;
+    
+    /** @brief Directive that states if the current solution must be accepted inside the memory  */
+    bool m_must_accept_solution_Q;
+    
+    /** @brief Vector that storages only volumetric material identifiers (higher dimension elements) */
+    std::vector<int> m_volumetric_material_id;
     
 public:
     
@@ -90,7 +102,7 @@ public:
     TPZVec<int> GetCoarseDivisions(){
         return m_n_divs;
     }
-
+    
     /** Set the number of refinements in each internal element*/
     void SetNInterRefs(int n_refs){
         m_n_intrefs = n_refs;
@@ -200,6 +212,49 @@ public:
     REAL Get_epsilon_cor(){
         return m_epsilon_cor;
     }
+    
+    /** @brief Set initial state */
+    void SetInitialStateQ(bool state) {
+        m_is_initial_state_Q = state;
+    }
+    
+    /** @brief Get initial state */
+    bool IsInitialStateQ() {
+        return m_is_initial_state_Q;
+    }
+    
+    /** @brief Set current time state */
+    void SetCurrentStateQ(bool state) { m_is_current_state_Q = state; }
+    
+    /** @brief Get current time state */
+    bool IsCurrentStateQ() {return m_is_current_state_Q;}
+    
+    /** @brief Set the directive that states if the current solution must be accepted inside the memory  */
+    void Set_must_accept_solution_Q(bool must_accept_solution_Q){
+        m_must_accept_solution_Q = must_accept_solution_Q;
+    }
+    
+    /** @brief Get the directive that states if the current solution must be accepted inside the memory  */
+    bool Get_must_accept_solution_Q() { return m_must_accept_solution_Q; }
+    
+    /** @brief Get the vector that storages only volumetric material identifiers (higher dimension elements)  */
+    std::vector<int> & Get_volumetric_material_id(){
+        return m_volumetric_material_id;
+    }
+    
+    /** @brief Set the vector that storages only volumetric material identifiers (higher dimension elements) */
+    void Set_volumetric_material_id(std::vector<int> & volumetric_material_id){
+        m_volumetric_material_id = volumetric_material_id;
+    }
+
+    void SetOptimizeBandwidthQ(bool set_optimze){
+        m_optimizeBandwidth_Q = set_optimze;
+    }
+    
+    bool GetOptimizeBandwidthQ(){
+        return m_optimizeBandwidth_Q;
+    }
+    
     
 };
 
