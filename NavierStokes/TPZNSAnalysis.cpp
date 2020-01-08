@@ -22,6 +22,8 @@ TPZNSAnalysis::TPZNSAnalysis() : TPZAnalysis() {
     m_post_processor = NULL;
     m_var_names.resize(0);
     m_vec_var_names.resize(0);
+    m_R_Plus.Resize(0,0);
+    m_R_n.Resize(0,0);
 }
 
 TPZNSAnalysis::~TPZNSAnalysis(){
@@ -39,6 +41,8 @@ TPZNSAnalysis::TPZNSAnalysis(const TPZNSAnalysis & other){
     m_post_processor    = other.m_post_processor;
     m_var_names         = other.m_var_names;
     m_vec_var_names     = other.m_vec_var_names;
+    m_R_Plus            = other.m_R_Plus;
+    m_R_n               = other.m_R_n;
 }
 
 
@@ -126,18 +130,18 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         m_U_n = Solution();
     }
     // Set current state false means overwriting p of the memory
-    m_simulation_data->SetCurrentStateQ(false);
+    //m_simulation_data->SetCurrentStateQ(false);
     // Accect time solution means writing one of the vectors of this object in the memory
-    AcceptTimeStepSolution();
-    
+    //AcceptTimeStepSolution();
+
     //    // Initial guess
     //    m_X_n = m_X;
     // Set current state true means overwriting p_n of the memory object
-    m_simulation_data->SetCurrentStateQ(true);
-    
+    //m_simulation_data->SetCurrentStateQ(true);
+
     // Accept time solution here means writing one of the vectors of the object into the memory
-    AcceptTimeStepSolution();
-    
+    //AcceptTimeStepSolution();
+
     
     std::ofstream plotNavierEK("NavierStiffness.txt");
     std::ofstream plotNavierEF("NavierRhs.txt");
@@ -169,24 +173,29 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         this->ExecuteNewtonInteration();
         
         dU = Solution();
+        
+//        std::cout<<dU<<std::endl;
+        
         norm_dU  = Norm(dU);
         m_U_Plus += dU;
-        LoadCurrentState();
         
+//        std::cout<<m_U_Plus<<std::endl;
+        
+        //LoadCurrentState();
+        LoadLastState();
         AssembleResidual();
+        m_R_n = this->Rhs();
+//        std::cout<<this->Rhs()<<std::endl;
+        LoadCurrentState();
+        AssembleResidual();
+        m_R_Plus = this->Rhs();
+//        std::cout<<this->Rhs()<<std::endl;
+//        REAL test_RHS_norm_n = Norm(m_R_n);
+//        REAL test_RHS_norm = Norm(m_R_Plus);
         
-        // Test: Changing boundary condition into Dirichlet
-        //        std::map<int, TPZMaterial * >::iterator matit;
-        //        for(matit = fCompMesh->MaterialVec().begin(); matit != fCompMesh->MaterialVec().end(); matit++)
-        //        {
-        //
-        //            TPZMaterial *mat = matit->second;
-        //            if(mat->Id()==503){
-        //                TPZBndCond *bc = dynamic_cast<TPZBndCond *> (mat);
-        //                bc->SetType(0);
-        //            }
-        //        }
-        //        AssembleResidual();
+        //m_R_Plus += m_R_n; // total residue
+        m_res_error =  Norm(m_R_Plus); // residue error
+        
         
         
 #ifdef LOG4CXX
@@ -215,12 +224,13 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         m_dU_norm = norm_dU;
         
         
-        if (residual_stop_criterion_Q &&  correction_stop_criterion_Q) {
+        if (residual_stop_criterion_Q ||  correction_stop_criterion_Q) {
 #ifdef PZDEBUG
             std::cout << "TPZNSAnalysis:: Nonlinear process converged with residue norm = " << norm_res << std::endl;
             std::cout << "TPZNSAnalysis:: Number of iterations = " << i << std::endl;
             std::cout << "TPZNSAnalysis:: Correction norm = " << norm_dU << std::endl;
 #endif
+            m_simulation_data->SetCurrentStateQ(true);
             this->AcceptTimeStepSolution();
             break;
         }
@@ -235,6 +245,30 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
 
 void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
 
+    TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, this->Mesh());
+    const int dim = this->Mesh()->Dimension();
+    int div = 2;
+    TPZStack<std::string> scalnames, vecnames;
+//    if (fSimulationData->IsInitialStateQ()) {
+//        plotfile =  "DualSegregatedDarcyOnBox_I.vtk";
+//        return;
+//    }
+//    else{
+//        plotfile =  "DualSegregatedDarcyOnBox.vtk";
+//    }
+    
+    //Pós-processamento (paraview):
+
+    scalnames.Push("P");
+    vecnames.Push("V");
+    vecnames.Push("f");
+    vecnames.Push("V_exact");
+    scalnames.Push("P_exact");
+    scalnames.Push("Div");
+    
+    this->DefineGraphMesh(dim, scalnames, vecnames, res_file);
+    this->PostProcess(div,dim);
+    
 
 }
 
@@ -503,13 +537,13 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 
 void TPZNSAnalysis::ExecuteNewtonInteration(){
     this->Assemble();
-    this->Rhs() *= -1.0;
+    this->Rhs() *= 1.0;
     this->Solve();
 }
 
 void TPZNSAnalysis::LoadCurrentState(){
-    LoadSolution(m_U_Plus);
-    TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
+     LoadSolution(m_U_Plus);
+     TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
 
 }
 

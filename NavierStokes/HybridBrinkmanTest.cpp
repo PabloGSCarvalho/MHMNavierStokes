@@ -303,7 +303,7 @@ void HybridBrinkmanTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REA
     
 #ifdef PZDEBUG
     //Imprimir Matriz de rigidez Global:
-    if(0){
+    if(1){
         std::ofstream filestiff("stiffness.txt");
         an.Solver().Matrix()->Print("K1 = ",filestiff,EMathematicaInput);
         

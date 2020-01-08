@@ -245,7 +245,9 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(1);
+    sim_data->Set_n_iterations(2);
+    sim_data->Set_epsilon_cor(0.01);
+    sim_data->Set_epsilon_res(0.01);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
     
     TPZVec<std::string> var_name(2);

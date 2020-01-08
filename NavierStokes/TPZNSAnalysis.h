@@ -40,8 +40,6 @@ private:
     /// Residue error
     STATE m_res_error;
     
-    /// Correction variation
-    STATE m_dU_norm;
     
     /// number of Newton iterations
     int m_k_iterations;
@@ -54,6 +52,17 @@ private:
     
     /// Variables being postprocessed as vector on standard post-process
     TPZStack<std::string> m_vec_var_names;
+    
+
+    /** @brief Part of residue at n+1 */
+    TPZFMatrix<REAL> m_R_Plus;
+    
+    /** @brief Part of residue at n  */
+    TPZFMatrix<REAL> m_R_n;
+
+    /// Correction variation
+    STATE m_dU_norm;
+
     
     
 public:

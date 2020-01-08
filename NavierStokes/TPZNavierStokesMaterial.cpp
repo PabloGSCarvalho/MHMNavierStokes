@@ -642,26 +642,36 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             this->ForcingFunction()->Execute(x, f, gradu);
         }
         
-        STATE phi_dot_f = 0.0, un_dot_phiV = 0.0, p_dot_divV = 0.;
+        STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
         for (int e=0; e<3; e++) {
             phi_dot_f += phiVi(e)*f[e];
             un_dot_phiV += phiVi(e)*u_n[e];
         }
-        p_dot_divV = p_n * datavec[0].divphi(i);
-        
-        ef(i) += weight * (phi_dot_f-un_dot_phiV+p_dot_divV);
+        ef(i) += weight * (phi_dot_f-un_dot_phiV*0.);
     
-        STATE C_term_f = 0.;
+        STATE A_term_f = 0.; // A - Flux term
+        TPZFNMatrix<9,STATE> DUn_j(3,3,0.);
+        for (int e=0; e<3; e++) {
+            for (int f=0; f<3; f++) {
+                 DUn_j(e,f)= 0.5 * (gradUn(e,f) + gradUn(f,e));
+            }
+        }
+        A_term_f = Inner(Dui, DUn_j);
+        ef(i) += 2. * weight * (-A_term_f);
+        
+        STATE B_term_f = 0.; // B - Mixed term
+        B_term_f = - p_n * datavec[0].divphi(i);
+        ef(i) += weight * (-B_term_f);
+        
+        STATE C_term_f = 0.; // C - Trilinear terms
         TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
         for (int e=0; e<3; e++) {
             for (int f=0; f<3; f++) {
                 GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
             }
         }
-        
         C_term_f += InnerVec(GradUn_phiU, phiVi);
-        
-        ef(i) += -weight * C_term_f*0.;  // C - Trilinear terms
+        ef(i) += -weight * C_term_f*0.;
         
         // A, C e D - velocity X velocity
         for(int j = 0; j < nshapeV; j++){
@@ -746,12 +756,10 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     
     for (int i = 0; i < nshapeP; i++) {
  
-        STATE p_dot_divU = 0.;
-        ///p*div(U)
-        p_dot_divU = phiP(i,0)*Tr(gradUn);
+        STATE B_term_f = 0.; // B - Mixed term
+        B_term_f = - phiP(i,0)*Tr(gradUn);
+        ef(i) += weight * (-B_term_f);
         
-        // Matrix B
-        ef(nshapeV+i) += weight*p_dot_divU;
     }
     
     
@@ -811,8 +819,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
 #ifdef PZDEBUG
     {
-       std::ofstream fileEK("FileEKContribute.txt");
+        std::ofstream fileEK("FileEKContribute.txt");
         ek.Print("stiff = ",fileEK,EMathematicaInput);
+        
+        std::ofstream fileEF("FileEFContribute.txt");
+        ef.Print("rhs = ",fileEF,EMathematicaInput);
     }
 #endif
     

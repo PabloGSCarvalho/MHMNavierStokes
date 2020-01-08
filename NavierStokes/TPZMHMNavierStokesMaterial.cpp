@@ -17,7 +17,7 @@ using namespace std;
 
 void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &data, TPZVec<TPZMaterialData > &datavec_left, TPZVec<TPZMaterialData > &datavec_right)
 {
-    TPZMaterial::FillDataRequirementsInterface(data, datavec_left, datavec_right);
+    //TPZMaterial::FillDataRequirementsInterface(data, datavec_left, datavec_right);
     int nref_left = datavec_left.size();
     datavec_left[0].fNeedsNormal = true;
     datavec_left[0].fNeedsNormalVecFad = NeedsNormalVecFad;
@@ -86,18 +86,17 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         int iphi1 = datavecleft[vindex].fVecShapeIndex[i1].second;
         int ivec1 = datavecleft[vindex].fVecShapeIndex[i1].first;
         
-        TPZFNMatrix<9, STATE> phiVi(3,1);
+        TPZFNMatrix<9, STATE> phiVi(3,1),lambda_n(3,1);
         for (int e=0; e< 3 ; e++) {
             phiVi(e,0)=Normalvec(e,ivec1)*datavecleft[vindex].phi(iphi1,0);
         }
         
-        STATE Lambda_dot_phiV = 0.;
-        
-//        for (int e=0; e< 3 ; e++) {
-//            Lambda_dot_phiV += phiVi(e,0)*Lambda_n[e];
-//        }
-//
-//        ef(i1) += -weight*Lambda_dot_phiV;
+        STATE Lambda_dot_phiV = 0.; //rhs term
+        for (int e=0; e< 3 ; e++) {
+            lambda_n(e,0) = sLambda_n*tan(0,e);
+        }
+        Lambda_dot_phiV = InnerVec(lambda_n, phiVi);
+        ef(i1) += -fMultiplier * weight*Lambda_dot_phiV;
         
         // K12 e K21 - (test V left) * (trial Lambda right)
         for(int j1 = 0; j1 < nshapeLambda; j1++)
@@ -129,13 +128,11 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
             lambda_i(e,0) = phiLamb(i1,0)*tan(0,e);
         }
 
-//        STATE phiLambda_dot_U = 0.;
-//        for (int e=0; e< 3 ; e++) {
-//            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
-//        }
-//        
-//        // Var. Sigma, Sn :
-//        ef(i1+nshapeV) += -weight*phiLambda_dot_U;
+        STATE phiLambda_dot_U = 0.; //rhs term
+        for (int e=0; e< 3 ; e++) {
+            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
+        }
+        ef(i1+nshapeV) += -fMultiplier * weight*phiLambda_dot_U;
     }
     
 }
