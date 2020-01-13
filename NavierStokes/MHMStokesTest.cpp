@@ -112,7 +112,7 @@ MHMStokesTest::~MHMStokesTest()
 void MHMStokesTest::Run()
 {
     int int_order = fsimData.GetInternalOrder();
-    int skeleton_order = fsimData.GetInternalOrder();
+    int skeleton_order = fsimData.GetSkeletonOrder();
     TPZVec<int> n_s = fsimData.GetCoarseDivisions();
     TPZVec<REAL> h_s = fsimData.GetDomainSize();
     int nrefs = fsimData.GetNInterRefs();
