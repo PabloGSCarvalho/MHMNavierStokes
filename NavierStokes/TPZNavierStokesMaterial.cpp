@@ -545,8 +545,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
     }
-    REAL factorM = 0.;
-    REAL factorMk = 0.;
+    REAL factorM = 1.;
+    REAL factorMk = 1.;
     // Setting the phis
     // V
     TPZFMatrix<REAL> &phiV = datavec[vindex].phi;
@@ -684,7 +684,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 //            D_term_f += Gradphi_Un(e,0)*u_n[e];
 //        }
         
-        ef(i) += weight * C_term_f*factorM;
+        ef(i) += -weight * C_term_f*factorM;
 //        ef(i) += - weight * D_term_f*factorM;
         
         // A, C e D - velocity X velocity
@@ -710,17 +710,26 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
             STATE A_term = Inner(Dui, Duj);
             
-            STATE C_term = 0.;
+            TPZManVector<STATE> beta(3,0.);
+            if(HasForcingFunctionExact())
+            {
+                TPZFMatrix<STATE> gradu(3,3,0.);
+                TPZVec<STATE> x(3,0.),xrot(3,0.);
+                x=datavec[vindex].x;
+                this->ForcingFunctionExact()->Execute(x, beta, gradu);
+            }
+            
             
             TPZFNMatrix<9,STATE> GradU_Un(3,1,0.);
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
-                    GradU_Un(e,0) += GradVj(e,f)*u_n[f];
+                    GradU_Un(e,0) += GradVj(e,f)*u_n[f]; //Oseen eqs
                 }
             }
-    
-            C_term = InnerVec(GradU_Un, phiVi);
-
+            
+            
+            STATE C_term = InnerVec(GradU_Un, phiVi);
+            
             STATE D_term = 0.;
             
             TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
@@ -734,9 +743,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
         
-            ek(i,j) += weight * C_term*factorMk;  // C - Trilinear terms
+            ek(j,i) += weight * C_term*factorMk;  // C - Trilinear terms
+
+//            ek(i,j) += (-1./2.)*weight * C_term2*factorMk;  // C - Trilinear terms
             
-            ek(i,j) += weight * D_term*factorMk;  // D - Trilinear terms
+            //ek(i,j) += weight * D_term*factorMk;  // D - Trilinear terms
             
         }
         

@@ -86,14 +86,14 @@ int main(int argc, char *argv[])
         
         for (int it=0; it<=0; it++) {
             //h_level = pow(2., 2+it);
-            h_level = 4;
+            h_level = 1;
             
             TPZVec<int> n_s(3,0.);
             n_s[0]=h_level ,n_s[1]=h_level;
             
             n_s[2]=h_level; //Obs!!
             
-            REAL visc = 1.0; //->Darcy
+            REAL visc = 1.; //->Darcy
             
             NavierStokesTest  * Test2 = new NavierStokesTest();
             //Test2->Set3Dmesh();
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
             
             //Test2->SetElType(ETriangle);
             Test2->SetInternRef(0);
-            Test2->SetStokesTest();
+            //Test2->SetStokesTest();
             //Test2->SetHdivPlus();
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);

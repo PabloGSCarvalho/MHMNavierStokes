@@ -156,7 +156,7 @@ private:
     
     bool f_StokesTest = false;
     
-    
+    bool f_OseenTest = false;
     
 public:
 
@@ -231,6 +231,10 @@ public:
 
     void SetStokesTest(){
         f_StokesTest = true;
+    };
+
+    void SetOseenTest(){
+        f_OseenTest = true;
     };
     
     void Set3Dmesh(){
