@@ -147,6 +147,12 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     nshapeV = datavec[0].phi.Rows();
     nshapeLambda = datavec[1].phi.Rows();
     
+    TPZManVector<REAL,3> u_n  = datavec[0].sol[0];
+
+    TPZManVector<REAL,3> l_n  = datavec[1].sol[0];
+    
+    //std::cout<<u_n<<std::endl;
+    
     if(nshapeV!=0&&nshapeLambda!=0){
         DebugStop();
     }
@@ -205,9 +211,38 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         
         
     }else{
+        
         //DebugStop();
         //std::cout<<"!!!!!!!!! falta esta condição de contorno aqui !!!!!!!!!!!!!"<<std::endl;
     }
+    
+    // Calculo do vetor (Du)n :
+    if (nshapeLambda!=0) {
+        gradu.Resize(3,3);
+        STATE visco = GetViscosity();
+        for (int i = 0; i<3; i++) {
+            for (int j = 0; j<3; j++) {
+                Du(i,j)=  visco * (gradu(i,j) + gradu(j, i));
+            }
+        }
+        
+        for (int i = 0; i<3; i++) {
+            for (int j = 0; j<3; j++) {
+                Dun(i,0) +=  Du(i,j) * datavec[1].normal[j];
+            }
+        }
+        
+        // Neumann vector
+        
+        for (int i = 0; i<3; i++) {
+            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i];
+        }
+//        std::cout<<datavec[1].normal<<std::endl;
+//        std::cout<<v_Neumann<<std::endl;
+  
+    }
+    
+    
 
     
     STATE value = 0.;
@@ -218,22 +253,53 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             for (int i = 0; i<3; i++) {
                 value += v_Dirichlet[i]*datavec[0].normal[i];
             }
+            
+//            std::cout << "v_d = "<< v_Dirichlet << std::endl;
+//            std::cout << "u_n = "<< u_n << std::endl;
+//            std::cout << "normal = "<< datavec[0].normal << std::endl;
+//            std::cout << "val 1 = "<< value << std::endl;
+//            
+            value = value - u_n[0];
+//
+//            std::cout << "val 2 = "<< value << std::endl;
+//            std::cout << "________" << std::endl;
+            
 
         }else if (bc.Type()==1){
             
             for (int j = 0; j<3; j++) {
                 value += v_Neumann[j] * datavec[0].normal[j];
             }
+            
+            
         }
         
         phi = &datavec[0].phi;
         
     }else if (nshapeLambda!=0&&(bc.Type()!=5)){
         
-        for (int i = 0; i<3; i++) {
-            value += v_Dirichlet[i]*datavec[1].axes(0,i);
+        if(bc.Type()==0){
+            
+            for (int i = 0; i<3; i++) {
+                value += v_Neumann[i]*datavec[1].axes(0,i);
+            }
+                //                        std::cout << "v_n = "<< v_Neumann << std::endl;
+                //                        std::cout << "l_n = "<< l_n << std::endl;
+                //                        std::cout << "normal = "<< datavec[1].axes << std::endl;
+                //                        std::cout << "val 1 = "<< value << std::endl;
+                value = value - l_n[0];
+                //                        std::cout << "val 2 = "<< value << std::endl;
+                //                        std::cout << "________" << std::endl;
+
+        }else if(bc.Type()==1){
+            
+            for (int i = 0; i<3; i++) {
+                value += v_Dirichlet[i]*datavec[1].axes(0,i);
+            }
+            
         }
-        
+
+
         phi = &datavec[1].phi;
         
     }else if (bc.Type()==5){
@@ -247,6 +313,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     switch (bc.Type()) {
         case 0: //Dirichlet for continuous formulation
         {
+            
             for(int j1 = 0; j1 < phi->Rows(); j1++)
             {
                 ef(j1,0) += gBigNumber*value*(*phi)(j1,0)*weight;

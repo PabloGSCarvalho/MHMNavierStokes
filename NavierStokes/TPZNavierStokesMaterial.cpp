@@ -545,7 +545,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
     }
-    
+    REAL factorM = 0.;
+    REAL factorMk = 0.;
     // Setting the phis
     // V
     TPZFMatrix<REAL> &phiV = datavec[vindex].phi;
@@ -645,9 +646,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
         for (int e=0; e<3; e++) {
             phi_dot_f += phiVi(e)*f[e];
-            un_dot_phiV += phiVi(e)*u_n[e];
+            un_dot_phiV += phiVi(e)*u_n[e]*0.; //???????
         }
-        ef(i) += weight * (phi_dot_f-un_dot_phiV*0.);
+        ef(i) += weight * (phi_dot_f-un_dot_phiV);
     
         STATE A_term_f = 0.; // A - Flux term
         TPZFNMatrix<9,STATE> DUn_j(3,3,0.);
@@ -657,7 +658,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
         }
         A_term_f = Inner(Dui, DUn_j);
-        ef(i) += 2. * weight * (-A_term_f);
+        ef(i) += 2. * fViscosity * weight * (-A_term_f);
         
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - p_n * datavec[0].divphi(i);
@@ -670,8 +671,21 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
             }
         }
-        C_term_f += InnerVec(GradUn_phiU, phiVi);
-        ef(i) += -weight * C_term_f*0.;
+        C_term_f = InnerVec(GradUn_phiU, phiVi);
+ 
+//        STATE D_term_f = 0.;
+//        TPZFNMatrix<9,STATE> Gradphi_Un(3,1,0.);
+//        for (int e=0; e<3; e++) {
+//            for (int f=0; f<3; f++) {
+//                Gradphi_Un(e,0) += GradVi(e,f)*u_n[f];
+//            }
+//        }
+//        for (int e=0; e<3; e++) {
+//            D_term_f += Gradphi_Un(e,0)*u_n[e];
+//        }
+        
+        ef(i) += weight * C_term_f*factorM;
+//        ef(i) += - weight * D_term_f*factorM;
         
         // A, C e D - velocity X velocity
         for(int j = 0; j < nshapeV; j++){
@@ -720,14 +734,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
         
-            ek(i,j) += weight * C_term*0.;  // C - Trilinear terms
+            ek(i,j) += weight * C_term*factorMk;  // C - Trilinear terms
             
-            ek(i,j) += weight * D_term*0.;  // D - Trilinear terms
+            ek(i,j) += weight * D_term*factorMk;  // D - Trilinear terms
             
         }
-        
-
-        
         
         // B - pressure and velocity
         for (int j = 0; j < nshapeP; j++) {
@@ -736,19 +747,13 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             for (int e=0; e<3; e++) {
                 GradPj[e] = dphiPx(e,j);
             }
-
-            ///p*div(U)
-            STATE fact = 0.;
-            if (fSpace==1) {
-                fact = (-1.) * weight * phiP(j,0) * datavec[0].divphi(i);
-            }else{
-                fact = (-1.) * weight * phiP(j,0) * divui;
-            }
-
+    
+            STATE B_term = 0.;
+            B_term = (-1.) * weight * phiP(j,0) * datavec[0].divphi(i);
             // Matrix B
-            ek(i, nshapeV+j) += fact;
+            ek(i, nshapeV+j) += B_term; // B - Bilinear div v * p
             // Matrix B^T
-            ek(nshapeV+j,i) += fact;
+            ek(nshapeV+j,i) += B_term;  // Bt - Bilinear div u * q
             
         }
         
@@ -769,23 +774,23 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         TPZFMatrix<REAL> &phigM = datavec[2].phi;
         TPZFMatrix<REAL> &phipM = datavec[3].phi;
         
-        // matrix C - pressure and average-pressure
+        // matrix D - pressure and average-pressure
         for (int j = 0; j < nshapeP; j++) {
             
             STATE fact = (1.) * weight * phiP(j,0) * phigM(0,0);
-            // Matrix C
+            // Matrix D
             ek(nshapeV+nshapeP, nshapeV+j) += fact;
-            // Matrix C^T
+            // Matrix D^T
             ek(nshapeV+j,nshapeV+nshapeP) += fact;
             
         }
         
-        // matrix D - injection and average-pressure
+        // matrix E - injection and average-pressure
 
         STATE factG = (1.) * weight * phigM(0,0) * phipM(0,0);
-        // Matrix C
+        // Matrix E
         ek(nshapeV+nshapeP+1, nshapeV+nshapeP) += factG;
-        // Matrix C^T
+        // Matrix E^T
         ek(nshapeV+nshapeP,nshapeV+nshapeP+1) += factG;
         
     }
@@ -795,23 +800,23 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         TPZFMatrix<REAL> &phigM0 = datavec[4].phi;
         TPZFMatrix<REAL> &phipM0 = datavec[5].phi;
         
-        // matrix C0 - pressure and average-pressure
+        // matrix D0 - pressure and average-pressure
         for (int j = 0; j < nshapeP; j++) {
             
             STATE fact0 = (1.) * weight * phiP(j,0) * phigM0(0,0);
-            // Matrix C
+            // Matrix D
             ek(nshapeV+nshapeP+2, nshapeV+j) += fact0;
-            // Matrix C^T
+            // Matrix D^T
             ek(nshapeV+j,nshapeV+nshapeP+2) += fact0;
             
         }
         
-        // matrix D0 - injection and average-pressure
+        // matrix E0 - injection and average-pressure
         
         STATE factG0 = (1.) * weight * phigM0(0,0) * phipM0(0,0);
-        // Matrix C
+        // Matrix E
         ek(nshapeV+nshapeP+3, nshapeV+nshapeP+2) += factG0;
-        // Matrix C^T
+        // Matrix E^T
         ek(nshapeV+nshapeP+2,nshapeV+nshapeP+3) += factG0;
         
     }

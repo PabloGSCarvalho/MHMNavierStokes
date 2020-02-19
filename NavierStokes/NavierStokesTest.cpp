@@ -117,6 +117,8 @@ NavierStokesTest::NavierStokesTest()
     
     f_Holemesh = false;
     
+    f_StokesTest = false;
+    
     feltype = EQuadrilateral;
     
     f_mesh_vector.resize(2);
@@ -244,10 +246,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
-    sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(2);
-    sim_data->Set_epsilon_cor(0.01);
-    sim_data->Set_epsilon_res(0.01);
+    sim_data->SetOptimizeBandwidthQ(true);
+    sim_data->Set_n_iterations(4);
+    sim_data->Set_epsilon_cor(0.1);
+    sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
     
     TPZVec<std::string> var_name(2);
@@ -263,7 +265,11 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
-    NS_analysis->SetExact(Sol_exact);
+    if(f_StokesTest){
+            NS_analysis->SetExact(Sol_exact_Stokes);
+    }else{
+            NS_analysis->SetExact(Sol_exact);
+    }
     NS_analysis->SetThreadsForError(3);
     NS_analysis->PostProcessError(Errors,false);
     
@@ -956,8 +962,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
     
     int dimmodel = 2;
     TPZManVector<REAL,3> x0(3,0.),x1(3,0.);
-    x0[0] = 0., x0[1] = -1.;
-    x1[0] = 2., x1[1] = 1.;
+    x0[0] = -0.5, x0[1] = 0.;
+    x1[0] = 1.5, x1[1] = 2.;
     
 //    x0[0] = 0., x0[1] = 0.;
 //    x1[0] = 4., x1[1] = 2.;
@@ -2407,141 +2413,9 @@ TPZCompEl *NavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh,i
 
 void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
     
-//    sol.resize(4);
-//    dsol.Resize(3,3);
-//
-//    STATE xv = x[0];
-//    STATE yv = x[1];
-//    STATE theta = atan(yv/xv);
-//    STATE r=sqrt(xv*xv+yv*yv);
-//
-//    STATE v_x =  -r*sin(theta);
-//    STATE v_y =  r*cos(theta);
-//    STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
-//    STATE p =   3.;
-//
-//    //    STATE v_x =  xv;
-//    //    STATE v_y =  0;
-//    //    STATE p =   0.;
-//
-//
-//    sol[0] = v_x; // x direction
-//    sol[1] = v_y; // y direction
-//    sol[2] = 0.;
-//    sol[3] = p; //
-//
-//    dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-//    dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-    
-    
-//    sol[0] = 1.; // x direction
-//    sol[1] = 0.; // y direction
-//    sol[3] = 0.;
-//    dsol(0,0)= 0.;
-//    dsol(1,1)= 0.;
-    
-//        dsol.Resize(3,3);
-//        sol.Resize(4);
-//
-//        REAL x1 = x[0];
-//        REAL x2 = x[1];
-//
-//        TPZVec<REAL> v_Dirichlet(3,0.);
-//
-////        v_Dirichlet[0] = -0.1*x2*x2+0.2*x2;
-//        v_Dirichlet[0] = -1.+x2;
-////        v_Dirichlet[0] = 1.;
-//        v_Dirichlet[1] = 0.;
-//        v_Dirichlet[2] = 0.;
-////        STATE pressure = 1.-0.2*x1;
-//        STATE pressure = 0.;
-//
-//        sol[0]=v_Dirichlet[0];
-//        sol[1]=v_Dirichlet[1];
-//        sol[2]=v_Dirichlet[2];
-//        sol[3]=pressure;
-//
-//        // vx direction
-//        dsol(0,0)= 0.;
-////        dsol(0,1)= 0.2-0.2*x2;
-//        dsol(0,1)= 1.;
-//        //dsol(0,1)= 0.;
-//        dsol(0,2)= 0.;
-//
-//        // vy direction
-//        dsol(1,0)= 0.;
-//        dsol(1,1)= 0.;
-//        dsol(1,2)= 0.;
-//
-//        // vz direction
-//        dsol(2,0)= 0.;
-//        dsol(2,1)= 0.;
-//        dsol(2,2)= 0.;
-    
-    // General form : : Artigo Botti, Di Pietro, Droniou
-    
-    //    dsol.Resize(3,3);
-    //    sol.Resize(3);
-    //
-    //    REAL x1 = x[0];
-    //    REAL x2 = x[1];
-    //
-    //    REAL m_v= 1., m_u= 1.0;
-    //
-    //    REAL Cf=m_v/m_u;
-    //
-    //    STATE v_1 = -exp(-Cf)*sin(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*sin(x1)*sin(x2);
-    //    STATE v_2 = -exp(-Cf)*cos(x1)*cos(x2)-(1./m_v)*(1.-exp(-Cf))*cos(x1)*cos(x2);
-    //    STATE pressure= cos(x1)*sin(x2);
-    //
-    //    sol[0]=v_1;
-    //    sol[1]=v_2;
-    //    sol[2]=pressure;
-    //
-    //    // vx direction
-    //    dsol(0,0)= -exp(-Cf)*cos(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*cos(x1)*sin(x2);
-    //    dsol(0,1)= exp(-Cf)*cos(x2)*sin(x1)+(1./m_v)*(1.-exp(-Cf))*cos(x2)*sin(x1);
-    //
-    //    // vy direction
-    //    dsol(1,0)= -exp(-Cf)*cos(x2)*sin(x1)+(1./m_v)*(1.-exp(-Cf))*cos(x2)*sin(x1);
-    //    dsol(1,1)= exp(-Cf)*cos(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*cos(x1)*sin(x2);
-    //
-
-    
-    
-    // Brinkman : : Artigo Botti, Di Pietro, Droniou
-    
-    //    dsol.Resize(3,3);
-    //    sol.Resize(3);
-    //
-    //    REAL x1 = x[0];
-    //    REAL x2 = x[1];
-    //
-    //    REAL e = exp(1.);
-    //
-    //    STATE v_1 = (1.-2./e)*sin(x1)*sin(x2);
-    //    STATE v_2 = -1.*cos(x1)*cos(x2);
-    //    STATE pressure= cos(x1)*sin(x2);
-    //
-    //    sol[0]=v_1;
-    //    sol[1]=v_2;
-    //    sol[2]=pressure;
-    //
-    //    // vx direction
-    //    dsol(0,0)= (1.-2./e)*cos(x1)*sin(x2);
-    //    dsol(0,1)= cos(x2)*sin(x1);
-    //
-    //    // vy direction
-    //    dsol(1,0)= (1.-2./e)*cos(x2)*sin(x1);
-    //    dsol(1,1)= cos(x1)*sin(x2);
-    //
-
-    
-    // Stokes : : Artigo Botti, Di Pietro, Droniou
-    
+    // Navier-Stokes
     dsol.Resize(3,3);
     sol.Resize(4);
-
 
     //Applying rotation:
     TPZVec<REAL> x_in = x;
@@ -2554,14 +2428,18 @@ void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZF
     REAL x1 = x[0];
     REAL x2 = x[1];
 
-    REAL e = exp(1.);
-
     TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
 
-    v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
-    v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-    STATE pressure= cos(x1)*sin(x2);
+    REAL nu = 0.5;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
 
+    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
+    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
+    //STATE pressure = -(1./2.)*exp(2.*lambda*x1)+(lambda/2.)*(exp(4.*lambda)-1.);
+    STATE pressure = (1./2.)*(1. - exp(2.*lambda*x1));
+    
     f_T.Apply(v_Dirichlet, vbc_rot);
     v_Dirichlet = vbc_rot;
 
@@ -2570,31 +2448,31 @@ void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZF
     sol[2]=v_Dirichlet[2];
     sol[3]=pressure;
 
-
     // GradU * Rt
     TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
 
     // vx direction
-    GradU(0,0)= -1.*cos(x1)*sin(x2);
-    GradU(0,1)= cos(x2)*sin(x1);
+    GradU(0,0)= exp(-(-5.+Ty)*x1)*(-5.+Ty)*cos(2.*Pi*x2);
+    GradU(0,1)= 2.*exp(-(-5.+Ty)*x1)*Pi*sin(2.*Pi*x2);
 
     // vy direction
-    GradU(1,0)= -1.*cos(x2)*sin(x1);
-    GradU(1,1)= cos(x1)*sin(x2);
+    GradU(1,0)= exp(-(-5.+Ty)*x1)*(-5.+Ty)*(-5.+Ty)*sin(2.*Pi*x2)*(1./(2.*Pi));
+    GradU(1,1)= -exp(-(-5.+Ty)*x1)*(-5.+Ty)*cos(2.*Pi*x2);
+
 
     TPZFMatrix<STATE> R = f_T.Mult();
     TPZFMatrix<STATE> Rt(3,3,0.);
     R.Transpose(&Rt);
 
-//    GradU.Print("GradU = ");
-//    R.Print("R = ");
-//    Rt.Print("Rt = ");
+    //    GradU.Print("GradU = ");
+    //    R.Print("R = ");
+    //    Rt.Print("Rt = ");
 
     GradU.Multiply(Rt,GradURt);
-//    GradURt.Print("GradURt = ");
+    //    GradURt.Print("GradURt = ");
 
     R.Multiply(GradURt,RGradURt);
-//    RGradURt.Print("RGradURt = ");
+    //    RGradURt.Print("RGradURt = ");
 
     // vx direction
     dsol(0,0)= RGradURt(0,0);
@@ -2611,125 +2489,130 @@ void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZF
     dsol(2,1)= RGradURt(2,1);
     dsol(2,2)= RGradURt(2,2);
     
-    // Darcy : : Artigo Botti, Di Pietro, Droniou
     
-    //        dsol.Resize(3,3);
-    //        sol.Resize(3);
-    //
-    //        REAL x1 = x[0];
-    //        REAL x2 = x[1];
-    //
-    //        STATE v_1 = sin(x1)*sin(x2);
-    //        STATE v_2 = -1.*cos(x1)*cos(x2);
-    //        STATE pressure= cos(x1)*sin(x2);
-    //
-    //        sol[0]=v_1;
-    //        sol[1]=v_2;
-    //        sol[2]=pressure;
-    //
-    //        // vx direction
-    //        dsol(0,0)= cos(x1)*sin(x2);
-    //        dsol(0,1)= cos(x2)*sin(x1);
-    //
-    //        // vy direction
-    //        dsol(1,0)= cos(x2)*sin(x1);
-    //        dsol(1,1)= cos(x1)*sin(x2);
-    
+}
 
+void NavierStokesTest::Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
     
-    // Stokes 3D : Artigo Botti, Di Pietro, Droniou
+        sol.resize(4);
+        dsol.Resize(3,3);
+    //
+    //    STATE xv = x[0];
+    //    STATE yv = x[1];
+    //    STATE theta = atan(yv/xv);
+    //    STATE r=sqrt(xv*xv+yv*yv);
+    //
+    //    STATE v_x =  -r*sin(theta);
+    //    STATE v_y =  r*cos(theta);
+    //    STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
+    //    STATE p = (1./2.)*xv*xv+(1./2.)*yv*yv;
+    //
+    //    v_x =  1.;
+    //    v_y = 0.;
+    //    p = 0.;
+    //
+    //
+    //    sol[0] = v_x; // x direction
+    //    sol[1] = v_y; // y direction
+    //    sol[2] = 0.;
+    //    sol[3] = p; //
     
-//        dsol.Resize(3,3);
-//        sol.Resize(4);
-//
-//        //Applying rotation:
-//        TPZVec<REAL> x_in = x;
-//        TPZVec<REAL> x_rot(3,0.);
-//
-//        f_InvT.Apply(x_in,x_rot);
-//        x[0] = x_rot[0];
-//        x[1] = x_rot[1];
-//
-//        REAL x1 = x[0];
-//        REAL x2 = x[1];
-//        REAL x3 = x[2];
-//
-//        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//        v_Dirichlet[0] = cos(x1)*cos(x3) -1.*sin(x1)*sin(x2);
-//        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-//        v_Dirichlet[2] = sin(x1)*sin(x3);
-//        STATE pressure= cos(x1)*sin(x2)*cos(x3);
-//
-//        f_T.Apply(v_Dirichlet, vbc_rot);
-//        v_Dirichlet = vbc_rot;
-//
-//        sol[0]=v_Dirichlet[0];
-//        sol[1]=v_Dirichlet[1];
-//        sol[2]=v_Dirichlet[2];
-//        sol[3]=pressure;
-//
-//
-//        // GradU * Rt
-//        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//        // vx direction
-//        GradU(0,0)= -cos(x3)*sin(x1)-1.*cos(x1)*sin(x2);
-//        GradU(0,1)= cos(x2)*sin(x1);
-//        GradU(0,2)= cos(x1)*sin(x3);
-//
-//        // vy direction
-//        GradU(1,0)= -1.*cos(x2)*sin(x1);
-//        GradU(1,1)= cos(x1)*sin(x2);
-//        GradU(1,2)= 0.;
-//
-//        // vz direction
-//        GradU(2,0)= -1.*cos(x1)*sin(x3);
-//        GradU(2,1)= 0.;
-//        GradU(2,2)= cos(x3)*sin(x1);
-//
-//
-//        TPZFMatrix<STATE> R = f_T.Mult();
-//        TPZFMatrix<STATE> Rt(3,3,0.);
-//        R.Transpose(&Rt);
-//
-//    //    GradU.Print("GradU = ");
-//    //    R.Print("R = ");
-//    //    Rt.Print("Rt = ");
-//
-//        GradU.Multiply(Rt,GradURt);
-//    //    GradURt.Print("GradURt = ");
-//
-//        R.Multiply(GradURt,RGradURt);
-//    //    RGradURt.Print("RGradURt = ");
-//
-//        // vx direction
-//        dsol(0,0)= RGradURt(0,0);
-//        dsol(0,1)= RGradURt(0,1);
-//        dsol(0,2)= RGradURt(0,2);
-//
-//        // vy direction
-//        dsol(1,0)= RGradURt(1,0);
-//        dsol(1,1)= RGradURt(1,1);
-//        dsol(1,2)= RGradURt(1,2);
-//
-//        // vz direction
-//        dsol(2,0)= RGradURt(2,0);
-//        dsol(2,1)= RGradURt(2,1);
-//        dsol(2,2)= RGradURt(2,2);
+    //    dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
+    //    dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
+    
+    //    dsol(0,0)= 0.;
+    //    dsol(1,1)= 0.;
+    
+    //    sol[0] = 1.; // x direction
+    //    sol[1] = 0.; // y direction
+    //    sol[3] = 0.;
+    //    dsol(0,0)= 0.;
+    //    dsol(1,1)= 0.;
+    
+        // Stokes : : Artigo Botti, Di Pietro, Droniou
+        dsol.Resize(3,3);
+        sol.Resize(4);
+    
+        //Applying rotation:
+        TPZVec<REAL> x_in = x;
+        TPZVec<REAL> x_rot(3,0.);
+    
+        f_InvT.Apply(x_in,x_rot);
+        x[0] = x_rot[0];
+        x[1] = x_rot[1];
+    
+        REAL x1 = x[0];
+        REAL x2 = x[1];
+        REAL e = exp(1.);
+    
+        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+    
+        v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
+        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
+        STATE pressure= cos(x1)*sin(x2);
+    
+        f_T.Apply(v_Dirichlet, vbc_rot);
+        v_Dirichlet = vbc_rot;
+    
+        sol[0]=v_Dirichlet[0];
+        sol[1]=v_Dirichlet[1];
+        sol[2]=v_Dirichlet[2];
+        sol[3]=pressure;
+    
+        // GradU * Rt
+        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+    
+        // vx direction
+        GradU(0,0)= -1.*cos(x1)*sin(x2);
+        GradU(0,1)= cos(x2)*sin(x1);
+    
+        // vy direction
+        GradU(1,0)= -1.*cos(x2)*sin(x1);
+        GradU(1,1)= cos(x1)*sin(x2);
+    
+        TPZFMatrix<STATE> R = f_T.Mult();
+        TPZFMatrix<STATE> Rt(3,3,0.);
+        R.Transpose(&Rt);
+    
+    //    GradU.Print("GradU = ");
+    //    R.Print("R = ");
+    //    Rt.Print("Rt = ");
+    
+        GradU.Multiply(Rt,GradURt);
+    //    GradURt.Print("GradURt = ");
+    
+        R.Multiply(GradURt,RGradURt);
+    //    RGradURt.Print("RGradURt = ");
+    
+        // vx direction
+        dsol(0,0)= RGradURt(0,0);
+        dsol(0,1)= RGradURt(0,1);
+        dsol(0,2)= RGradURt(0,2);
+    
+        // vy direction
+        dsol(1,0)= RGradURt(1,0);
+        dsol(1,1)= RGradURt(1,1);
+        dsol(1,2)= RGradURt(1,2);
+    
+        // vz direction
+        dsol(2,0)= RGradURt(2,0);
+        dsol(2,1)= RGradURt(2,1);
+        dsol(2,2)= RGradURt(2,2);
+    
     
     
 }
 
+
 void NavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
     
     //Applying rotation:
-    TPZVec<REAL> x_in = x;
-    TPZVec<REAL> x_rot(3,0.);
-    
-    f_InvT.Apply(x_in,x_rot);
-    x[0] = x_rot[0];
-    x[1] = x_rot[1];
+//    TPZVec<REAL> x_in = x;
+//    TPZVec<REAL> x_rot(3,0.);
+//
+//    f_InvT.Apply(x_in,x_rot);
+//    x[0] = x_rot[0];
+//    x[1] = x_rot[1];
     
     f.resize(3);
     REAL x1 = x[0];
@@ -2740,77 +2623,33 @@ void NavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMat
     f[1] =0.;
     f[2] =0.;
     
+}
+
+void NavierStokesTest::F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
+    
+//    //Applying rotation:
+//    TPZVec<REAL> x_in = x;
+//    TPZVec<REAL> x_rot(3,0.);
+//
+//    f_InvT.Apply(x_in,x_rot);
+//    x[0] = x_rot[0];
+//    x[1] = x_rot[1];
+    
+    f.resize(3);
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    REAL x3 = x[2];
+    
     TPZVec<REAL> f_s(3,0), f_rot(3,0);
-    
-    // General form : : Artigo Botti, Di Pietro, Droniou
-    
-    //    REAL m_v= 1., m_u= 1.0;
-    //
-    //    REAL Cf=m_v/m_u;
-    //
-    //        f_1 = -sin(x1)*sin(x2)-exp(-Cf)*sin(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*sin(x1)*sin(x2)-m_u*(2.*exp(-Cf)*sin(x1)*sin(x2)-(1./m_v)*4.*(1-exp(-Cf))*sin(x1)*sin(x2));
-    //
-    //        f_2 = cos(x1)*cos(x2)-exp(-Cf)*cos(x1)*cos(x2)-(1./m_v)*(1.-exp(-Cf))*cos(x1)*cos(x2)-m_u*(2.*exp(-Cf)*cos(x1)*cos(x2)+(1./m_v)*4.*(1-exp(-Cf))*cos(x1)*cos(x2));
-    //        STATE g_1 = (2./m_v)*(1.-exp(-Cf))*cos(x1)*sin(x2);
-    //
-    //        f[0] = f_1; // x direction
-    //        f[1] = f_2; // y direction
-    //
-    //        f[2] = g_1; // g source
-    
-    
-    // Brinkman : : Artigo Botti, Di Pietro, Droniou
-    
-    //    REAL e = exp(1.);
-    //
-    //    f_1 = (-8./e+ 4.)*sin(x1)*sin(x2);
-    //    f_2 = (2./e- 4.)*cos(x1)*cos(x2);
-    //    STATE g_1 = 2.*(1.-1./e)*cos(x1)*sin(x2);
-    //
-    //    f[0] = f_1; // x direction
-    //    f[1] = f_2; // y direction
-    //
-    //    f[2] = g_1; // g source
-    
-    // Stokes : : Artigo Botti, Di Pietro, Droniou
-    
-    
     f_s[0] = -3.*sin(x1)*sin(x2);
     f_s[1] = -1.*cos(x1)*cos(x2);
-
+    
     f_T.Apply(f_s, f_rot);
     f_s = f_rot;
-
-
+    
     f[0] = f_s[0]; // x direction
     f[1] = f_s[1]; // y direction
     f[2] = f_s[2];
-    
-    
-    // Darcy : : Artigo Botti, Di Pietro, Droniou
-    
-    //        f_1 = 0.;
-    //        f_2 = 0.;
-    //
-    //        f[0] = f_1; // x direction
-    //        f[1] = f_2; // y direction
-    //        f[2] = 2.*cos(x1)*sin(x2);
-    
-    
-    // Stokes 3D : Artigo Botti, Di Pietro, Droniou
-    
-    
-//        f_s[0] = 2.*cos(x1)*cos(x3) - 1.*(2. + cos(x3))*sin(x1)*sin(x2);
-//        f_s[1] = cos(x1)*cos(x2)*(-2. + cos(x3));
-//        f_s[2] = (2.*sin(x1) - cos(x1)*sin(x2))*sin(x3);
-//
-//        f_T.Apply(f_s, f_rot);
-//        f_s = f_rot;
-//
-//
-//        f[0] = f_s[0]; // x direction
-//        f[1] = f_s[1]; // y direction
-//        f[2] = f_s[2];
     
 }
 
@@ -3270,9 +3109,23 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     // 1 - Material volumétrico 2D
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
-    int fexact_order = 5;
-    TPZAutoPointer<TPZFunction<STATE> > fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
-    TPZAutoPointer<TPZFunction<STATE> > solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
+    int fexact_order = 7;
+    TPZAutoPointer<TPZFunction<STATE> > fp;
+    TPZAutoPointer<TPZFunction<STATE> > solp;
+    
+    if (f_StokesTest) {
+        
+        fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
+        solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
+        
+    }else{
+        
+        fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
+        solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
+        
+    }
+    
+    
     ((TPZDummyFunction<STATE>*)fp.operator->())->SetPolynomialOrder(fexact_order);
     ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
     material->SetForcingFunction(fp); //Caso simples sem termo fonte
@@ -3287,26 +3140,46 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     val2(0,0) = 0.0; // vx -> 0
     val2(1,0) = 0.0; // vy -> 0
     
-    val2(1,0) = 0.0;
+//    val2(1,0) = 0.0;
+//    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann, val1, val2);
+//    BC_bott->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(BC_bott);
+//
+//    val2(1,0) = 0.0; // vx -> 0
+//    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann, val1, val2);
+//    BC_top->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(BC_top);
+//
+//    //val2(0,0) = 1.0;
+//    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
+//    BC_left->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(BC_left);
+//
+//    val2(0,0) = 0.0;
+//    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
+//    BC_right->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(BC_right);
+
+    val2(0,0) = 0.0;
     TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann, val1, val2);
     BC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_bott);
-
-    val2(1,0) = 0.0; // vx -> 0
+    
+    val2(0,0) = 0.0; // vx -> 0
     TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann, val1, val2);
     BC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_top);
-
-    //val2(0,0) = 1.0;
+    
+    val2(0,0) = 0.0;
     TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
-
+    
     val2(0,0) = 0.0;
     TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
-
+    
     if (f_Holemesh){
         val2(0,0) = 0.0;
         TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
@@ -3314,7 +3187,6 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
         cmesh->InsertMaterialObject(BC_hole);
     }
 
-    
     if (f_3Dmesh) {
         TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet, val1, val2);
         BC_bott_z->SetBCForcingFunction(0, solp);
@@ -3342,6 +3214,22 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     
     // 3.1 - Material para tração tangencial 1D nos contornos
+//    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann, val1, val2);
+//    matLambdaBC_bott->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(matLambdaBC_bott);
+//
+//    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann, val1, val2);
+//    matLambdaBC_top->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(matLambdaBC_top);
+//
+//    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann, val1, val2);
+//    matLambdaBC_left->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(matLambdaBC_left);
+//
+//    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann, val1, val2);
+//    matLambdaBC_right->SetBCForcingFunction(0, solp);
+//    cmesh->InsertMaterialObject(matLambdaBC_right);
+
     TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann, val1, val2);
     matLambdaBC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
@@ -3349,7 +3237,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann, val1, val2);
     matLambdaBC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_top);
-  
+    
     TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann, val1, val2);
     matLambdaBC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_left);
@@ -3357,7 +3245,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann, val1, val2);
     matLambdaBC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_right);
-
+    
+    
     if (f_Holemesh){
         val2(0,0) = 0.0;
         TPZBndCond *matLambdaBC_hole = material->CreateBC(material, fmatLambdaBC_hole, fdirichlet, val1, val2);

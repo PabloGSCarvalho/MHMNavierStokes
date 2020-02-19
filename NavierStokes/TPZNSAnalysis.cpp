@@ -170,7 +170,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
     int n_it = m_simulation_data->Get_n_iterations();
     
     for (int i = 1; i <= n_it; i++) {
-        this->ExecuteNewtonInteration();
+        this->ExecuteNewtonIteration();
         
         dU = Solution();
         
@@ -204,16 +204,22 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
             std::stringstream sout;
             fRhs.Print("Rhs =",sout);
             {
-                std::ofstream plotDarcyEK("DarcyStiffness.txt");
-                std::ofstream plotDarcyEF("DarcyRhs.txt");
-                fSolver->Matrix()->Print("ek = ",plotDarcyEK,EMathematicaInput);
-                fRhs.Print("ef = ",plotDarcyEF,EMathematicaInput);
+                std::ofstream plotNavierStiff("NaiverStiffness.txt");
+                std::ofstream plotNavierRhs("NaiverRhs.txt");
+                fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
+                fRhs.Print("ef = ",plotNavierRhs,EMathematicaInput);
             }
             PrintVectorByElement(sout, fRhs);
             PrintVectorByElement(sout, fSolution);
             LOGPZ_DEBUG(logger, sout.str())
         }
 #endif
+
+        {
+            std::ofstream plotNavierRhs("NaiverRhs.txt");;
+            fRhs.Print("Rhs =",plotNavierRhs);
+        }
+        
         
         norm_res = Norm(Rhs());
         residual_stop_criterion_Q   = norm_res < res_norm;
@@ -535,7 +541,7 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 //#endif
 }
 
-void TPZNSAnalysis::ExecuteNewtonInteration(){
+void TPZNSAnalysis::ExecuteNewtonIteration(){
     this->Assemble();
     this->Rhs() *= 1.0;
     this->Solve();

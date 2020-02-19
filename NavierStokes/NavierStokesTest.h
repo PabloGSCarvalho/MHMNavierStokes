@@ -154,6 +154,8 @@ private:
     
     bool f_Holemesh = false;
     
+    bool f_StokesTest = false;
+    
     
     
 public:
@@ -227,6 +229,10 @@ public:
         f_allrefine = true;
     };
 
+    void SetStokesTest(){
+        f_StokesTest = true;
+    };
+    
     void Set3Dmesh(){
         f_3Dmesh = true;
         fdim = 3;
@@ -327,6 +333,12 @@ public:
     
     //lado direito da equacao
     static void F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu);
+
+    //solucao exata
+    static void Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
+    
+    //lado direito da equacao
+    static void F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu);
     
     // static void AddMultiphysicsInterfaces(TPZCompMesh &cmesh, int matfrom, int mattarget);
     void AddMultiphysicsInterfaces(TPZMultiphysicsCompMesh &cmesh);

@@ -106,7 +106,7 @@ public:
     void AcceptTimeStepSolution();
     
     /// Execute a single newton iteration
-    void ExecuteNewtonInteration();
+    void ExecuteNewtonIteration();
     
     /// Load the current state for the hdiv and 2 meshes
     void LoadCurrentState();
