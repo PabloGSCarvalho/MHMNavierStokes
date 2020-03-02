@@ -147,12 +147,14 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     if (f_3Dmesh) {
         gmesh = CreateGMesh3D(n_s, h_s);
-    }else{
-        //gmesh = CreateGMesh(n_s, h_s);
-        //gmesh = CreateGMeshRefPattern(n_s, h_s);
+    }else if(f_CurveTest){
+        
         gmesh = CreateGMeshCurve();
-        //gmesh = CreateGMeshCurveBlend();
-        //gmesh = CreateGMeshCurveBlendSimple();
+//        gmesh = CreateGMeshCurveBlend();
+//        gmesh = CreateGMeshCurveBlendSimple();
+//        gmesh = CreateGMeshRefPattern(n_s, h_s);
+    }else{
+        gmesh = CreateGMesh(n_s, h_s);
     }
     
 #ifdef PZDEBUG
@@ -249,7 +251,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(4);
+    sim_data->Set_n_iterations(1);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -2415,196 +2417,354 @@ TPZCompEl *NavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh,i
 
 void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
 
-        dsol.Resize(3,3);
-        sol.Resize(4);
-        STATE xv = x[0];
-        STATE yv = x[1];
-        STATE theta = atan(yv/xv);
-        STATE r=sqrt(xv*xv+yv*yv);
-    
-        STATE v_x =  -r*sin(theta);
-        STATE v_y =  r*cos(theta);
-        STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
-        STATE p = (1./2.)*xv*xv+(1./2.)*yv*yv;
-    
-//        v_x =  1.;
-//        v_y = 0.;
-//        p = 0.;
-    
-    
-        sol[0] = v_x; // x direction
-        sol[1] = v_y; // y direction
-        sol[2] = 0.;
-        sol[3] = p; //
-    
-        dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-        dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
-    
-        dsol(0,0)= 0.;
-        dsol(1,1)= 0.;
-    
-//        sol[0] = 1.; // x direction
-//        sol[1] = 0.; // y direction
-//        sol[3] = 0.;
-//        dsol(0,0)= 0.;
-//        dsol(1,1)= 0.;
-    
-    
 //    // Navier-Stokes
-//    dsol.Resize(3,3);
-//    sol.Resize(4);
-//
-//    //Applying rotation:
-//    TPZVec<REAL> x_in = x;
-//    TPZVec<REAL> x_rot(3,0.);
-//
-//    f_InvT.Apply(x_in,x_rot);
-//    x[0] = x_rot[0];
-//    x[1] = x_rot[1];
-//
-//    REAL x1 = x[0];
-//    REAL x2 = x[1];
-//
-//    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//    REAL nu = 0.1;
-//    REAL Re = 1./nu; // Artigo 2016 : 1/mu
-//    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
-//    REAL lambda = Re/2.-Ty;
-//
-//    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
-//    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
-//    //STATE pressure = -(1./2.)*exp(2.*lambda*x1)+(lambda/2.)*(exp(4.*lambda)-1.);
-//    STATE pressure = (1./2.)*(1. - exp(2.*lambda*x1));
-//
-//    f_T.Apply(v_Dirichlet, vbc_rot);
-//    v_Dirichlet = vbc_rot;
-//
-//    sol[0]=v_Dirichlet[0];
-//    sol[1]=v_Dirichlet[1];
-//    sol[2]=v_Dirichlet[2];
-//    sol[3]=pressure;
-//
-//    // GradU * Rt
-//    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//    // vx direction
-//    GradU(0,0)= exp(-(-5.+Ty)*x1)*(-5.+Ty)*cos(2.*Pi*x2);
-//    GradU(0,1)= 2.*exp(-(-5.+Ty)*x1)*Pi*sin(2.*Pi*x2);
-//
-//    // vy direction
-//    GradU(1,0)= exp(-(-5.+Ty)*x1)*(-5.+Ty)*(-5.+Ty)*sin(2.*Pi*x2)*(1./(2.*Pi));
-//    GradU(1,1)= -exp(-(-5.+Ty)*x1)*(-5.+Ty)*cos(2.*Pi*x2);
-//
-//
-//    TPZFMatrix<STATE> R = f_T.Mult();
-//    TPZFMatrix<STATE> Rt(3,3,0.);
-//    R.Transpose(&Rt);
-//
-//    //    GradU.Print("GradU = ");
-//    //    R.Print("R = ");
-//    //    Rt.Print("Rt = ");
-//
-//    GradU.Multiply(Rt,GradURt);
-//    //    GradURt.Print("GradURt = ");
-//
-//    R.Multiply(GradURt,RGradURt);
-//    //    RGradURt.Print("RGradURt = ");
-//
-//    // vx direction
-//    dsol(0,0)= RGradURt(0,0);
-//    dsol(0,1)= RGradURt(0,1);
-//    dsol(0,2)= RGradURt(0,2);
-//
-//    // vy direction
-//    dsol(1,0)= RGradURt(1,0);
-//    dsol(1,1)= RGradURt(1,1);
-//    dsol(1,2)= RGradURt(1,2);
-//
-//    // vz direction
-//    dsol(2,0)= RGradURt(2,0);
-//    dsol(2,1)= RGradURt(2,1);
-//    dsol(2,2)= RGradURt(2,2);
+    dsol.Resize(3,3);
+    sol.Resize(4);
+
+    //Applying rotation:
+    TPZVec<REAL> x_in = x;
+    TPZVec<REAL> x_rot(3,0.);
+
+    f_InvT.Apply(x_in,x_rot);
+    x[0] = x_rot[0];
+    x[1] = x_rot[1];
+
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+
+    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+
+    REAL nu = 0.1;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
+
+    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
+    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
+    //STATE pressure = -(1./2.)*(1. - exp(2.*lambda*x1));
+    STATE pressure =-(1./2.)*exp(2.*lambda*x1);
+    
+    f_T.Apply(v_Dirichlet, vbc_rot);
+    v_Dirichlet = vbc_rot;
+
+    sol[0]=v_Dirichlet[0];
+    sol[1]=v_Dirichlet[1];
+    sol[2]=v_Dirichlet[2];
+    sol[3]=pressure;
+
+    // GradU * Rt
+    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+
+    // vx direction
+    GradU(0,0)= -exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+    GradU(0,1)= 2.*exp(lambda*x1)*Pi*sin(2.*Pi*x2);
+
+    // vy direction
+    GradU(1,0)= exp(lambda*x1)*lambda*lambda*sin(2.*Pi*x2)*(1./(2.*Pi));
+    GradU(1,1)= exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+
+
+    TPZFMatrix<STATE> R = f_T.Mult();
+    TPZFMatrix<STATE> Rt(3,3,0.);
+    R.Transpose(&Rt);
+
+    //    GradU.Print("GradU = ");
+    //    R.Print("R = ");
+    //    Rt.Print("Rt = ");
+
+    GradU.Multiply(Rt,GradURt);
+    //    GradURt.Print("GradURt = ");
+
+    R.Multiply(GradURt,RGradURt);
+    //    RGradURt.Print("RGradURt = ");
+
+    // vx direction
+    dsol(0,0)= RGradURt(0,0);
+    dsol(0,1)= RGradURt(0,1);
+    dsol(0,2)= RGradURt(0,2);
+
+    // vy direction
+    dsol(1,0)= RGradURt(1,0);
+    dsol(1,1)= RGradURt(1,1);
+    dsol(1,2)= RGradURt(1,2);
+
+    // vz direction
+    dsol(2,0)= RGradURt(2,0);
+    dsol(2,1)= RGradURt(2,1);
+    dsol(2,2)= RGradURt(2,2);
     
     
 }
 
-void NavierStokesTest::Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
+void NavierStokesTest::Sol_exact_Curve(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
     
-        sol.resize(4);
-        dsol.Resize(3,3);
+            dsol.Resize(3,3);
+            sol.Resize(4);
+            STATE xv = x[0];
+            STATE yv = x[1];
+            STATE theta = atan(yv/xv);
+            STATE r=sqrt(xv*xv+yv*yv);
+    
+            STATE v_x =  -r*sin(theta);
+            STATE v_y =  r*cos(theta);
+            STATE v_norm =  sqrt(v_x*v_x+v_y*v_y);
+            STATE p = (1./2.)*xv*xv+(1./2.)*yv*yv;
 
     
-        // Stokes : : Artigo Botti, Di Pietro, Droniou
-        dsol.Resize(3,3);
-        sol.Resize(4);
+            sol[0] = v_x; // x direction
+            sol[1] = v_y; // y direction
+            sol[2] = 0.;
+            sol[3] = p; //
     
-        //Applying rotation:
-        TPZVec<REAL> x_in = x;
-        TPZVec<REAL> x_rot(3,0.);
+            dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
+            dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
     
-        f_InvT.Apply(x_in,x_rot);
-        x[0] = x_rot[0];
-        x[1] = x_rot[1];
+            dsol(0,0)= 0.;
+            dsol(1,1)= 0.;
     
-        REAL x1 = x[0];
-        REAL x2 = x[1];
-        REAL e = exp(1.);
+//            sol[0] = 1.; // x direction
+//            sol[1] = 0.; // y direction
+//            sol[3] = 0.;
+//            dsol(0,0)= 0.;
+//            dsol(1,1)= 0.;
+}
+
+void NavierStokesTest::Sol_exact_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
+
+    // Navier-Stokes
+    dsol.Resize(3,3);
+    sol.Resize(4);
     
-        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+    //Applying rotation:
+    TPZVec<REAL> x_in = x;
+    TPZVec<REAL> x_rot(3,0.);
     
-        v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
-        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-        STATE pressure= cos(x1)*sin(x2);
+    f_InvT.Apply(x_in,x_rot);
+    x[0] = x_rot[0];
+    x[1] = x_rot[1];
     
-        f_T.Apply(v_Dirichlet, vbc_rot);
-        v_Dirichlet = vbc_rot;
+    REAL x1 = x[0];
+    REAL x2 = x[1];
     
-        sol[0]=v_Dirichlet[0];
-        sol[1]=v_Dirichlet[1];
-        sol[2]=v_Dirichlet[2];
-        sol[3]=pressure;
+    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
     
-        // GradU * Rt
-        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+    REAL nu = 0.1;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
     
-        // vx direction
-        GradU(0,0)= -1.*cos(x1)*sin(x2);
-        GradU(0,1)= cos(x2)*sin(x1);
+    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
+    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
+    //STATE pressure = -(1./2.)*exp(2.*lambda*x1);
     
-        // vy direction
-        GradU(1,0)= -1.*cos(x2)*sin(x1);
-        GradU(1,1)= cos(x1)*sin(x2);
+    STATE pressure = -exp(2.*x1*(-sqrt(4.*pow(Pi,2.) + 1./(4.*pow(nu,2.))) + 1./(2.*nu)))/2. +
+    (pow(1. - exp((5. - sqrt(25. + 4.*pow(Pi,2.)))*x1)*cos(2.*Pi*x2),2.) +
+     (exp(2.*(5. - sqrt(25. + 4.*pow(Pi,2.)))*x1)*pow(5. - sqrt(25. + 4.*pow(Pi,2.)),2.)*
+      pow(sin(2.*Pi*x2),2.))/(4.*pow(Pi,2.)))/2.;
     
-        TPZFMatrix<STATE> R = f_T.Mult();
-        TPZFMatrix<STATE> Rt(3,3,0.);
-        R.Transpose(&Rt);
+    f_T.Apply(v_Dirichlet, vbc_rot);
+    v_Dirichlet = vbc_rot;
+    
+    sol[0]=v_Dirichlet[0];
+    sol[1]=v_Dirichlet[1];
+    sol[2]=v_Dirichlet[2];
+    sol[3]=pressure;
+    
+    // GradU * Rt
+    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+    
+    // vx direction
+    GradU(0,0)= -exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+    GradU(0,1)= 2.*exp(lambda*x1)*Pi*sin(2.*Pi*x2);
+    
+    // vy direction
+    GradU(1,0)= exp(lambda*x1)*lambda*lambda*sin(2.*Pi*x2)*(1./(2.*Pi));
+    GradU(1,1)= exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+    
+    
+    TPZFMatrix<STATE> R = f_T.Mult();
+    TPZFMatrix<STATE> Rt(3,3,0.);
+    R.Transpose(&Rt);
     
     //    GradU.Print("GradU = ");
     //    R.Print("R = ");
     //    Rt.Print("Rt = ");
     
-        GradU.Multiply(Rt,GradURt);
+    GradU.Multiply(Rt,GradURt);
     //    GradURt.Print("GradURt = ");
     
-        R.Multiply(GradURt,RGradURt);
+    R.Multiply(GradURt,RGradURt);
     //    RGradURt.Print("RGradURt = ");
     
-        // vx direction
-        dsol(0,0)= RGradURt(0,0);
-        dsol(0,1)= RGradURt(0,1);
-        dsol(0,2)= RGradURt(0,2);
+    // vx direction
+    dsol(0,0)= RGradURt(0,0);
+    dsol(0,1)= RGradURt(0,1);
+    dsol(0,2)= RGradURt(0,2);
     
-        // vy direction
-        dsol(1,0)= RGradURt(1,0);
-        dsol(1,1)= RGradURt(1,1);
-        dsol(1,2)= RGradURt(1,2);
+    // vy direction
+    dsol(1,0)= RGradURt(1,0);
+    dsol(1,1)= RGradURt(1,1);
+    dsol(1,2)= RGradURt(1,2);
     
-        // vz direction
-        dsol(2,0)= RGradURt(2,0);
-        dsol(2,1)= RGradURt(2,1);
-        dsol(2,2)= RGradURt(2,2);
+    // vz direction
+    dsol(2,0)= RGradURt(2,0);
+    dsol(2,1)= RGradURt(2,1);
+    dsol(2,2)= RGradURt(2,2);
     
+
+}
+
+void NavierStokesTest::Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
+    
+//        sol.resize(4);
+//        dsol.Resize(3,3);
+//
+//
+//        // Stokes : : Artigo Botti, Di Pietro, Droniou
+//        dsol.Resize(3,3);
+//        sol.Resize(4);
+//
+//        //Applying rotation:
+//        TPZVec<REAL> x_in = x;
+//        TPZVec<REAL> x_rot(3,0.);
+//
+//        f_InvT.Apply(x_in,x_rot);
+//        x[0] = x_rot[0];
+//        x[1] = x_rot[1];
+//
+//        REAL x1 = x[0];
+//        REAL x2 = x[1];
+//        REAL e = exp(1.);
+//
+//        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+//
+//        v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
+//        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
+//        STATE pressure= cos(x1)*sin(x2);
+//
+//        f_T.Apply(v_Dirichlet, vbc_rot);
+//        v_Dirichlet = vbc_rot;
+//
+//        sol[0]=v_Dirichlet[0];
+//        sol[1]=v_Dirichlet[1];
+//        sol[2]=v_Dirichlet[2];
+//        sol[3]=pressure;
+//
+//        // GradU * Rt
+//        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+//
+//        // vx direction
+//        GradU(0,0)= -1.*cos(x1)*sin(x2);
+//        GradU(0,1)= cos(x2)*sin(x1);
+//
+//        // vy direction
+//        GradU(1,0)= -1.*cos(x2)*sin(x1);
+//        GradU(1,1)= cos(x1)*sin(x2);
+//
+//        TPZFMatrix<STATE> R = f_T.Mult();
+//        TPZFMatrix<STATE> Rt(3,3,0.);
+//        R.Transpose(&Rt);
+//
+//    //    GradU.Print("GradU = ");
+//    //    R.Print("R = ");
+//    //    Rt.Print("Rt = ");
+//
+//        GradU.Multiply(Rt,GradURt);
+//    //    GradURt.Print("GradURt = ");
+//
+//        R.Multiply(GradURt,RGradURt);
+//    //    RGradURt.Print("RGradURt = ");
+//
+//        // vx direction
+//        dsol(0,0)= RGradURt(0,0);
+//        dsol(0,1)= RGradURt(0,1);
+//        dsol(0,2)= RGradURt(0,2);
+//
+//        // vy direction
+//        dsol(1,0)= RGradURt(1,0);
+//        dsol(1,1)= RGradURt(1,1);
+//        dsol(1,2)= RGradURt(1,2);
+//
+//        // vz direction
+//        dsol(2,0)= RGradURt(2,0);
+//        dsol(2,1)= RGradURt(2,1);
+//        dsol(2,2)= RGradURt(2,2);
+    
+    
+    //    // Navier-Stokes
+    dsol.Resize(3,3);
+    sol.Resize(4);
+    
+    //Applying rotation:
+    TPZVec<REAL> x_in = x;
+    TPZVec<REAL> x_rot(3,0.);
+    
+    f_InvT.Apply(x_in,x_rot);
+    x[0] = x_rot[0];
+    x[1] = x_rot[1];
+    
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    
+    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+    
+    REAL nu = 0.1;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
+    
+    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
+    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
+    STATE pressure = -(1./2.)*exp(2.*lambda*x1);
+    
+    f_T.Apply(v_Dirichlet, vbc_rot);
+    v_Dirichlet = vbc_rot;
+    
+    sol[0]=v_Dirichlet[0];
+    sol[1]=v_Dirichlet[1];
+    sol[2]=v_Dirichlet[2];
+    sol[3]=pressure;
+    
+    // GradU * Rt
+    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+    
+    // vx direction
+    GradU(0,0)= -exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+    GradU(0,1)= 2.*exp(lambda*x1)*Pi*sin(2.*Pi*x2);
+    
+    // vy direction
+    GradU(1,0)= exp(lambda*x1)*lambda*lambda*sin(2.*Pi*x2)*(1./(2.*Pi));
+    GradU(1,1)= exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+    
+    
+    TPZFMatrix<STATE> R = f_T.Mult();
+    TPZFMatrix<STATE> Rt(3,3,0.);
+    R.Transpose(&Rt);
+    
+    //    GradU.Print("GradU = ");
+    //    R.Print("R = ");
+    //    Rt.Print("Rt = ");
+    
+    GradU.Multiply(Rt,GradURt);
+    //    GradURt.Print("GradURt = ");
+    
+    R.Multiply(GradURt,RGradURt);
+    //    RGradURt.Print("RGradURt = ");
+    
+    // vx direction
+    dsol(0,0)= RGradURt(0,0);
+    dsol(0,1)= RGradURt(0,1);
+    dsol(0,2)= RGradURt(0,2);
+    
+    // vy direction
+    dsol(1,0)= RGradURt(1,0);
+    dsol(1,1)= RGradURt(1,1);
+    dsol(1,2)= RGradURt(1,2);
+    
+    // vz direction
+    dsol(2,0)= RGradURt(2,0);
+    dsol(2,1)= RGradURt(2,1);
+    dsol(2,2)= RGradURt(2,2);
     
     
 }
@@ -2631,6 +2791,60 @@ void NavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMat
     
 }
 
+void NavierStokesTest::F_source_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
+    
+    f.resize(3);
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    REAL x3 = x[2];
+    
+    REAL nu = 0.1;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
+    
+//    REAL sq25 = sqrt(25.+4.*Pi*Pi);
+//    REAL sq16 = sqrt(16.*Pi*Pi+Re*Re);
+    
+    TPZVec<REAL> f_s(3,0), f_rot(3,0);
+    
+    f_s[0] = (-8.*pow(Pi,2)*(2.*(-10. + sqrt(25. + 4.*pow(Pi,2.))) +
+                     exp(x1*(-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) +
+                                 1./nu))*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 2./nu)) -
+     (exp(x1*(-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) +
+                  1./nu))*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))/pow(nu,2.) +
+     (8.*pow(Pi,2.)*(2.*exp((x1*(10. + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)*
+                     (-5. + sqrt(25. + 4.*pow(Pi,2.))) +
+                     exp(sqrt(25. + 4.*pow(Pi,2.))*x1 + x1/(2.*nu))*
+                     (sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))*cos(2.*Pi*x2))/
+     exp((x1*(20. - 2.*sqrt(25. + 4.*pow(Pi,2.)) + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)\
+     + (-80.*pow(Pi,2.) - (exp(x1*
+                                 (-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu))*
+                           (8.*pow(Pi,2.) + (-sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu)/nu))/nu)*cos(4.*Pi*x2) -
+     400.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*pow(sin(2.*Pi*x2),2.))/
+    (16.*exp(2.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*x1)*pow(Pi,2.));
+    
+    
+    f_s[1] = (exp(x1*(10. - 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu))*
+              (exp((x1*(-20. + 2.*sqrt(25. + 4.*pow(Pi,2.)) + sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) -
+                            2./nu))/2.)*(8.*exp((x1*(10. + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)*
+                                           pow(Pi,2.) + 8.*exp(sqrt(25. + 4.*pow(Pi,2.))*x1 + x1/(2.*nu))*pow(Pi,2.)) +
+               (-20.*exp(x1*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))*
+                (-5. + sqrt(25. + 4*pow(Pi,2.))) -
+                (exp(2.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*x1)*
+                 (sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))/nu)*cos(2.*Pi*x2))*sin(2.*Pi*x2))/(4.*Pi);
+
+    f_T.Apply(f_s, f_rot);
+    f_s = f_rot;
+    
+    
+    
+    f[0] = f_s[0]; // x direction
+    f[1] = f_s[1]; // y direction
+    f[2] = f_s[2];
+    
+}
+
 void NavierStokesTest::F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
     
 //    //Applying rotation:
@@ -2641,15 +2855,38 @@ void NavierStokesTest::F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, 
 //    x[0] = x_rot[0];
 //    x[1] = x_rot[1];
     
+//    f.resize(3);
+//    REAL x1 = x[0];
+//    REAL x2 = x[1];
+//    REAL x3 = x[2];
+//
+//    TPZVec<REAL> f_s(3,0), f_rot(3,0);
+//    f_s[0] = -3.*sin(x1)*sin(x2);
+//    f_s[1] = -1.*cos(x1)*cos(x2);
+//
+//    f_T.Apply(f_s, f_rot);
+//    f_s = f_rot;
+//
+//    f[0] = f_s[0]; // x direction
+//    f[1] = f_s[1]; // y direction
+//    f[2] = f_s[2];
+
     f.resize(3);
     REAL x1 = x[0];
     REAL x2 = x[1];
     REAL x3 = x[2];
     
-    TPZVec<REAL> f_s(3,0), f_rot(3,0);
-    f_s[0] = -3.*sin(x1)*sin(x2);
-    f_s[1] = -1.*cos(x1)*cos(x2);
+    REAL nu = 0.1;
+    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+    REAL lambda = Re/2.-Ty;
     
+    TPZVec<REAL> f_s(3,0), f_rot(3,0);
+    
+    // For Stokes:
+    f_s[0] = -exp(x1*lambda)*(exp(x1*lambda)*lambda+(4.*Pi*Pi-lambda*lambda)*nu*cos(2.*Pi*x2));
+    f_s[1] = -exp(x1*lambda)*lambda*(-4.*Pi*Pi+lambda*lambda)*nu*sin(2.*Pi*x2)/(2.*Pi);
+
     f_T.Apply(f_s, f_rot);
     f_s = f_rot;
     
@@ -3123,6 +3360,16 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
         
         fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
         solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
+    
+    }else if (f_OseenTest){
+
+        fp = new TPZDummyFunction<STATE> (F_source_Oseen, fexact_order);
+        solp = new TPZDummyFunction<STATE> (Sol_exact_Oseen, fexact_order);
+
+    }else if (f_CurveTest){
+
+        fp = NULL;
+        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
         
     }else{
         
@@ -3131,8 +3378,9 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
         
     }
     
-    
-    ((TPZDummyFunction<STATE>*)fp.operator->())->SetPolynomialOrder(fexact_order);
+    if (!f_CurveTest){
+        ((TPZDummyFunction<STATE>*)fp.operator->())->SetPolynomialOrder(fexact_order);
+    }
     ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
     material->SetForcingFunction(fp); //Caso simples sem termo fonte
     material->SetForcingFunctionExact(solp);
@@ -3177,12 +3425,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->InsertMaterialObject(BC_top);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
     

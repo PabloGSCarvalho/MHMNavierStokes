@@ -158,6 +158,8 @@ private:
     
     bool f_OseenTest = false;
     
+    bool f_CurveTest = false;
+    
 public:
 
     NavierStokesTest();
@@ -237,6 +239,11 @@ public:
         f_OseenTest = true;
     };
     
+
+    void SetCurveTest(){
+        f_CurveTest = true;
+    };
+
     void Set3Dmesh(){
         f_3Dmesh = true;
         fdim = 3;
@@ -338,6 +345,16 @@ public:
     //lado direito da equacao
     static void F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu);
 
+    //solucao exata
+    static void Sol_exact_Curve(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
+    
+    //solucao exata
+    static void Sol_exact_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
+    
+    //lado direito da equacao
+    static void F_source_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu);
+    
+    
     //solucao exata
     static void Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
     

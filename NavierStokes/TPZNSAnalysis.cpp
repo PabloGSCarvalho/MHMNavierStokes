@@ -64,10 +64,15 @@ void TPZNSAnalysis::ConfigurateAnalysis(DecomposeType decomposition, TPZSimulati
         case ELU:
         {
             //#ifdef USING_MKL
-            //            TPZSpStructMatrix struct_mat(Mesh());
-            //            struct_mat.SetNumThreads(n_threads);
-            //            this->SetStructuralMatrix(struct_mat);
+//                        TPZSpStructMatrix struct_mat(Mesh());
+//                        struct_mat.SetNumThreads(n_threads);
+//                        this->SetStructuralMatrix(struct_mat);
             //#else
+            
+
+
+            
+            
             TPZSkylineNSymStructMatrix struct_mat(Mesh());
             struct_mat.SetNumThreads(n_threads);
             this->SetStructuralMatrix(struct_mat);
@@ -76,9 +81,13 @@ void TPZNSAnalysis::ConfigurateAnalysis(DecomposeType decomposition, TPZSimulati
             break;
         case ELDLt:
         {
-            TPZSymetricSpStructMatrix struct_mat(Mesh());
+//            TPZSymetricSpStructMatrix struct_mat(Mesh());
+//            struct_mat.SetNumThreads(n_threads);
+//            this->SetStructuralMatrix(struct_mat);
+            TPZFStructMatrix struct_mat(Mesh());
             struct_mat.SetNumThreads(n_threads);
             this->SetStructuralMatrix(struct_mat);
+            
         }
             break;
         default:
@@ -171,10 +180,10 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
     
     for (int i = 1; i <= n_it; i++) {
         this->ExecuteNewtonIteration();
-        
+                
         dU = Solution();
         
-//        std::cout<<dU<<std::endl;
+        std::cout<<dU<<std::endl;
         
         norm_dU  = Norm(dU);
         m_U_Plus += dU;
@@ -216,8 +225,11 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
 #endif
 
         {
+            
+            std::ofstream plotNavierStiff("NaiverStiffness.txt");
+            fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
             std::ofstream plotNavierRhs("NaiverRhs.txt");;
-            fRhs.Print("Rhs =",plotNavierRhs);
+            fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
         }
         
         
@@ -543,6 +555,15 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 
 void TPZNSAnalysis::ExecuteNewtonIteration(){
     this->Assemble();
+    
+    {
+        
+        std::ofstream plotNavierStiff("NaiverStiffness.txt");
+        fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
+        std::ofstream plotNavierRhs("NaiverRhs.txt");;
+        fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
+    }
+    
     this->Rhs() *= 1.0;
     this->Solve();
 }
