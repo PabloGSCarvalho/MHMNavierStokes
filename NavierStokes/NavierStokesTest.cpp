@@ -251,7 +251,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(1);
+    sim_data->Set_n_iterations(5);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -271,6 +271,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
     if(f_StokesTest){
             NS_analysis->SetExact(Sol_exact_Stokes);
+    }else if(f_CurveTest){
+            NS_analysis->SetExact(Sol_exact_Curve);
+    }else if(f_OseenTest){
+            NS_analysis->SetExact(Sol_exact_Oseen);
     }else{
             NS_analysis->SetExact(Sol_exact);
     }
@@ -3425,12 +3429,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->InsertMaterialObject(BC_top);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
     

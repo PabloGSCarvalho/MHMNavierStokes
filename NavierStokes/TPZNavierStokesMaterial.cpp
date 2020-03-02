@@ -545,7 +545,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
     }
-    REAL factorM = 0.;
+    REAL factorM = 1.;
     REAL factorMk = 1.;
     // Setting the phis
     // V
@@ -728,44 +728,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 }
             }
 
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradUTr_Un(e,0) += GradVj(f,e)*u_n[f]; //Oseen eqs
-                }
-            }
-            
-            STATE C_term = InnerVec(GradU_Un, phiVi)-InnerVec(GradUTr_Un, phiVi);
-
-
-            TPZFNMatrix<9,STATE> GradV_Un(3,1,0.);
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradV_Un(e,0) += GradVi(e,f)*beta[f]; //Oseen eqs
-                }
-            }
-            
-            
-            STATE C_term2 = InnerVec(GradV_Un, phiVj);
-            
-            
-            STATE D_term = 0.;
-            
-            TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradUn_phiU(e,0) += gradUn(e,f)*phiVj(f,0);
-                }
-            }
-            
-            D_term = InnerVec(GradUn_phiU, phiVi);
+           STATE C_term = InnerVec(GradU_Un, phiVi);
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
         
-            ek(i,j) += weight * C_term*factorMk;  // C - Trilinear terms
-
-            //ek(j,i) += -(1./2.)*weight * C_term2*factorMk;  // C - Trilinear terms
-            
-            //ek(i,j) += -weight * D_term*factorMk;  // D - Trilinear terms
+            ek(j,i) += weight * C_term*factorMk;  // C - Trilinear terms
             
         }
         
