@@ -251,7 +251,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(5);
+    sim_data->Set_n_iterations(1);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -2446,7 +2446,11 @@ void NavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZF
     v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
     v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
     //STATE pressure = -(1./2.)*(1. - exp(2.*lambda*x1));
-    STATE pressure =-(1./2.)*exp(2.*lambda*x1);
+    
+    STATE func_V = (pow(1. - exp(x1*lambda)*cos(2.*Pi*x2),2.) +
+                    (exp(2.*x1*lambda)*pow(lambda,2)*pow(sin(2*Pi*x2),2))/(4.*pow(Pi,2.)))/2.;
+    
+    STATE pressure =-(1./2.)*exp(2.*lambda*x1)+func_V;
     
     f_T.Apply(v_Dirichlet, vbc_rot);
     v_Dirichlet = vbc_rot;
@@ -2518,7 +2522,7 @@ void NavierStokesTest::Sol_exact_Curve(const TPZVec<REAL> &x, TPZVec<STATE> &sol
             sol[0] = v_x; // x direction
             sol[1] = v_y; // y direction
             sol[2] = 0.;
-            sol[3] = p; //
+            sol[3] = p+0.5*r*r;
     
             dsol(0,1)= -(sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
             dsol(1,0)= (sqrt(1+(yv*yv)/(xv*xv))*xv)/r;
@@ -2559,12 +2563,7 @@ void NavierStokesTest::Sol_exact_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &sol
     
     v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
     v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
-    //STATE pressure = -(1./2.)*exp(2.*lambda*x1);
-    
-    STATE pressure = -exp(2.*x1*(-sqrt(4.*pow(Pi,2.) + 1./(4.*pow(nu,2.))) + 1./(2.*nu)))/2. +
-    (pow(1. - exp((5. - sqrt(25. + 4.*pow(Pi,2.)))*x1)*cos(2.*Pi*x2),2.) +
-     (exp(2.*(5. - sqrt(25. + 4.*pow(Pi,2.)))*x1)*pow(5. - sqrt(25. + 4.*pow(Pi,2.)),2.)*
-      pow(sin(2.*Pi*x2),2.))/(4.*pow(Pi,2.)))/2.;
+    STATE pressure = -(1./2.)*exp(2.*lambda*x1);
     
     f_T.Apply(v_Dirichlet, vbc_rot);
     v_Dirichlet = vbc_rot;
@@ -2812,31 +2811,8 @@ void NavierStokesTest::F_source_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &f, T
     
     TPZVec<REAL> f_s(3,0), f_rot(3,0);
     
-    f_s[0] = (-8.*pow(Pi,2)*(2.*(-10. + sqrt(25. + 4.*pow(Pi,2.))) +
-                     exp(x1*(-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) +
-                                 1./nu))*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 2./nu)) -
-     (exp(x1*(-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) +
-                  1./nu))*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))/pow(nu,2.) +
-     (8.*pow(Pi,2.)*(2.*exp((x1*(10. + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)*
-                     (-5. + sqrt(25. + 4.*pow(Pi,2.))) +
-                     exp(sqrt(25. + 4.*pow(Pi,2.))*x1 + x1/(2.*nu))*
-                     (sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))*cos(2.*Pi*x2))/
-     exp((x1*(20. - 2.*sqrt(25. + 4.*pow(Pi,2.)) + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)\
-     + (-80.*pow(Pi,2.) - (exp(x1*
-                                 (-10. + 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu))*
-                           (8.*pow(Pi,2.) + (-sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu)/nu))/nu)*cos(4.*Pi*x2) -
-     400.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*pow(sin(2.*Pi*x2),2.))/
-    (16.*exp(2.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*x1)*pow(Pi,2.));
-    
-    
-    f_s[1] = (exp(x1*(10. - 2.*sqrt(25. + 4.*pow(Pi,2.)) - sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) + 1./nu))*
-              (exp((x1*(-20. + 2.*sqrt(25. + 4.*pow(Pi,2.)) + sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) -
-                            2./nu))/2.)*(8.*exp((x1*(10. + sqrt(16.*pow(Pi,2.) + pow(nu,-2.))))/2.)*
-                                           pow(Pi,2.) + 8.*exp(sqrt(25. + 4.*pow(Pi,2.))*x1 + x1/(2.*nu))*pow(Pi,2.)) +
-               (-20.*exp(x1*(sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))*
-                (-5. + sqrt(25. + 4*pow(Pi,2.))) -
-                (exp(2.*(-5. + sqrt(25. + 4.*pow(Pi,2.)))*x1)*
-                 (sqrt(16.*pow(Pi,2.) + pow(nu,-2.)) - 1./nu))/nu)*cos(2.*Pi*x2))*sin(2.*Pi*x2))/(4.*Pi);
+    f_s[0] = 0.;
+    f_s[1] = 0.;
 
     f_T.Apply(f_s, f_rot);
     f_s = f_rot;

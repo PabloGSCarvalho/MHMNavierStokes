@@ -82,8 +82,8 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
             
-        REAL visc = 1.; //->Darcy
-            
+        REAL visc = 1.;
+        
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
         //Test2->SetProblemType(NSObstacle);
