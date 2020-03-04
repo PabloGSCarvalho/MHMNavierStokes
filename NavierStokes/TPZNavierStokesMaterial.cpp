@@ -22,7 +22,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZFMatrix<ST
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
     this->SetDefaultMem(Vl);
     fk=1;
-    
+    fproblemtype = ENavierStokes;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -36,7 +36,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension, int s
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
     this->SetDefaultMem(Vl);
     fk=1.;
-    
+    fproblemtype = ENavierStokes;
 
     
 }
@@ -46,7 +46,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension, int s
 TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity), fTheta(mat.fTheta), fSigma(mat.fSigma)
 {
     fk= mat.fk;
-    
+    fproblemtype = mat.fproblemtype;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -546,13 +546,16 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     
     // tensorizing the scalar shape functions (in order to use Taylor Hood for instance)
     // but how does one compute the gradient of these vectors?
+    
+    int normvecRows = datavec[vindex].fDeformedDirections.Rows();
+    int normvecCols = datavec[vindex].fDeformedDirections.Cols();
+    
+    TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
-        // needs to compute GradNormalVec and divergence
-        DebugStop();
     }
-    
-    
+    Normalvec=datavec[vindex].fDeformedDirections;
+
     // I LOVE THE COMMENT ASSOCIATED WITH THESE CONSTANTS
     // substitute by an enumerated variable
     REAL factorM = 1.;
@@ -579,15 +582,13 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     nshapeP = phiP.Rows();
     nshapeV = datavec[vindex].fVecShapeIndex.NElements();
 
-    int normvecRows = datavec[vindex].fDeformedDirections.Rows();
-    int normvecCols = datavec[vindex].fDeformedDirections.Cols();
-    TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
+
     // a vector of gradients of the H(div) vectors
     TPZManVector<TPZFNMatrix<9,REAL>,18> GradNormalvec(normvecCols);
     for (int i=0; i<normvecRows; i++) {
-        GradNormalvec[i].Redim(2,2);
+        GradNormalvec[i].Redim(3,3);
     }
-    
+
     if (datavec[vindex].fNeedsDeformedDirectionsFad) {
 #ifdef _AUTODIFF
         for (int e = 0; e < normvecRows; e++) {
@@ -595,23 +596,19 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 Normalvec(e,s)=datavec[vindex].fDeformedDirectionsFad(e,s).val();
             }
         }
-        // code written exclusively for two dimensions (WHY??)
-        if(fDimension != 2) DebugStop();
+        //if(fDimension != 2) DebugStop();
         for (int s = 0; s < normvecCols; s++) {
             TPZFNMatrix<9,REAL> Grad0(3,3,0.); // 2x2
-            Grad0(0,0)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(0);
-            Grad0(0,1)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(1);
-            Grad0(1,0)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(0);
-            Grad0(1,1)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(1);
+            for (int i = 0; i < fDimension; i++) {
+                for (int j = 0; j < fDimension; j++) {
+                    Grad0(i,j)=datavec[vindex].fDeformedDirectionsFad(i,s).fastAccessDx(j);
+                }
+            }
             GradNormalvec[s] = Grad0;
         }
 #else
         DebugStop();
 #endif
-    }else{
-        Normalvec=datavec[vindex].fDeformedDirections;
-        // need to initialize GradNormalvec;
-        DebugStop();
     }
     
     TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
@@ -692,16 +689,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
         C_term_f = InnerVec(GradUn_phiU, phiVi);
  
-//        STATE D_term_f = 0.;
-//        TPZFNMatrix<9,STATE> Gradphi_Un(3,1,0.);
-//        for (int e=0; e<3; e++) {
-//            for (int f=0; f<3; f++) {
-//                Gradphi_Un(e,0) += GradVi(e,f)*u_n[f];
-//            }
-//        }
-//        for (int e=0; e<3; e++) {
-//            D_term_f += Gradphi_Un(e,0)*u_n[e];
-//        }
         // factorM is equal to one!!
         ef(i) += -weight * C_term_f*factorM;
 //        ef(i) += - weight * D_term_f*factorM;
@@ -739,31 +726,64 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 this->ForcingFunctionExact()->Execute(x, beta, gradu);
             }
             
-            TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.), GradUTr_Beta(3,1,0.);;
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradU_Beta(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
-                }
-            }
-            
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradUTr_Beta(e,0) += GradVj(f,e)*beta[f]; //Oseen eqs
-                }
-            }
-
-            // THIS IS GOING TO RESULT IN THE WRONG TANGENT
-            // the variable is the gradient of the vector
-            STATE C_term = InnerVec(GradU_Beta, phiVi);
-            
-            STATE C_term_t = InnerVec(GradUTr_Beta, phiVi);
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
 
-            // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
-            ek(i,j) += weight * C_term*factorMk;  // C - Trilinear terms
 
-            ek(i,j) += -weight * C_term_t*factorMk;  // C - Trilinear terms
+            if (fproblemtype==ENavierStokes) {
+
+                TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);;
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradU_Un(e,0) += GradVj(e,f)*u_n[f]; //Oseen eqs
+                    }
+                }
+                
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradUTr_Un(e,0) += GradVj(f,e)*u_n[f]; //Oseen eqs
+                    }
+                }
+                
+                STATE C_term = InnerVec(GradU_Un, phiVi);
+                
+                STATE C_term_t = InnerVec(GradUTr_Un, phiVi);
+                
+                // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
+                ek(i,j) += weight * C_term;  // C - Trilinear terms
+                
+                ek(i,j) += -weight * C_term_t;  // C - Trilinear terms
+                
+            }
+            
+            if (fproblemtype==EOseen) {
+                
+                // THIS IS GOING TO RESULT IN THE WRONG TANGENT
+                // the variable is the gradient of the vector
+                
+                TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.), GradUTr_Beta(3,1,0.);;
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradU_Beta(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
+                    }
+                }
+                
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradUTr_Beta(e,0) += GradVj(f,e)*beta[f]; //Oseen eqs
+                    }
+                }
+                
+                STATE C_term = InnerVec(GradU_Beta, phiVi);
+                
+                STATE C_term_t = InnerVec(GradUTr_Beta, phiVi);
+                
+                // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
+                ek(i,j) += weight * C_term;  // C - Trilinear terms
+                
+                ek(i,j) += -weight * C_term_t;  // C - Trilinear terms
+            }
+
             
         }
         
@@ -823,9 +843,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
         STATE factG = (1.) * weight * phigM(0,0) * phipM(0,0);
         // Matrix E
-        ek(nshapeV+nshapeP+1, nshapeV+nshapeP) += factG;
+        ek(nshapeV+nshapeP+1, nshapeV+nshapeP) += -factG;
         // Matrix E^T
-        ek(nshapeV+nshapeP,nshapeV+nshapeP+1) += factG;
+        ek(nshapeV+nshapeP,nshapeV+nshapeP+1) += -factG;
         
     }
 
@@ -849,9 +869,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
         STATE factG0 = (1.) * weight * phigM0(0,0) * phipM0(0,0);
         // Matrix E
-        ek(nshapeV+nshapeP+3, nshapeV+nshapeP+2) += factG0;
+        ek(nshapeV+nshapeP+3, nshapeV+nshapeP+2) += -factG0;
         // Matrix E^T
-        ek(nshapeV+nshapeP+2,nshapeV+nshapeP+3) += factG0;
+        ek(nshapeV+nshapeP+2,nshapeV+nshapeP+3) += -factG0;
         
     }
     

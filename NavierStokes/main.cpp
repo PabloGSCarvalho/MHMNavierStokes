@@ -14,7 +14,7 @@
 #include "NavierStokesTest.h"
 #include "tpzarc3d.h"
 #include "tpzgeoblend.h"
-#include "pzgengrid.h"
+#include "TPZGenGrid2D.h"
 
 #include <pzgeoel.h>
 #include "pzgeoelbc.h"
@@ -75,30 +75,26 @@ int main(int argc, char *argv[])
         
     for (int it=0; it<=0; it++) {
         //h_level = pow(2., 2+it);
-        h_level = 1;
+        h_level = 4;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
         
         n_s[2]=h_level; //Obs!!
             
-        REAL visc = 1.;
+        REAL visc = 1.0;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
-        //Test2->SetProblemType(NSObstacle);
-            
-            
         //Test2->SetElType(ETriangle);
-        Test2->SetInternRef(0);
-            
-        Test2->SetCurveTest();
-        //Test2->SetOseenTest();
-        //Test2->SetStokesTest();
-            
-            
         //Test2->SetHdivPlus();
-
+        Test2->SetInternRef(0);
+     
+        //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
+        Test2->SetProblemType(EOseen);
+        //Select domain type (EObstacle,EOneCurve,ERetangular)
+        Test2->SetDomainType(EOneCurve);
+        
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
 

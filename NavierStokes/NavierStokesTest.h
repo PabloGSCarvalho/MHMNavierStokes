@@ -55,9 +55,12 @@
 using namespace std;
 using namespace pzshape;
 
-enum NSProblemType {NSObstacle,NSConvergence};
+
+
+enum NSDomainType {EObstacle,EOneCurve,ERetangular};
 
 class NavierStokesTest{
+    
 private:
     
     int fdim; //Dimensão do problema
@@ -131,6 +134,10 @@ private:
     bool f_hdivPlus;
     
     MElementType feltype;
+    
+    NSProblemType fproblemtype;
+    
+    NSDomainType fdomaintype;
     
     TPZManVector<TPZCompMesh *, 2> f_mesh_vector;
     
@@ -231,18 +238,6 @@ public:
         f_allrefine = true;
     };
 
-    void SetStokesTest(){
-        f_StokesTest = true;
-    };
-
-    void SetOseenTest(){
-        f_OseenTest = true;
-    };
-    
-
-    void SetCurveTest(){
-        f_CurveTest = true;
-    };
 
     void Set3Dmesh(){
         f_3Dmesh = true;
@@ -259,11 +254,15 @@ public:
     };
 
     void SetProblemType(NSProblemType type){
-        if(type==NSObstacle){
+        fproblemtype = type;
+    };
+
+    void SetDomainType(NSDomainType type){
+        if(type==EObstacle){
             f_Holemesh = true;
         }
+        fdomaintype = type;
     };
-    
     
     void SetElType(MElementType eltype){
         feltype = eltype;

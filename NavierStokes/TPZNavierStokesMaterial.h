@@ -19,7 +19,7 @@
 #ifndef TPZNavierStokesMATERIAL
 #define TPZNavierStokesMATERIAL
 
-
+enum NSProblemType {ENavierStokes,EOseen,EStokes,EBrinkman};
 
 class TPZNavierStokesMaterial : public TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >  {
     
@@ -41,6 +41,8 @@ protected:
     STATE fTheta;
     
     STATE fSigma;
+    
+    STATE fproblemtype;
     
 //    TPZTransform<STATE> f_T;
 //    
@@ -98,6 +100,12 @@ public:
     void SetPermeability(REAL perm) {
         fk = perm;
     }
+    
+    void SetProblemType(NSProblemType type){
+        fproblemtype = type;
+    };
+
+    
     
     /** returns the name of the material */
     std::string Name() {
