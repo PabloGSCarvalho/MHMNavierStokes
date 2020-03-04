@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
         //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
         Test2->SetProblemType(EOseen);
         //Select domain type (EObstacle,EOneCurve,ERetangular)
-        Test2->SetDomainType(EOneCurve);
+        Test2->SetDomainType(ERetangular);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
