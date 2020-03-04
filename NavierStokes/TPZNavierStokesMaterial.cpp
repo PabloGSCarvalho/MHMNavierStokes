@@ -548,10 +548,13 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     // but how does one compute the gradient of these vectors?
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
+        // needs to compute GradNormalVec and divergence
+        DebugStop();
     }
     
     
     // I LOVE THE COMMENT ASSOCIATED WITH THESE CONSTANTS
+    // substitute by an enumerated variable
     REAL factorM = 1.;
     REAL factorMk = 1.;
     // Setting the phis
@@ -607,6 +610,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 #endif
     }else{
         Normalvec=datavec[vindex].fDeformedDirections;
+        // need to initialize GradNormalvec;
+        DebugStop();
     }
     
     TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
@@ -734,24 +739,24 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 this->ForcingFunctionExact()->Execute(x, beta, gradu);
             }
             
-            TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);;
+            TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.), GradUTr_Beta(3,1,0.);;
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
-                    GradU_Un(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
+                    GradU_Beta(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
                 }
             }
             
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
-                    GradUTr_Un(e,0) += GradVj(f,e)*beta[f]; //Oseen eqs
+                    GradUTr_Beta(e,0) += GradVj(f,e)*beta[f]; //Oseen eqs
                 }
             }
 
             // THIS IS GOING TO RESULT IN THE WRONG TANGENT
             // the variable is the gradient of the vector
-            STATE C_term = InnerVec(GradU_Un, phiVi);
+            STATE C_term = InnerVec(GradU_Beta, phiVi);
             
-            STATE C_term_t = InnerVec(GradUTr_Un, phiVi);
+            STATE C_term_t = InnerVec(GradUTr_Beta, phiVi);
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
 
@@ -781,7 +786,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
     }
     
-    // THIS IS DEFINITELY WRONG!!!
+    // VERIFY!!!
     for (int i = 0; i < nshapeP; i++) {
  
         STATE B_term_f = 0.; // B - Mixed term
