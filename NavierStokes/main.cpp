@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
             
-        REAL visc = 1.0;
+        REAL visc = 0.1;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
