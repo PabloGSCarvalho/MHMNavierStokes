@@ -63,7 +63,7 @@ void TPZNavierStokesMaterial::FillDataRequirements(TPZMaterialData &data)
     data.SetAllRequirements(false);
     data.fNeedsSol = true;
     data.fNeedsNormal = true;
-    data.fNeedsNormalVecFad = NeedsNormalVecFad;
+    data.fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
 }
 
 
@@ -77,7 +77,7 @@ void TPZNavierStokesMaterial::FillDataRequirements(TPZVec<TPZMaterialData> &data
         datavec[idata].fNeedsSol = true;
         datavec[idata].fNeedsNormal = true;
     }
-    datavec[0].fNeedsNormalVecFad = NeedsNormalVecFad;
+    datavec[0].fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ void TPZNavierStokesMaterial::FillBoundaryConditionDataRequirement(int type,TPZV
         datavec[idata].fNeedsNormal = true;
         datavec[idata].fNeedsNeighborSol = true;
     }
-    datavec[0].fNeedsNormalVecFad = NeedsNormalVecFad;
+    datavec[0].fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
 }
 
 void TPZNavierStokesMaterial::FillBoundaryConditionDataRequirement(int type,TPZMaterialData &data){
@@ -100,7 +100,7 @@ void TPZNavierStokesMaterial::FillBoundaryConditionDataRequirement(int type,TPZM
     data.fNeedsSol = true;
     data.fNeedsNormal = true;
     data.fNeedsNeighborSol = true;
-    data.fNeedsNormalVecFad = NeedsNormalVecFad;
+    data.fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
     
 }
 
@@ -110,7 +110,7 @@ void TPZNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &dat
 {
     data.fNeedsNormal = true;
     data.fNeedsNeighborCenter = true;
-    data.fNeedsNormalVecFad = NeedsNormalVecFad;
+    data.fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
     
 }
 
@@ -123,7 +123,7 @@ void TPZNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &dat
         datavec_left[iref].SetAllRequirements(false);
         datavec_left[iref].fNeedsNormal = true;
     }
-    datavec_left[0].fNeedsNormalVecFad = NeedsNormalVecFad;
+    datavec_left[0].fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -296,26 +296,26 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
             int nshapeV;
             nshapeV = datavec[vindex].fVecShapeIndex.NElements();
             
-            int normvecRows = datavec[vindex].fNormalVec.Rows();
-            int normvecCols = datavec[vindex].fNormalVec.Cols();
+            int normvecRows = datavec[vindex].fDeformedDirections.Rows();
+            int normvecCols = datavec[vindex].fDeformedDirections.Cols();
             TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
             TPZManVector<TPZFNMatrix<4,REAL>,18> GradNormalvec(18);
             
             STATE asd1 = 0., asd2 = 0.,asd3 = 0., asd4 = 0.;
-            if (datavec[vindex].fNeedsNormalVecFad) {
+            if (datavec[vindex].fNeedsDeformedDirectionsFad) {
 #ifdef _AUTODIFF
                 for (int e = 0; e < normvecRows; e++) {
                     for (int s = 0; s < normvecCols; s++) {
-                        Normalvec(e,s)=datavec[vindex].fNormalVecFad(e,s).val();
+                        Normalvec(e,s)=datavec[vindex].fDeformedDirectionsFad(e,s).val();
                     }
                 }
                 
                 for (int s = 0; s < normvecCols; s++) {
                     TPZFNMatrix<4,REAL> Grad0(3,3,0.); // 2x2
-                    Grad0(0,0)=datavec[vindex].fNormalVecFad(0,s).fastAccessDx(0);
-                    Grad0(0,1)=datavec[vindex].fNormalVecFad(0,s).fastAccessDx(1);
-                    Grad0(1,0)=datavec[vindex].fNormalVecFad(1,s).fastAccessDx(0);
-                    Grad0(1,1)=datavec[vindex].fNormalVecFad(1,s).fastAccessDx(1);
+                    Grad0(0,0)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(0);
+                    Grad0(0,1)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(1);
+                    Grad0(1,0)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(0);
+                    Grad0(1,1)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(1);
                     GradNormalvec[s] = Grad0;
                     //Grad0.Print(std::cout);
                 }
@@ -324,7 +324,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
                 DebugStop();
 #endif
             }else{
-                Normalvec=datavec[vindex].fNormalVec;
+                Normalvec=datavec[vindex].fDeformedDirections;
             }
             
             TPZFMatrix<STATE> phiVi(3,1,0.0),phiVj(3,1,0.0);
@@ -384,7 +384,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
 //            std::cout<<datavec[0].xParametric<<std::endl;
 //            std::cout<<datavec[0].x<<std::endl;
 //            Normalvec.Print(std::cout);
-//            datavec[0].fNormalVecFad.Print(std::cout);
+//            datavec[0].fDeformedDirectionsFad.Print(std::cout);
             //std::cout<<GradNormalvec<<std::endl;
             
             
@@ -456,7 +456,7 @@ void TPZNavierStokesMaterial::ComputeDivergenceOnMaster(TPZVec<TPZMaterialData> 
             ishapeindex = datavec[ublock].fVecShapeIndex[iq].second;
             
             for (int k = 0; k < 3; k++) {
-                VectorOnXYZ(k,0) = datavec[ublock].fNormalVec(k,ivectorindex);
+                VectorOnXYZ(k,0) = datavec[ublock].fDeformedDirections(k,ivectorindex);
             }
             
             GradOfXInverse.Multiply(VectorOnXYZ, VectorOnMaster);
@@ -539,13 +539,20 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 // Contricucao dos elementos internos
 void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef){
     
+    // vindex is 0
+    // pindex is 1
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
     
+    // tensorizing the scalar shape functions (in order to use Taylor Hood for instance)
+    // but how does one compute the gradient of these vectors?
     if (datavec[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavec[vindex]);
     }
-    REAL factorM = 0.;
+    
+    
+    // I LOVE THE COMMENT ASSOCIATED WITH THESE CONSTANTS
+    REAL factorM = 1.;
     REAL factorMk = 1.;
     // Setting the phis
     // V
@@ -557,57 +564,59 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     
     TPZFNMatrix<220,REAL> dphiVx(fDimension,dphiV.Cols());
     
+    // computing the derivative of the vector functions in xy
     TPZAxesTools<REAL>::Axes2XYZ(dphiV, dphiVx, datavec[vindex].axes);
 
     
     TPZFNMatrix<220,REAL> dphiPx(fDimension,phiP.Cols());
+    // computing the derivatives of the pressure shape functions in xy (WHY?)
     TPZAxesTools<REAL>::Axes2XYZ(dphiP, dphiPx, datavec[pindex].axes);
     
     int nshapeV, nshapeP;
     nshapeP = phiP.Rows();
     nshapeV = datavec[vindex].fVecShapeIndex.NElements();
 
-    int normvecRows = datavec[vindex].fNormalVec.Rows();
-    int normvecCols = datavec[vindex].fNormalVec.Cols();
+    int normvecRows = datavec[vindex].fDeformedDirections.Rows();
+    int normvecCols = datavec[vindex].fDeformedDirections.Cols();
     TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
+    // a vector of gradients of the H(div) vectors
     TPZManVector<TPZFNMatrix<9,REAL>,18> GradNormalvec(normvecCols);
     for (int i=0; i<normvecRows; i++) {
         GradNormalvec[i].Redim(2,2);
     }
     
-    if (datavec[vindex].fNeedsNormalVecFad) {
+    if (datavec[vindex].fNeedsDeformedDirectionsFad) {
 #ifdef _AUTODIFF
         for (int e = 0; e < normvecRows; e++) {
             for (int s = 0; s < normvecCols; s++) {
-                Normalvec(e,s)=datavec[vindex].fNormalVecFad(e,s).val();
+                Normalvec(e,s)=datavec[vindex].fDeformedDirectionsFad(e,s).val();
             }
         }
+        // code written exclusively for two dimensions (WHY??)
+        if(fDimension != 2) DebugStop();
         for (int s = 0; s < normvecCols; s++) {
             TPZFNMatrix<9,REAL> Grad0(3,3,0.); // 2x2
-            Grad0(0,0)=datavec[vindex].fNormalVecFad(0,s).fastAccessDx(0);
-            Grad0(0,1)=datavec[vindex].fNormalVecFad(0,s).fastAccessDx(1);
-            Grad0(1,0)=datavec[vindex].fNormalVecFad(1,s).fastAccessDx(0);
-            Grad0(1,1)=datavec[vindex].fNormalVecFad(1,s).fastAccessDx(1);
+            Grad0(0,0)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(0);
+            Grad0(0,1)=datavec[vindex].fDeformedDirectionsFad(0,s).fastAccessDx(1);
+            Grad0(1,0)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(0);
+            Grad0(1,1)=datavec[vindex].fDeformedDirectionsFad(1,s).fastAccessDx(1);
             GradNormalvec[s] = Grad0;
         }
 #else
         DebugStop();
 #endif
     }else{
-        Normalvec=datavec[vindex].fNormalVec;
+        Normalvec=datavec[vindex].fDeformedDirections;
     }
     
-    
-    TPZVec<STATE> f(3,0.), f_rot(3,0.);
-    for (int e=0; e<3; e++) {
-        f[e] = 0.;
-    }
+    TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
     
     TPZFMatrix<STATE> phiVi(3,1,0.0),phiVj(3,1,0.0);
 
     TPZFNMatrix<100,STATE> divphi;
     TPZFNMatrix<40,STATE> div_on_master;
     TPZFNMatrix<10,STATE> gradUn = datavec[vindex].dsol[0];
+    // u_n is the solution at the previous iteration
     TPZManVector<STATE,3> u_n    = datavec[vindex].sol[0];
     STATE p_n                  = datavec[pindex].sol[0][0];
     
@@ -624,12 +633,12 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             phiVi(e,0) = phiV(iphi,0)*Normalvec(e,ivec);
             for (int f=0; f<3; f++) {
                 GradVi(e,f) = Normalvec(e,ivec)*dphiVx(f,iphi)+GradNormalvec[ivec](e,f)*phiV(iphi,0);
-                GradVit(f,e) = Normalvec(e,ivec)*dphiVx(f,iphi)+GradNormalvec[ivec](e,f)*phiV(iphi,0);
+                GradVit(f,e) = GradVi(e,f);
             }
         }
         for (int e=0; e<3; e++) {
             for (int f=0; f<3; f++) {
-                Dui(e,f)= 0.5 * (GradVi(e,f) + GradVit(e,f));
+                Dui(e,f)= 0.5 * (GradVi(e,f) + GradVi(f,e));
             }
         }
 
@@ -640,16 +649,18 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             TPZFMatrix<STATE> gradu;
             TPZVec<STATE> x(3,0.),xrot(3,0.);
             x=datavec[vindex].x;
-            this->ForcingFunction()->Execute(x, f, gradu);
+            this->ForcingFunction()->Execute(x, Force, gradu);
         }
         
         STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
         for (int e=0; e<3; e++) {
-            phi_dot_f += phiVi(e)*f[e];
+            phi_dot_f += phiVi(e)*Force[e];
+            // this will make the implicit version break?
             un_dot_phiV += phiVi(e)*u_n[e]*0.; //???????
         }
         ef(i) += weight * (phi_dot_f-un_dot_phiV);
     
+        // computing the residual of the viscous term
         STATE A_term_f = 0.; // A - Flux term
         TPZFNMatrix<9,STATE> DUn_j(3,3,0.);
         for (int e=0; e<3; e++) {
@@ -660,10 +671,12 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         A_term_f = Inner(Dui, DUn_j);
         ef(i) += 2. * fViscosity * weight * (-A_term_f);
         
+        // why two negatives?
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - p_n * datavec[0].divphi(i);
         ef(i) += weight * (-B_term_f);
         
+        // this is the original Navier Stokes term
         STATE C_term_f = 0.; // C - Trilinear terms
         TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
         for (int e=0; e<3; e++) {
@@ -684,7 +697,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 //        for (int e=0; e<3; e++) {
 //            D_term_f += Gradphi_Un(e,0)*u_n[e];
 //        }
-        
+        // factorM is equal to one!!
         ef(i) += -weight * C_term_f*factorM;
 //        ef(i) += - weight * D_term_f*factorM;
         
@@ -701,17 +714,18 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
                     GradVj(e,f) = Normalvec(e,jvec)*dphiVx(f,jphi)+GradNormalvec[jvec](e,f)*phiV(jphi,0);
-                    GradVjt(f,e) = Normalvec(e,jvec)*dphiVx(f,jphi)+GradNormalvec[jvec](e,f)*phiV(jphi,0);
+                    GradVjt(f,e) = GradVj(e,f);
                 }
             }        
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
-                    Duj(e,f)= 0.5 * (GradVj(e,f) + GradVjt(e,f));
+                    Duj(e,f)= 0.5 * (GradVj(e,f) + GradVj(f,e));
                 }
             }
             STATE A_term = Inner(Dui, Duj);
             
-            TPZManVector<STATE> beta(3,0.);
+            // this is an adjustment for a Oseen version of Navier Stokes?
+            TPZManVector<STATE> beta(u_n);
             if(HasForcingFunctionExact())
             {
                 TPZFMatrix<STATE> gradu(3,3,0.);
@@ -720,8 +734,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 this->ForcingFunctionExact()->Execute(x, beta, gradu);
             }
             
-            
-            TPZFNMatrix<9,STATE> GradU_Un(3,1,0.),GradUTr_Un(3,1,0.);
+            TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);;
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
                     GradU_Un(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
@@ -734,12 +747,15 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 }
             }
 
+            // THIS IS GOING TO RESULT IN THE WRONG TANGENT
+            // the variable is the gradient of the vector
             STATE C_term = InnerVec(GradU_Un, phiVi);
             
             STATE C_term_t = InnerVec(GradUTr_Un, phiVi);
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
-        
+
+            // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
             ek(i,j) += weight * C_term*factorMk;  // C - Trilinear terms
 
             ek(i,j) += -weight * C_term_t*factorMk;  // C - Trilinear terms
@@ -765,20 +781,24 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
     }
     
+    // THIS IS DEFINITELY WRONG!!!
     for (int i = 0; i < nshapeP; i++) {
  
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - phiP(i,0)*Tr(gradUn);
-        ef(i) += weight * (-B_term_f);
+        ef(i+nshapeV) += weight * (-B_term_f);
         
     }
     
     
     // Preparação para formulação MHM :
+    // WHY ISN'T ef not adjusted?
     if (datavec.size()>2) {
         
         TPZFMatrix<REAL> &phigM = datavec[2].phi;
         TPZFMatrix<REAL> &phipM = datavec[3].phi;
+        STATE g_average = datavec[2].sol[0][0];
+        STATE p_average = datavec[3].sol[0][0];
         
         // matrix D - pressure and average-pressure
         for (int j = 0; j < nshapeP; j++) {
@@ -790,6 +810,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             ek(nshapeV+j,nshapeV+nshapeP) += fact;
             
         }
+        
+        ef(nshapeV+nshapeP) -= (p_n+p_average) * weight;
+        ef(nshapeV+nshapeP+1) -= g_average * weight;
         
         // matrix E - injection and average-pressure
 
@@ -887,16 +910,16 @@ void TPZNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REA
  //   nshapeV = phiV.Rows()*NStateVariables();
     nshapeV = datavec[vindex].fVecShapeIndex.NElements();
     
-    int normvecRows = datavec[vindex].fNormalVec.Rows();
-    int normvecCols = datavec[vindex].fNormalVec.Cols();
+    int normvecRows = datavec[vindex].fDeformedDirections.Rows();
+    int normvecCols = datavec[vindex].fDeformedDirections.Cols();
     TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
     
-//    if (datavec[vindex].fNeedsNormalVecFad==false) {
-        Normalvec=datavec[vindex].fNormalVec;
+//    if (datavec[vindex].fNeedsDeformedDirectionsFad==false) {
+        Normalvec=datavec[vindex].fDeformedDirections;
 //    }else{
 //        for (int e = 0; e < normvecRows; e++) {
 //            for (int s = 0; s < normvecCols; s++) {
-//                Normalvec(e,s)=datavec[vindex].fNormalVecFad(e,s).val();
+//                Normalvec(e,s)=datavec[vindex].fDeformedDirectionsFad(e,s).val();
 //            }
 //        }
 //    }
@@ -1446,8 +1469,8 @@ STATE TPZNavierStokesMaterial::Tr( TPZFMatrix<REAL> &GradU ){
 /// transform a H1 data structure to a vector data structure
 void TPZNavierStokesMaterial::FillVecShapeIndex(TPZMaterialData &data)
 {
-    data.fNormalVec.Resize(fDimension,fDimension);
-    data.fNormalVec.Identity();
+    data.fDeformedDirections.Resize(fDimension,fDimension);
+    data.fDeformedDirections.Identity();
     data.fVecShapeIndex.Resize(fDimension*data.phi.Rows());
     for (int d=0; d<fDimension; d++) {
         for (int i=0; i<data.phi.Rows(); i++) {
