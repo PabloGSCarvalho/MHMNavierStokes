@@ -22,7 +22,8 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZFMatrix<ST
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
     this->SetDefaultMem(Vl);
     fk=1;
-    fproblemtype = ENavierStokes;
+    f_problemtype = TStokesAnalytic::ENavierStokes;
+    
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -36,8 +37,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension, int s
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
     this->SetDefaultMem(Vl);
     fk=1.;
-    fproblemtype = ENavierStokes;
-
+    f_problemtype = TStokesAnalytic::ENavierStokes;
     
 }
 
@@ -46,7 +46,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension, int s
 TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity), fTheta(mat.fTheta), fSigma(mat.fSigma)
 {
     fk= mat.fk;
-    fproblemtype = mat.fproblemtype;
+    f_problemtype = mat.f_problemtype;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -718,19 +718,19 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             
             // this is an adjustment for a Oseen version of Navier Stokes?
             TPZManVector<STATE> beta(u_n);
+            TPZFMatrix<STATE> grad_beta(3,3,0.);
             if(HasForcingFunctionExact())
             {
-                TPZFMatrix<STATE> gradu(3,3,0.);
                 TPZVec<STATE> x(3,0.),xrot(3,0.);
                 x=datavec[vindex].x;
-                this->ForcingFunctionExact()->Execute(x, beta, gradu);
+                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
             }
             
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
 
 
-            if (fproblemtype==ENavierStokes) {
+            if (f_problemtype==TStokesAnalytic::ENavierStokes) {
 
                 TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);;
                 for (int e=0; e<3; e++) {
@@ -739,24 +739,32 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                     }
                 }
                 
+                TPZFNMatrix<9,STATE> GradUn_phiV(3,1,0.);
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
-                        GradUTr_Un(e,0) += GradVj(f,e)*u_n[f]; //Oseen eqs
+                        GradUn_phiV(e,0) += gradUn(e,f)*phiVj(f,0);
                     }
                 }
                 
+//                for (int e=0; e<3; e++) {
+//                    for (int f=0; f<3; f++) {
+//                        GradUTr_Un(e,0) += GradVj(f,e)*u_n[f]; //Transpose of gradu
+//                    }
+//                }
+                
+                
                 STATE C_term = InnerVec(GradU_Un, phiVi);
                 
-                STATE C_term_t = InnerVec(GradUTr_Un, phiVi);
+                STATE C_term_2 = InnerVec(GradUn_phiV, phiVi);
                 
                 // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
                 
-                ek(i,j) += -weight * C_term_t;  // C - Trilinear terms
+                ek(i,j) += -weight * C_term_2;  // C - Trilinear terms
                 
             }
             
-            if (fproblemtype==EOseen) {
+            if (f_problemtype==TStokesAnalytic::EOseen) {
                 
                 // THIS IS GOING TO RESULT IN THE WRONG TANGENT
                 // the variable is the gradient of the vector
@@ -768,20 +776,21 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                     }
                 }
                 
+                TPZFNMatrix<9,STATE> GradBeta_phiV(3,1,0.);
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
-                        GradUTr_Beta(e,0) += GradVj(f,e)*beta[f]; //Oseen eqs
+                        GradBeta_phiV(e,0) += grad_beta(e,f)*phiVj(f,0);
                     }
                 }
                 
                 STATE C_term = InnerVec(GradU_Beta, phiVi);
                 
-                STATE C_term_t = InnerVec(GradUTr_Beta, phiVi);
+                STATE C_term_2 = InnerVec(GradBeta_phiV, phiVi);
                 
                 // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
                 
-                ek(i,j) += -weight * C_term_t;  // C - Trilinear terms
+                ek(i,j) += weight * C_term_2;  // C - Trilinear terms
             }
 
             

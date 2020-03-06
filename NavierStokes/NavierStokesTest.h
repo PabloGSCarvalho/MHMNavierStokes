@@ -51,13 +51,14 @@
 #include "pztrnsform.h"
 #include "TPZSimulationData.h"
 #include "TPZNSAnalysis.h"
+#include "TPZAnalyticSolution.h"
 
 using namespace std;
 using namespace pzshape;
 
 
 
-enum NSDomainType {EObstacle,EOneCurve,ERetangular};
+//enum NSDomainType {EObstacle,EOneCurve,ERetangular};
 
 class NavierStokesTest{
     
@@ -135,9 +136,11 @@ private:
     
     MElementType feltype;
     
-    NSProblemType fproblemtype;
+    TStokesAnalytic::MProblemType f_problemtype;
     
-    NSDomainType fdomaintype;
+    TStokesAnalytic::EExactSol f_domaintype;
+    
+    TStokesAnalytic f_ExactSol;
     
     TPZManVector<TPZCompMesh *, 2> f_mesh_vector;
     
@@ -253,15 +256,17 @@ public:
         f_is_hdivFull = true;
     };
 
-    void SetProblemType(NSProblemType type){
-        fproblemtype = type;
+    void SetProblemType(TStokesAnalytic::MProblemType type){
+        f_problemtype = type;
+        f_ExactSol.fProblemType = type;
     };
 
-    void SetDomainType(NSDomainType type){
-        if(type==EObstacle){
+    void SetDomainType(TStokesAnalytic::EExactSol type){
+        if(type==TStokesAnalytic::EObstacles){
             f_Holemesh = true;
         }
-        fdomaintype = type;
+        f_domaintype = type;
+        f_ExactSol.fExactSol = type;
     };
     
     void SetElType(MElementType eltype){

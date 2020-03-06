@@ -31,6 +31,7 @@
 #include "TPZGenSpecialGrid.h"
 #include "tpzgeoelmapped.h"
 
+
 using namespace std;
 
 const REAL Pi=M_PI;
@@ -123,9 +124,9 @@ NavierStokesTest::NavierStokesTest()
     
     feltype = EQuadrilateral;
     
-    fproblemtype = ENavierStokes;
+    f_problemtype = TStokesAnalytic::ENavierStokes;
 
-    fdomaintype = ERetangular;
+    f_domaintype = TStokesAnalytic::ERetangular;
 
     f_mesh_vector.resize(2);
     
@@ -135,6 +136,7 @@ NavierStokesTest::NavierStokesTest()
     f_HoleCoord.clear();
     f_ArcCentralNode.clear();
     
+    f_ExactSol.fProblemType = f_problemtype;
 }
 
 NavierStokesTest::~NavierStokesTest()
@@ -154,11 +156,11 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
         gmesh = CreateGMesh3D(n_s, h_s);
     }else {
 
-        if (fdomaintype==ERetangular) {
+        if (f_domaintype==TStokesAnalytic::ERetangular) {
             gmesh = CreateGMesh(n_s, h_s);
         }
         
-        if(fdomaintype==EOneCurve){
+        if(f_domaintype==TStokesAnalytic::EOneCurve){
             gmesh = CreateGMeshCurve();
             //        gmesh = CreateGMeshCurveBlend();
             //        gmesh = CreateGMeshCurveBlendSimple();
@@ -284,18 +286,22 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
 
-    if (fdomaintype==ERetangular){
-        if (fproblemtype==EStokes) {
-            NS_analysis->SetExact(Sol_exact_Stokes);
-        }else if (fproblemtype==EOseen){
-            NS_analysis->SetExact(Sol_exact_Oseen);
-        }else{
-            NS_analysis->SetExact(Sol_exact);
-        }
-    }else if(fdomaintype==EOneCurve){
-        NS_analysis->SetExact(Sol_exact_Curve);
-    }
-        
+//    if (f_domaintype==TStokesAnalytic::ERetangular){
+//        if (f_problemtype==TStokesAnalytic::EStokes) {
+//            NS_analysis->SetExact(Sol_exact_Stokes);
+//        }else if (f_problemtype==TStokesAnalytic::EOseen){
+//            NS_analysis->SetExact(Sol_exact_Oseen);
+//        }else{
+//            NS_analysis->SetExact(Sol_exact);
+//        }
+//    }else if(f_domaintype==TStokesAnalytic::EOneCurve){
+//        NS_analysis->SetExact(Sol_exact_Curve);
+//    }
+
+    //papapapapap
+    NS_analysis->SetExact(f_ExactSol.ExactSolution());
+
+    
     NS_analysis->SetThreadsForError(3);
     NS_analysis->PostProcessError(Errors,false);
     
@@ -991,7 +997,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
     x0[0] = -0.5, x0[1] = 0.;
     x1[0] = 1.5, x1[1] = 2.;
 
-    if(fproblemtype==EStokes){
+    if(f_problemtype==TStokesAnalytic::EStokes){
         x0[0] = 0., x0[1] = -1.;
         x1[0] = 2., x1[1] = 1.;
     }
@@ -3351,45 +3357,56 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     // Criando material:
     // 1 - Material volumétrico 2D
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
-    material->SetProblemType(fproblemtype);
+    material->SetProblemType(f_problemtype);
     int fexact_order = 7;
-    TPZAutoPointer<TPZFunction<STATE> > fp;
-    TPZAutoPointer<TPZFunction<STATE> > solp;
+    TPZAutoPointer<TPZFunction<STATE> > fp = NULL;
+    TPZAutoPointer<TPZFunction<STATE> > solp = NULL;
     
-    if (fdomaintype==ERetangular) {
+    //if(material->fTimeDependentForcingFunction) DebugStop();
+    
+//    if (f_domaintype==TStokesAnalytic::ERetangular) {
+//
+//        if (f_problemtype==TStokesAnalytic::EStokes) {
+//
+////            fp = f_ExactSol.ForcingFunction();
+//            solp = f_ExactSol.Exact();
+//            fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
+////            solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
+//
+//        }else if (f_problemtype==TStokesAnalytic::EOseen){
+//
+//            fp = new TPZDummyFunction<STATE> (F_source_Oseen, fexact_order);
+//            solp = new TPZDummyFunction<STATE> (Sol_exact_Oseen, fexact_order);
+//
+//        } else {
+//
+//            fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
+//            solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
+//
+//        }
+//
+//    }else if (f_domaintype==TStokesAnalytic::EOneCurve){
+//
+//        fp = NULL;
+//        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
+//
+//    }
 
-        if (fproblemtype==EStokes) {
-            
-            fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
-            solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
-            
-        }else if (fproblemtype==EOseen){
-            
-            fp = new TPZDummyFunction<STATE> (F_source_Oseen, fexact_order);
-            solp = new TPZDummyFunction<STATE> (Sol_exact_Oseen, fexact_order);
-            
-        } else {
 
-            fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
-            solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
-
-        }
-
-    }else if (fdomaintype==EOneCurve){
-
-        fp = NULL;
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
-        
+    if(f_domaintype!=TStokesAnalytic::EOneCurve){
+//        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
+////        ((TPZCompMesh *)(fp.operator->()))->NElements();
+//        if(cast) cast->SetPolynomialOrder(fexact_order);
     }
+//    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
 
-    if (fdomaintype!=EOneCurve){
-        ((TPZDummyFunction<STATE>*)fp.operator->())->SetPolynomialOrder(fexact_order);
-    }
-    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
-    material->SetForcingFunction(fp); //Caso simples sem termo fonte
-    material->SetForcingFunctionExact(solp);
+
+    
+    material->SetForcingFunction(f_ExactSol.ForcingFunction()); //Caso simples sem termo fonte
+    material->SetForcingFunctionExact(f_ExactSol.Exact());
     
     cmesh->InsertMaterialObject(material);
+
     
     // 1 - Condições de contorno:
     // Condições de contorno - Impõe v fortemente
@@ -3429,12 +3446,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->InsertMaterialObject(BC_top);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
     
@@ -3546,7 +3563,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->BuildMultiphysicsSpace(active_approx_spaces,f_mesh_vector);
     cmesh->AdjustBoundaryElements();
     cmesh->CleanUpUnconnectedNodes();
-    
+
     return cmesh;
     
 }
