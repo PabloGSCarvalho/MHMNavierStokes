@@ -92,8 +92,12 @@ NavierStokesTest::NavierStokesTest()
     fmatPoint=-15;
     
     //Condições de contorno do problema
-    fdirichlet=0;
-    fneumann=1;
+    fdirichlet_v=0;
+    fneumann_v=1;
+    
+    fdirichlet_sigma=1;
+    fneumann_sigma=0;
+    
     fpenetration=2;
     fpointtype=5;
     fdirichletvar=4;
@@ -2976,32 +2980,33 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space, int pOrder)
         DebugStop();
     }
     
+
     // 1 - Condições de contorno
     TPZFMatrix<STATE> val1(1,1,0.), val2(2,1,0.);
     {
-        TPZMaterial * BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet, val1, val2);
+        TPZMaterial * BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond0);
         
-        TPZMaterial * BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet, val1, val2);
+        TPZMaterial * BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond1);
         
-        TPZMaterial * BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+        TPZMaterial * BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond2);
         
-        TPZMaterial * BCond3 = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
+        TPZMaterial * BCond3 = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond3);
     }
     
     if (f_Holemesh){
-        TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
+        TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCondHole);
     }
     
     if (f_3Dmesh) {
-        TPZMaterial * BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet, val1, val2);
+        TPZMaterial * BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond4);
         
-        TPZMaterial * BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet, val1, val2);
+        TPZMaterial * BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond5);
     }
     
@@ -3359,8 +3364,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
     material->SetProblemType(f_problemtype);
     int fexact_order = 7;
-    TPZAutoPointer<TPZFunction<STATE> > fp = NULL;
-    TPZAutoPointer<TPZFunction<STATE> > solp = NULL;
+    TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
+    TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
     
     //if(material->fTimeDependentForcingFunction) DebugStop();
     
@@ -3402,8 +3407,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 
 
     
-    material->SetForcingFunction(f_ExactSol.ForcingFunction()); //Caso simples sem termo fonte
-    material->SetForcingFunctionExact(f_ExactSol.Exact());
+    material->SetForcingFunction(fp); //Caso simples sem termo fonte
+    material->SetForcingFunctionExact(solp);
     
     cmesh->InsertMaterialObject(material);
 
@@ -3436,38 +3441,38 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    cmesh->InsertMaterialObject(BC_right);
 
     val2(0,0) = 0.0;
-    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann, val1, val2);
+    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
     BC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_bott);
     
     val2(0,0) = 0.0; // vx -> 0
-    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann, val1, val2);
+    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
     BC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_top);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann, val1, val2);
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann_v, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann, val1, val2);
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
     
     if (f_Holemesh){
         val2(0,0) = 0.0;
-        TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
+        TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         BC_hole->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_hole);
     }
 
     if (f_3Dmesh) {
-        TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet, val1, val2);
+        TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
         BC_bott_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_bott_z);
         
-        TPZBndCond * BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet, val1, val2);
+        TPZBndCond * BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
         BC_top_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_top_z);
     }
@@ -3505,36 +3510,36 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    matLambdaBC_right->SetBCForcingFunction(0, solp);
 //    cmesh->InsertMaterialObject(matLambdaBC_right);
 
-    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
     matLambdaBC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
     
-    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
     matLambdaBC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_top);
     
-    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
     matLambdaBC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_left);
     
-    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
     matLambdaBC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_right);
     
     
     if (f_Holemesh){
         val2(0,0) = 0.0;
-        TPZBndCond *matLambdaBC_hole = material->CreateBC(material, fmatLambdaBC_hole, fdirichlet, val1, val2);
+        TPZBndCond *matLambdaBC_hole = material->CreateBC(material, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
         //    matLambdaBC_hole->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_hole);
     }
     
     if (f_3Dmesh) {
-        TPZBndCond *matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fneumann, val1, val2);
+        TPZBndCond *matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
         matLambdaBC_bott_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_bott_z);
         
-        TPZBndCond *matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fneumann, val1, val2);
+        TPZBndCond *matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
         matLambdaBC_top_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_top_z);
     }

@@ -692,7 +692,28 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         // factorM is equal to one!!
         ef(i) += -weight * C_term_f*factorM;
 //        ef(i) += - weight * D_term_f*factorM;
-        
+ 
+        TPZManVector<STATE> beta(u_n);
+        TPZFMatrix<STATE> grad_beta(3,3,0.);
+        TPZFNMatrix<9,STATE> GradV_Beta(3,1,0.);
+        if (f_problemtype==TStokesAnalytic::EOseen) {
+            // this is an adjustment for a Oseen version of Navier Stokes?
+
+            if(HasForcingFunctionExact())
+            {
+                TPZVec<STATE> x(3,0.),xrot(3,0.);
+                x=datavec[vindex].x;
+                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
+            }
+            
+
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                    GradV_Beta(e,0) += GradVi(e,f)*beta[f]; //Oseen eqs
+                }
+            }
+        }
+    
         // A, C e D - velocity X velocity
         for(int j = 0; j < nshapeV; j++){
             int jphi = datavec[vindex].fVecShapeIndex[j].second;
@@ -716,15 +737,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
             STATE A_term = Inner(Dui, Duj);
             
-            // this is an adjustment for a Oseen version of Navier Stokes?
-            TPZManVector<STATE> beta(u_n);
-            TPZFMatrix<STATE> grad_beta(3,3,0.);
-            if(HasForcingFunctionExact())
-            {
-                TPZVec<STATE> x(3,0.),xrot(3,0.);
-                x=datavec[vindex].x;
-                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
-            }
+
             
             
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
@@ -785,10 +798,14 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 
                 STATE C_term = InnerVec(GradU_Beta, phiVi);
                 
+                STATE C_term_T = InnerVec(GradV_Beta, phiVj);
+                
                 STATE C_term_2 = InnerVec(GradBeta_phiV, phiVi);
                 
                 // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
-                ek(i,j) += weight * C_term;  // C - Trilinear terms
+                ek(i,j) += 0.5*weight * C_term;  // C - Trilinear terms
+                
+                ek(i,j) += -0.5*weight * C_term_T;  // C - Trilinear terms
                 
                 ek(i,j) += weight * C_term_2;  // C - Trilinear terms
             }

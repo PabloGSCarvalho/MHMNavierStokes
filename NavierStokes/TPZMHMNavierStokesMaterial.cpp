@@ -141,7 +141,6 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 
 void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
     
-    
     int nshapeV , nshapeLambda;
     
     nshapeV = datavec[0].phi.Rows();
@@ -174,7 +173,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     
     TPZFMatrix<STATE> gradu(3,3,0.);
     TPZManVector<STATE> vbc(4,0.);
-    TPZFMatrix<STATE> Du(3,3,0.),Dun(3,1,0.);
+    TPZFMatrix<STATE> Du(3,3,0.),Dun(3,1,0.),u_x_beta(3,3,0.), u_x_beta_n(3,1,0.);
     if(bc.HasBCForcingFunction())
     {
         
@@ -201,10 +200,27 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
                 }
             }
 
+            
+            //Oseen term:
+            for (int i = 0; i<3; i++) {
+                for (int j = 0; j<3; j++) {
+                    u_x_beta(i,j) +=  v_Dirichlet[i] * v_Dirichlet[j];
+                }
+            }
+            
+            
+            for (int i = 0; i<3; i++) {
+                for (int j = 0; j<3; j++) {
+                    u_x_beta_n(i,0) +=  u_x_beta(i,j) * datavec[0].normal[j];
+                }
+            }
+            
+            
+            
             // Neumann vector
             
             for (int i = 0; i<3; i++) {
-                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i];
+                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i] - 0.5*u_x_beta_n(i,0);
             }
             
         }
@@ -231,19 +247,32 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
                 Dun(i,0) +=  Du(i,j) * datavec[1].normal[j];
             }
         }
+
+
+        //Oseen term:
+        for (int i = 0; i<3; i++) {
+            for (int j = 0; j<3; j++) {
+                u_x_beta(i,j) +=  v_Dirichlet[i] * v_Dirichlet[j];
+            }
+        }
+        
+
+        for (int i = 0; i<3; i++) {
+            for (int j = 0; j<3; j++) {
+                u_x_beta_n(i,0) +=  u_x_beta(i,j) * datavec[1].normal[j];
+            }
+        }
         
         // Neumann vector
         
         for (int i = 0; i<3; i++) {
-            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i];
+            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i] - 0.5*u_x_beta_n(i,0);
         }
 //        std::cout<<datavec[1].normal<<std::endl;
 //        std::cout<<v_Neumann<<std::endl;
   
     }
     
-    
-
     
     STATE value = 0.;
     if(nshapeV!=0){
