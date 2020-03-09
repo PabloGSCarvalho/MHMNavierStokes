@@ -183,7 +183,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
                 
         dU = Solution();
         
-        std::cout<<dU<<std::endl;
+//        std::cout<<dU<<std::endl;
         
         norm_dU  = Norm(dU);
         m_U_Plus += dU;
@@ -194,9 +194,10 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         LoadLastState();
         AssembleResidual();
         m_R_n = this->Rhs();
-//        std::cout<<this->Rhs()<<std::endl;
+        std::cout<< "residual norm 0 = " << Norm(this->Rhs()) <<std::endl;
         LoadCurrentState();
         AssembleResidual();
+        std::cout<< "residual norm 0 = " << Norm(this->Rhs()) <<std::endl;
         m_R_Plus = this->Rhs();
 //        std::cout<<this->Rhs()<<std::endl;
 //        REAL test_RHS_norm_n = Norm(m_R_n);
@@ -296,8 +297,8 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
     //Testes
     std::string file_NavierStokes_test("NavierStokes_test.vtk");
 
-    int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
-    int n_enforced_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    int n_max_fss_iterations = 5; // @TODO:: MS, please to xml file structure
+    int n_enforced_fss_iterations = 2; // @TODO:: MS, please to xml file structure
     int n_time_steps = 1;
     REAL res_norm = m_simulation_data->Get_epsilon_res();
     REAL dU_norm = m_simulation_data->Get_epsilon_cor();

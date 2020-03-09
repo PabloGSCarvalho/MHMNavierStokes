@@ -71,11 +71,12 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 1;
+    int pOrder = 2;
         
     for (int it=0; it<=0; it++) {
         //h_level = pow(2., 2+it);
-        h_level = 8;
+        // what is the meaning of h_level?
+        h_level = 2;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
@@ -90,10 +91,10 @@ int main(int argc, char *argv[])
         //Test2->SetHdivPlus();
         Test2->SetInternRef(0);
      
-        //Select problem type TStokesAnalytic (ENavierStokes,EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::EOseen);
-        //Select domain type TStokesAnalytic (EObstacles,EOneCurve,ERetangular)
-        Test2->SetDomainType(TStokesAnalytic::ERetangular);
+        //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
+        Test2->SetProblemType(EStokes);
+        //Select domain type (EObstacle,EOneCurve,ERetangular)
+        Test2->SetDomainType(ERetangular);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
