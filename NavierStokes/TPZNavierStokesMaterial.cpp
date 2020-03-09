@@ -678,21 +678,25 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         B_term_f = - p_n * datavec[0].divphi(i);
         ef(i) += weight * (-B_term_f);
         
-        // this is the original Navier Stokes term
-        STATE C_term_f = 0.; // C - Trilinear terms
-        TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
-        for (int e=0; e<3; e++) {
-            for (int f=0; f<3; f++) {
-                GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
+        
+        if (f_problemtype==TStokesAnalytic::ENavierStokes) {
+            // this is the original Navier Stokes term
+            STATE C_term_f = 0.; // C - Trilinear terms
+            TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                    GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
+                }
             }
+            
+            C_term_f = InnerVec(GradUn_phiU, phiVi);
+            
+            // factorM is equal to one!!
+            ef(i) += -weight * C_term_f*factorM;
+            //        ef(i) += - weight * D_term_f*factorM;
+        
         }
         
-        C_term_f = InnerVec(GradUn_phiU, phiVi);
- 
-        // factorM is equal to one!!
-        ef(i) += -weight * C_term_f*factorM;
-//        ef(i) += - weight * D_term_f*factorM;
- 
         TPZManVector<STATE> beta(u_n);
         TPZFMatrix<STATE> grad_beta(3,3,0.);
         TPZFNMatrix<9,STATE> GradV_Beta(3,1,0.);

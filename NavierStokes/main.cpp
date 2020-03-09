@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
      
         //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
         Test2->SetProblemType(TStokesAnalytic::EStokes);
-        //Select domain type (EObstacle,EOneCurve,ERetangular)
-        Test2->SetDomainType(TStokesAnalytic::EPconst);
+        //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst)
+        Test2->SetDomainType(TStokesAnalytic::ERetangular);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);

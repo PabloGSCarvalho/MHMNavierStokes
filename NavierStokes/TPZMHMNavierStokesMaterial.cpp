@@ -220,7 +220,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             // Neumann vector
             
             for (int i = 0; i<3; i++) {
-                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i] - 0.5*u_x_beta_n(i,0);
+                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i] - 0.0*u_x_beta_n(i,0);
             }
             
         }
@@ -266,7 +266,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         // Neumann vector
         
         for (int i = 0; i<3; i++) {
-            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i] - 0.5*u_x_beta_n(i,0);
+            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i] - 0.0*u_x_beta_n(i,0);
         }
 //        std::cout<<datavec[1].normal<<std::endl;
 //        std::cout<<v_Neumann<<std::endl;
