@@ -160,15 +160,13 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
         gmesh = CreateGMesh3D(n_s, h_s);
     }else {
 
-        if (f_domaintype==TStokesAnalytic::ERetangular) {
-            gmesh = CreateGMesh(n_s, h_s);
-        }
-        
         if(f_domaintype==TStokesAnalytic::EOneCurve){
             gmesh = CreateGMeshCurve();
             //        gmesh = CreateGMeshCurveBlend();
             //        gmesh = CreateGMeshCurveBlendSimple();
             //        gmesh = CreateGMeshRefPattern(n_s, h_s);
+        }else{
+            gmesh = CreateGMesh(n_s, h_s);
         }
 
     }
