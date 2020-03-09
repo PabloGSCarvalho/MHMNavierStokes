@@ -318,6 +318,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
         DebugStop();
     }
     
+    int num_interface_created = 0;
+    
     int64_t nel = m_geometry->NElements();
     for (int64_t el=0; el<nel; el++) {
         TPZGeoEl *gel = m_geometry->Element(el);
@@ -328,7 +330,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
             continue;
         }
         
-        if (gel->HasSubElement() == 1) {
+        if (gel->HasSubElement()) {
             continue;
         }
         
@@ -372,7 +374,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                     
                     TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
-                    
+                    num_interface_created++;
                     std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
                     " side " << subel[i_sub].Side() <<
                     " and interior 1D element " << gelside.Element()->Index() << std::endl;
@@ -393,7 +395,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                 
                 TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
-                
+                num_interface_created++;
                 std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
                 " side " << neigh.Side() <<
                 " and interior 1D element " << gelside.Element()->Index() << std::endl;
@@ -405,8 +407,6 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
             
             
         }
-        
-        
         
 //        if (nneighs==1) {
 //
@@ -434,7 +434,10 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
 //        }
         
     }
+    std::cout << __PRETTY_FUNCTION__ << " number of interfaces created " <<
+    num_interface_created << std::endl;
     
+
 }
 
 
