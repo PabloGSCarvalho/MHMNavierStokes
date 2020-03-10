@@ -269,7 +269,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(5);
+    sim_data->Set_n_iterations(3);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -278,7 +278,13 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     var_name[0]="V";
     var_name[1]="P";
     
-    NS_analysis->ConfigurateAnalysis(ELDLt, sim_data, cmesh_m, f_mesh_vector, var_name);
+    DecomposeType decomposeType = ELU;
+    
+    if (f_problemtype==TStokesAnalytic::EStokes) {
+        decomposeType = ELDLt;
+    }
+    
+    NS_analysis->ConfigurateAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
     
     NS_analysis->ExecuteTimeEvolution();
  

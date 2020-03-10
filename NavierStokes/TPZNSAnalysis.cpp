@@ -69,14 +69,14 @@ void TPZNSAnalysis::ConfigurateAnalysis(DecomposeType decomposition, TPZSimulati
 //                        this->SetStructuralMatrix(struct_mat);
             //#else
             
-
-
-            
-            
-            TPZSkylineNSymStructMatrix struct_mat(Mesh());
+//            TPZSkylineNSymStructMatrix struct_mat(Mesh());
+//            struct_mat.SetNumThreads(n_threads);
+//            this->SetStructuralMatrix(struct_mat);
+            //#endif
+            TPZFStructMatrix struct_mat(Mesh());
             struct_mat.SetNumThreads(n_threads);
             this->SetStructuralMatrix(struct_mat);
-            //#endif
+            
         }
             break;
         case ELDLt:
@@ -190,8 +190,8 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         
 //        std::cout<<m_U_Plus<<std::endl;
         
-        //LoadCurrentState();
-        LoadLastState();
+        LoadCurrentState();
+        //LoadLastState();
         AssembleResidual();
         m_R_n = this->Rhs();
         std::cout<< "residual norm 0 = " << Norm(this->Rhs()) <<std::endl;
