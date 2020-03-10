@@ -132,7 +132,8 @@ NavierStokesTest::NavierStokesTest()
 
     f_domaintype = TStokesAnalytic::ERetangular;
 
-    f_mesh_vector.resize(2);
+    f_mesh_vector.resize(4);
+    f_mesh_vector.Fill(nullptr);
     
     f_T = TPZTransform<>(3,3);
     f_InvT = TPZTransform<>(3,3);
@@ -207,9 +208,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
   
     f_mesh_vector[0]=cmesh_v;
     f_mesh_vector[1]=cmesh_p;
-//    f_mesh_vector[2]=cmesh_pM;
-//    f_mesh_vector[3]=cmesh_gM;
+    f_mesh_vector[2]=cmesh_pM;
+    f_mesh_vector[3]=cmesh_gM;
     
+//    f_mesh_vector.Resize(2);
     TPZMultiphysicsCompMesh *cmesh_m = this->CMesh_m(gmesh, Space, pOrder, visco); //Função para criar a malha computacional multifísica
     
 #ifdef PZDEBUG
@@ -249,7 +251,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     
     // Agrupar e condensar os elementos
-    //GroupAndCondense(cmesh_m);
+//    GroupAndCondense(cmesh_m);
 
 #ifdef PZDEBUG
     {
@@ -257,7 +259,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
         std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
         gmesh->Print(fileg1);
         TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
-        
+        cmesh_m->ComputeNodElCon();
         std::ofstream filecm("MalhaC_m.txt"); //Impressão da malha computacional multifísica (formato txt)
         cmesh_m->Print(filecm);
     }
@@ -3571,7 +3573,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha:
     
-    TPZManVector<int,5> active_approx_spaces(2,1);
+    TPZManVector<int,5> active_approx_spaces(f_mesh_vector.size(),1);
     
     cmesh->BuildMultiphysicsSpace(active_approx_spaces,f_mesh_vector);
     cmesh->AdjustBoundaryElements();
@@ -3669,6 +3671,8 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     
     int64_t ncompel = cmesh_m->ElementVec().NElements();
     int dim = cmesh_m->Reference()->Dimension();
+    
+    std::set<int64_t> nodexternal;
 
     std::vector<int64_t> GroupIndex;
     TPZStack<TPZElementGroup *> elgroups;
@@ -3680,6 +3684,15 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
         TPZCompEl *cel = cmesh_m->Element(el);
         if (cel->Dimension()!=dim) {
             continue;
+        }
+        TPZMultiphysicsElement *mcel = dynamic_cast<TPZMultiphysicsElement *>(cel);
+        int numspaces = mcel->NMeshes();
+        if(numspaces < 4) DebugStop();
+        int num_connect_ext = numspaces-3;
+        int ncon = mcel->NConnects();
+        for (int ic = ncon-num_connect_ext; ic<ncon; ic++) {
+            int64_t conindex = cel->ConnectIndex(ic);
+            nodexternal.insert(conindex);
         }
         //GroupIndex[el] = cel->Index();
         count++;
@@ -3750,6 +3763,10 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     
     
     cmesh_m->ComputeNodElCon();
+    for (auto it = nodexternal.begin(); it != nodexternal.end(); it++) {
+        int conindex = *it;
+        cmesh_m->ConnectVec()[conindex].IncrementElConnected();
+    }
     // create condensed elements
     // increase the NumElConnected of one pressure connects in order to prevent condensation
 //    for (int64_t ienv=0; ienv<nenvel; ienv++) {
@@ -3757,21 +3774,6 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     int nenvel = elgroups.NElements();
     for (int64_t ienv=0; ienv<nenvel; ienv++) {
         TPZElementGroup *elgr = elgroups[ienv];
-        
-        int nc = elgroups[ienv]->GetElGroup()[0]->NConnects();
-        elgroups[ienv]->GetElGroup()[0]->Connect(nc-1).IncrementElConnected();
-        
-        
-//        for (int ic=0; ic<nc; ic++) {
-//            TPZConnect &c = elgr->Connect(ic);
-//            int connectpM = elgroups[ienv]->GetElGroup()[0]->NConnects();
-//            int nc = elgr->NConnects();
-//            TPZConnect &c = elgr->Connect(nc-1);
-//            if (c.LagrangeMultiplier() > 0) {
-//                c.IncrementElConnected();
-//                break;
-//            }
-//        }
         new TPZCondensedCompEl(elgr);
     }
 

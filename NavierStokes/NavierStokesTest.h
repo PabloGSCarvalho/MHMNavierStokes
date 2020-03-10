@@ -146,7 +146,7 @@ private:
     
     TStokesAnalytic f_ExactSol;
     
-    TPZManVector<TPZCompMesh *, 2> f_mesh_vector;
+    TPZManVector<TPZCompMesh *, 6> f_mesh_vector;
     
     std::map<int,TPZManVector<REAL,3>> f_HoleCoord; //Dado o indice do elemento 2D, devolve a coord do hole associado
 

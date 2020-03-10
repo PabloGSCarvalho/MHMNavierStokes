@@ -74,10 +74,10 @@ int main(int argc, char *argv[])
     
     int pOrder = 2;
         
-    for (int it=0; it<=0; it++) {
-        //h_level = pow(2., 2+it);
+    for (int it=0; it<=2; it++) {
+        h_level = 1 << (it+1);
         // what is the meaning of h_level?
-        h_level = 4;
+//        h_level = 4;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
