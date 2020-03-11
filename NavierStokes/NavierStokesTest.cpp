@@ -1013,8 +1013,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
     }
     
     
-    x0[0] = 0., x0[1] = 0.;
-    x1[0] = 2., x1[1] = 2.;
+//    x0[0] = 0., x0[1] = 0.;
+//    x1[0] = 2., x1[1] = 2.;
     
     TPZGenGrid2D grid(n_div,x0,x1);
     
