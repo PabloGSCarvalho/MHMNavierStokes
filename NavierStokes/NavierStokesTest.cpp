@@ -130,7 +130,7 @@ NavierStokesTest::NavierStokesTest()
     
     f_problemtype = TStokesAnalytic::ENavierStokes;
 
-    f_domaintype = TStokesAnalytic::ERetangular;
+    f_domaintype = TStokesAnalytic::ESinCos;
 
     f_mesh_vector.resize(4);
     f_mesh_vector.Fill(nullptr);
@@ -271,7 +271,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(3);
+    sim_data->Set_n_iterations(2);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -296,7 +296,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
 
-//    if (f_domaintype==TStokesAnalytic::ERetangular){
+//    if (f_domaintype==TStokesAnalytic::ESinCos){
 //        if (f_problemtype==TStokesAnalytic::EStokes) {
 //            NS_analysis->SetExact(Sol_exact_Stokes);
 //        }else if (f_problemtype==TStokesAnalytic::EOseen){
@@ -1013,8 +1013,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
     }
     
     
-//    x0[0] = 0., x0[1] = 0.;
-//    x1[0] = 4., x1[1] = 2.;
+    x0[0] = 0., x0[1] = 0.;
+    x1[0] = 2., x1[1] = 2.;
     
     TPZGenGrid2D grid(n_div,x0,x1);
     
@@ -3379,7 +3379,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     //if(material->fTimeDependentForcingFunction) DebugStop();
     
-//    if (f_domaintype==TStokesAnalytic::ERetangular) {
+//    if (f_domaintype==TStokesAnalytic::ESinCos) {
 //
 //        if (f_problemtype==TStokesAnalytic::EStokes) {
 //

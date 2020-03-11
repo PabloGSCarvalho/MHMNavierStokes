@@ -58,7 +58,7 @@ using namespace pzshape;
 
 
 
-//enum NSDomainType {EObstacle,EOneCurve,ERetangular};
+//enum NSDomainType {EObstacle,EOneCurve,ESinCos};
 
 class NavierStokesTest{
     

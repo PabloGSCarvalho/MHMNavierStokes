@@ -74,17 +74,17 @@ int main(int argc, char *argv[])
     
     int pOrder = 2;
         
-    for (int it=0; it<=2; it++) {
+    for (int it=0; it<=0; it++) {
         h_level = 1 << (it+1);
         // what is the meaning of h_level?
-//        h_level = 4;
+        h_level = 2;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
         
         n_s[2]=h_level; //Obs!!
             
-        REAL visc = 0.1;
+        REAL visc = 1.;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
@@ -93,9 +93,9 @@ int main(int argc, char *argv[])
         Test2->SetInternRef(0);
      
         //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::EOseen);
-        //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst)
-        Test2->SetDomainType(TStokesAnalytic::ERetangular);
+        Test2->SetProblemType(TStokesAnalytic::EStokes);
+        //Select domain type (EObstacle,EOneCurve,ESinCos,EPconst)
+        Test2->SetDomainType(TStokesAnalytic::ESinCos);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
