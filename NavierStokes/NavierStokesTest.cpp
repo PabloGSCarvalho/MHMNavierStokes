@@ -463,7 +463,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     scalnames.Push("Div");
     
     
-    int postProcessResolution = 3; //  keep low as possible
+    int postProcessResolution = 1; //  keep low as possible
 
     int dim = gmesh->Dimension();
     an.DefineGraphMesh(dim,scalnames,vecnames,plotfile);
@@ -3373,7 +3373,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     // 1 - Material volumétrico 2D
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
     material->SetProblemType(f_problemtype);
-    int fexact_order = 7;
+    int fexact_order = 9;
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
     
@@ -3409,11 +3409,11 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 
 
     if(f_domaintype!=TStokesAnalytic::EOneCurve){
-//        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
-////        ((TPZCompMesh *)(fp.operator->()))->NElements();
-//        if(cast) cast->SetPolynomialOrder(fexact_order);
+        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
+//        ((TPZCompMesh *)(fp.operator->()))->NElements();
+        if(cast) cast->SetPolynomialOrder(fexact_order);
     }
-//    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
+    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
 
 
     

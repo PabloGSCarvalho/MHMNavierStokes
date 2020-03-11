@@ -64,15 +64,15 @@ void TPZNSAnalysis::ConfigurateAnalysis(DecomposeType decomposition, TPZSimulati
         case ELU:
         {
             //#ifdef USING_MKL
-                        TPZSpStructMatrix struct_mat(Mesh());
-                        struct_mat.SetNumThreads(n_threads);
-                        this->SetStructuralMatrix(struct_mat);
+//            TPZSpStructMatrix struct_mat(Mesh());
+//            struct_mat.SetNumThreads(n_threads);
+//            this->SetStructuralMatrix(struct_mat);
             //#else
             
 
-//            TPZFStructMatrix struct_mat(Mesh());
-//            struct_mat.SetNumThreads(n_threads);
-//            this->SetStructuralMatrix(struct_mat);
+            TPZFStructMatrix struct_mat(Mesh());
+            struct_mat.SetNumThreads(n_threads);
+            this->SetStructuralMatrix(struct_mat);
 
             
             
@@ -304,7 +304,7 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
     std::string file_NavierStokes_test("NavierStokes_test.vtk");
 
     int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
-    int n_enforced_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    int n_enforced_fss_iterations = 2; // @TODO:: MS, please to xml file structure
     int n_time_steps = 1;
     REAL res_norm = m_simulation_data->Get_epsilon_res();
     REAL dU_norm = m_simulation_data->Get_epsilon_cor();
