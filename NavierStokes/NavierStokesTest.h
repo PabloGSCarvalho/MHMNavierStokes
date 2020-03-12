@@ -51,13 +51,17 @@
 #include "pztrnsform.h"
 #include "TPZSimulationData.h"
 #include "TPZNSAnalysis.h"
+#include "TPZAnalyticSolution.h"
 
 using namespace std;
 using namespace pzshape;
 
-enum NSProblemType {NSObstacle,NSConvergence};
+
+
+//enum NSDomainType {EObstacle,EOneCurve,ESinCos};
 
 class NavierStokesTest{
+    
 private:
     
     int fdim; //Dimensão do problema
@@ -108,8 +112,12 @@ private:
     int fmatPoint;
     
     //Condições de contorno do problema
-    int fdirichlet;
-    int fneumann;
+    int fdirichlet_v;
+    int fneumann_v;
+    
+    int fdirichlet_sigma;
+    int fneumann_sigma;
+    
     int fpenetration;
     int fpointtype;
     int fdirichletvar;
@@ -132,7 +140,13 @@ private:
     
     MElementType feltype;
     
-    TPZManVector<TPZCompMesh *, 2> f_mesh_vector;
+    TStokesAnalytic::MProblemType f_problemtype;
+    
+    TStokesAnalytic::EExactSol f_domaintype;
+    
+    TStokesAnalytic f_ExactSol;
+    
+    TPZManVector<TPZCompMesh *, 6> f_mesh_vector;
     
     std::map<int,TPZManVector<REAL,3>> f_HoleCoord; //Dado o indice do elemento 2D, devolve a coord do hole associado
 
@@ -231,18 +245,6 @@ public:
         f_allrefine = true;
     };
 
-    void SetStokesTest(){
-        f_StokesTest = true;
-    };
-
-    void SetOseenTest(){
-        f_OseenTest = true;
-    };
-    
-
-    void SetCurveTest(){
-        f_CurveTest = true;
-    };
 
     void Set3Dmesh(){
         f_3Dmesh = true;
@@ -258,12 +260,18 @@ public:
         f_is_hdivFull = true;
     };
 
-    void SetProblemType(NSProblemType type){
-        if(type==NSObstacle){
+    void SetProblemType(TStokesAnalytic::MProblemType type){
+        f_problemtype = type;
+        f_ExactSol.fProblemType = type;
+    };
+
+    void SetDomainType(TStokesAnalytic::EExactSol type){
+        if(type==TStokesAnalytic::EObstacles){
             f_Holemesh = true;
         }
+        f_domaintype = type;
+        f_ExactSol.fExactSol = type;
     };
-    
     
     void SetElType(MElementType eltype){
         feltype = eltype;

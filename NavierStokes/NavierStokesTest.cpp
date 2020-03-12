@@ -21,7 +21,7 @@
 #include "TPZVecL2.h"
 #include "pzintel.h"
 #include "TPZNullMaterial.h"
-#include "pzgengrid.h"
+#include "TPZGenGrid2D.h"
 #include "TPZLagrangeMultiplier.h"
 #include "pzelementgroup.h"
 #include "pzcondensedcompel.h"
@@ -30,6 +30,7 @@
 #include "tpzgeoblend.h"
 #include "TPZGenSpecialGrid.h"
 #include "tpzgeoelmapped.h"
+
 
 using namespace std;
 
@@ -91,8 +92,12 @@ NavierStokesTest::NavierStokesTest()
     fmatPoint=-15;
     
     //Condições de contorno do problema
-    fdirichlet=0;
-    fneumann=1;
+    fdirichlet_v=0;
+    fneumann_v=1;
+    
+    fdirichlet_sigma=1;
+    fneumann_sigma=0;
+    
     fpenetration=2;
     fpointtype=5;
     fdirichletvar=4;
@@ -123,7 +128,12 @@ NavierStokesTest::NavierStokesTest()
     
     feltype = EQuadrilateral;
     
-    f_mesh_vector.resize(2);
+    f_problemtype = TStokesAnalytic::ENavierStokes;
+
+    f_domaintype = TStokesAnalytic::ESinCos;
+
+    f_mesh_vector.resize(4);
+    f_mesh_vector.Fill(nullptr);
     
     f_T = TPZTransform<>(3,3);
     f_InvT = TPZTransform<>(3,3);
@@ -131,6 +141,7 @@ NavierStokesTest::NavierStokesTest()
     f_HoleCoord.clear();
     f_ArcCentralNode.clear();
     
+    f_ExactSol.fProblemType = f_problemtype;
 }
 
 NavierStokesTest::~NavierStokesTest()
@@ -145,17 +156,25 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     fSpaceV = Space;
     TPZGeoMesh *gmesh;
     
+    
     if (f_3Dmesh) {
         gmesh = CreateGMesh3D(n_s, h_s);
-    }else if(f_CurveTest){
-        
-        gmesh = CreateGMeshCurve();
-//        gmesh = CreateGMeshCurveBlend();
-//        gmesh = CreateGMeshCurveBlendSimple();
-//        gmesh = CreateGMeshRefPattern(n_s, h_s);
-    }else{
-        gmesh = CreateGMesh(n_s, h_s);
+    }else {
+
+        if(f_domaintype==TStokesAnalytic::EOneCurve){
+            gmesh = CreateGMeshCurve();
+            //        gmesh = CreateGMeshCurveBlend();
+            //        gmesh = CreateGMeshCurveBlendSimple();
+            //        gmesh = CreateGMeshRefPattern(n_s, h_s);
+        }else{
+            gmesh = CreateGMesh(n_s, h_s);
+        }
+
     }
+    
+    if(!gmesh) DebugStop();
+        
+    
     
 #ifdef PZDEBUG
     std::ofstream fileg("MalhaGeoB.txt"); //Impressão da malha geométrica (formato txt)
@@ -189,9 +208,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
   
     f_mesh_vector[0]=cmesh_v;
     f_mesh_vector[1]=cmesh_p;
-//    f_mesh_vector[2]=cmesh_pM;
-//    f_mesh_vector[3]=cmesh_gM;
+    f_mesh_vector[2]=cmesh_pM;
+    f_mesh_vector[3]=cmesh_gM;
     
+//    f_mesh_vector.Resize(2);
     TPZMultiphysicsCompMesh *cmesh_m = this->CMesh_m(gmesh, Space, pOrder, visco); //Função para criar a malha computacional multifísica
     
 #ifdef PZDEBUG
@@ -231,7 +251,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     
     // Agrupar e condensar os elementos
-    //GroupAndCondense(cmesh_m);
+//    GroupAndCondense(cmesh_m);
 
 #ifdef PZDEBUG
     {
@@ -239,7 +259,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
         std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
         gmesh->Print(fileg1);
         TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
-        
+        cmesh_m->ComputeNodElCon();
         std::ofstream filecm("MalhaC_m.txt"); //Impressão da malha computacional multifísica (formato txt)
         cmesh_m->Print(filecm);
     }
@@ -251,7 +271,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(1);
+    sim_data->Set_n_iterations(2);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -260,7 +280,13 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     var_name[0]="V";
     var_name[1]="P";
     
-    NS_analysis->ConfigurateAnalysis(ELDLt, sim_data, cmesh_m, f_mesh_vector, var_name);
+    DecomposeType decomposeType = ELU;
+    
+    if (f_problemtype==TStokesAnalytic::EStokes) {
+        decomposeType = ELDLt;
+    }
+    
+    NS_analysis->ConfigurateAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
     
     NS_analysis->ExecuteTimeEvolution();
  
@@ -269,15 +295,23 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
-    if(f_StokesTest){
-            NS_analysis->SetExact(Sol_exact_Stokes);
-    }else if(f_CurveTest){
-            NS_analysis->SetExact(Sol_exact_Curve);
-    }else if(f_OseenTest){
-            NS_analysis->SetExact(Sol_exact_Oseen);
-    }else{
-            NS_analysis->SetExact(Sol_exact);
-    }
+
+//    if (f_domaintype==TStokesAnalytic::ESinCos){
+//        if (f_problemtype==TStokesAnalytic::EStokes) {
+//            NS_analysis->SetExact(Sol_exact_Stokes);
+//        }else if (f_problemtype==TStokesAnalytic::EOseen){
+//            NS_analysis->SetExact(Sol_exact_Oseen);
+//        }else{
+//            NS_analysis->SetExact(Sol_exact);
+//        }
+//    }else if(f_domaintype==TStokesAnalytic::EOneCurve){
+//        NS_analysis->SetExact(Sol_exact_Curve);
+//    }
+
+    //papapapapap
+    NS_analysis->SetExact(f_ExactSol.ExactSolution());
+
+    
     NS_analysis->SetThreadsForError(3);
     NS_analysis->PostProcessError(Errors,false);
     
@@ -429,7 +463,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     scalnames.Push("Div");
     
     
-    int postProcessResolution = 3; //  keep low as possible
+    int postProcessResolution = 1; //  keep low as possible
 
     int dim = gmesh->Dimension();
     an.DefineGraphMesh(dim,scalnames,vecnames,plotfile);
@@ -972,16 +1006,22 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
     TPZManVector<REAL,3> x0(3,0.),x1(3,0.);
     x0[0] = -0.5, x0[1] = 0.;
     x1[0] = 1.5, x1[1] = 2.;
+
+    if(f_problemtype==TStokesAnalytic::EStokes){
+        x0[0] = 0., x0[1] = -1.;
+        x1[0] = 2., x1[1] = 1.;
+    }
+    
     
 //    x0[0] = 0., x0[1] = 0.;
-//    x1[0] = 4., x1[1] = 2.;
+//    x1[0] = 2., x1[1] = 2.;
     
-    TPZGenGrid grid(n_div,x0,x1);
+    TPZGenGrid2D grid(n_div,x0,x1);
     
     //grid.SetDistortion(0.2);
     
     if (feltype==ETriangle) {
-        grid.SetElementType(ETriangle);
+        grid.SetElementType(MMeshType::ETriangular);
     }
     TPZGeoMesh *gmesh = new TPZGeoMesh;
     grid.Read(gmesh);
@@ -1032,9 +1072,9 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
     x0[0] = 0., x0[1] = 0., x0[2] = 0.;
     x1[0] = 2., x1[1] = 2., x1[2] = 2.;
     
-    TPZGenGrid grid(n_div,x0,x1);
+    TPZGenGrid2D grid(n_div,x0,x1);
     if (feltype == ETriangle|| feltype == EPrisma ) {
-        grid.SetElementType(ETriangle);
+        grid.SetElementType(MMeshType::ETriangular);
     }
     TPZGeoMesh *gmesh = new TPZGeoMesh;
 
@@ -2619,155 +2659,155 @@ void NavierStokesTest::Sol_exact_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &sol
 
 void NavierStokesTest::Sol_exact_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
     
-//        sol.resize(4);
-//        dsol.Resize(3,3);
+        sol.resize(4);
+        dsol.Resize(3,3);
+
+
+        // Stokes : : Artigo Botti, Di Pietro, Droniou
+        dsol.Resize(3,3);
+        sol.Resize(4);
+
+        //Applying rotation:
+        TPZVec<REAL> x_in = x;
+        TPZVec<REAL> x_rot(3,0.);
+
+        f_InvT.Apply(x_in,x_rot);
+        x[0] = x_rot[0];
+        x[1] = x_rot[1];
+
+        REAL x1 = x[0];
+        REAL x2 = x[1];
+        REAL e = exp(1.);
+
+        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+
+        v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
+        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
+        STATE pressure= cos(x1)*sin(x2);
+
+        f_T.Apply(v_Dirichlet, vbc_rot);
+        v_Dirichlet = vbc_rot;
+
+        sol[0]=v_Dirichlet[0];
+        sol[1]=v_Dirichlet[1];
+        sol[2]=v_Dirichlet[2];
+        sol[3]=pressure;
+
+        // GradU * Rt
+        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+
+        // vx direction
+        GradU(0,0)= -1.*cos(x1)*sin(x2);
+        GradU(0,1)= cos(x2)*sin(x1);
+
+        // vy direction
+        GradU(1,0)= -1.*cos(x2)*sin(x1);
+        GradU(1,1)= cos(x1)*sin(x2);
+
+        TPZFMatrix<STATE> R = f_T.Mult();
+        TPZFMatrix<STATE> Rt(3,3,0.);
+        R.Transpose(&Rt);
+
+    //    GradU.Print("GradU = ");
+    //    R.Print("R = ");
+    //    Rt.Print("Rt = ");
+
+        GradU.Multiply(Rt,GradURt);
+    //    GradURt.Print("GradURt = ");
+
+        R.Multiply(GradURt,RGradURt);
+    //    RGradURt.Print("RGradURt = ");
+
+        // vx direction
+        dsol(0,0)= RGradURt(0,0);
+        dsol(0,1)= RGradURt(0,1);
+        dsol(0,2)= RGradURt(0,2);
+
+        // vy direction
+        dsol(1,0)= RGradURt(1,0);
+        dsol(1,1)= RGradURt(1,1);
+        dsol(1,2)= RGradURt(1,2);
+
+        // vz direction
+        dsol(2,0)= RGradURt(2,0);
+        dsol(2,1)= RGradURt(2,1);
+        dsol(2,2)= RGradURt(2,2);
+    
+    
+    //    // Navier-Stokes
+//    dsol.Resize(3,3);
+//    sol.Resize(4);
+//
+//    //Applying rotation:
+//    TPZVec<REAL> x_in = x;
+//    TPZVec<REAL> x_rot(3,0.);
+//
+//    f_InvT.Apply(x_in,x_rot);
+//    x[0] = x_rot[0];
+//    x[1] = x_rot[1];
+//
+//    REAL x1 = x[0];
+//    REAL x2 = x[1];
+//
+//    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
+//
+//    REAL nu = 0.1;
+//    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+//    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+//    REAL lambda = Re/2.-Ty;
+//
+//    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
+//    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
+//    STATE pressure = -(1./2.)*exp(2.*lambda*x1);
+//
+//    f_T.Apply(v_Dirichlet, vbc_rot);
+//    v_Dirichlet = vbc_rot;
+//
+//    sol[0]=v_Dirichlet[0];
+//    sol[1]=v_Dirichlet[1];
+//    sol[2]=v_Dirichlet[2];
+//    sol[3]=pressure;
+//
+//    // GradU * Rt
+//    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
+//
+//    // vx direction
+//    GradU(0,0)= -exp(lambda*x1)*lambda*cos(2.*Pi*x2);
+//    GradU(0,1)= 2.*exp(lambda*x1)*Pi*sin(2.*Pi*x2);
+//
+//    // vy direction
+//    GradU(1,0)= exp(lambda*x1)*lambda*lambda*sin(2.*Pi*x2)*(1./(2.*Pi));
+//    GradU(1,1)= exp(lambda*x1)*lambda*cos(2.*Pi*x2);
 //
 //
-//        // Stokes : : Artigo Botti, Di Pietro, Droniou
-//        dsol.Resize(3,3);
-//        sol.Resize(4);
-//
-//        //Applying rotation:
-//        TPZVec<REAL> x_in = x;
-//        TPZVec<REAL> x_rot(3,0.);
-//
-//        f_InvT.Apply(x_in,x_rot);
-//        x[0] = x_rot[0];
-//        x[1] = x_rot[1];
-//
-//        REAL x1 = x[0];
-//        REAL x2 = x[1];
-//        REAL e = exp(1.);
-//
-//        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//        v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
-//        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-//        STATE pressure= cos(x1)*sin(x2);
-//
-//        f_T.Apply(v_Dirichlet, vbc_rot);
-//        v_Dirichlet = vbc_rot;
-//
-//        sol[0]=v_Dirichlet[0];
-//        sol[1]=v_Dirichlet[1];
-//        sol[2]=v_Dirichlet[2];
-//        sol[3]=pressure;
-//
-//        // GradU * Rt
-//        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//        // vx direction
-//        GradU(0,0)= -1.*cos(x1)*sin(x2);
-//        GradU(0,1)= cos(x2)*sin(x1);
-//
-//        // vy direction
-//        GradU(1,0)= -1.*cos(x2)*sin(x1);
-//        GradU(1,1)= cos(x1)*sin(x2);
-//
-//        TPZFMatrix<STATE> R = f_T.Mult();
-//        TPZFMatrix<STATE> Rt(3,3,0.);
-//        R.Transpose(&Rt);
+//    TPZFMatrix<STATE> R = f_T.Mult();
+//    TPZFMatrix<STATE> Rt(3,3,0.);
+//    R.Transpose(&Rt);
 //
 //    //    GradU.Print("GradU = ");
 //    //    R.Print("R = ");
 //    //    Rt.Print("Rt = ");
 //
-//        GradU.Multiply(Rt,GradURt);
+//    GradU.Multiply(Rt,GradURt);
 //    //    GradURt.Print("GradURt = ");
 //
-//        R.Multiply(GradURt,RGradURt);
+//    R.Multiply(GradURt,RGradURt);
 //    //    RGradURt.Print("RGradURt = ");
 //
-//        // vx direction
-//        dsol(0,0)= RGradURt(0,0);
-//        dsol(0,1)= RGradURt(0,1);
-//        dsol(0,2)= RGradURt(0,2);
+//    // vx direction
+//    dsol(0,0)= RGradURt(0,0);
+//    dsol(0,1)= RGradURt(0,1);
+//    dsol(0,2)= RGradURt(0,2);
 //
-//        // vy direction
-//        dsol(1,0)= RGradURt(1,0);
-//        dsol(1,1)= RGradURt(1,1);
-//        dsol(1,2)= RGradURt(1,2);
+//    // vy direction
+//    dsol(1,0)= RGradURt(1,0);
+//    dsol(1,1)= RGradURt(1,1);
+//    dsol(1,2)= RGradURt(1,2);
 //
-//        // vz direction
-//        dsol(2,0)= RGradURt(2,0);
-//        dsol(2,1)= RGradURt(2,1);
-//        dsol(2,2)= RGradURt(2,2);
-    
-    
-    //    // Navier-Stokes
-    dsol.Resize(3,3);
-    sol.Resize(4);
-    
-    //Applying rotation:
-    TPZVec<REAL> x_in = x;
-    TPZVec<REAL> x_rot(3,0.);
-    
-    f_InvT.Apply(x_in,x_rot);
-    x[0] = x_rot[0];
-    x[1] = x_rot[1];
-    
-    REAL x1 = x[0];
-    REAL x2 = x[1];
-    
-    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-    
-    REAL nu = 0.1;
-    REAL Re = 1./nu; // Artigo 2016 : 1/mu
-    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
-    REAL lambda = Re/2.-Ty;
-    
-    v_Dirichlet[0] = 1. - exp(lambda*x1)*cos(2.*Pi*x2);
-    v_Dirichlet[1] = (lambda/(2.*Pi))*exp(lambda*x1)*sin(2.*Pi*x2);
-    STATE pressure = -(1./2.)*exp(2.*lambda*x1);
-    
-    f_T.Apply(v_Dirichlet, vbc_rot);
-    v_Dirichlet = vbc_rot;
-    
-    sol[0]=v_Dirichlet[0];
-    sol[1]=v_Dirichlet[1];
-    sol[2]=v_Dirichlet[2];
-    sol[3]=pressure;
-    
-    // GradU * Rt
-    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-    
-    // vx direction
-    GradU(0,0)= -exp(lambda*x1)*lambda*cos(2.*Pi*x2);
-    GradU(0,1)= 2.*exp(lambda*x1)*Pi*sin(2.*Pi*x2);
-    
-    // vy direction
-    GradU(1,0)= exp(lambda*x1)*lambda*lambda*sin(2.*Pi*x2)*(1./(2.*Pi));
-    GradU(1,1)= exp(lambda*x1)*lambda*cos(2.*Pi*x2);
-    
-    
-    TPZFMatrix<STATE> R = f_T.Mult();
-    TPZFMatrix<STATE> Rt(3,3,0.);
-    R.Transpose(&Rt);
-    
-    //    GradU.Print("GradU = ");
-    //    R.Print("R = ");
-    //    Rt.Print("Rt = ");
-    
-    GradU.Multiply(Rt,GradURt);
-    //    GradURt.Print("GradURt = ");
-    
-    R.Multiply(GradURt,RGradURt);
-    //    RGradURt.Print("RGradURt = ");
-    
-    // vx direction
-    dsol(0,0)= RGradURt(0,0);
-    dsol(0,1)= RGradURt(0,1);
-    dsol(0,2)= RGradURt(0,2);
-    
-    // vy direction
-    dsol(1,0)= RGradURt(1,0);
-    dsol(1,1)= RGradURt(1,1);
-    dsol(1,2)= RGradURt(1,2);
-    
-    // vz direction
-    dsol(2,0)= RGradURt(2,0);
-    dsol(2,1)= RGradURt(2,1);
-    dsol(2,2)= RGradURt(2,2);
+//    // vz direction
+//    dsol(2,0)= RGradURt(2,0);
+//    dsol(2,1)= RGradURt(2,1);
+//    dsol(2,2)= RGradURt(2,2);
     
     
 }
@@ -2827,22 +2867,45 @@ void NavierStokesTest::F_source_Oseen(const TPZVec<REAL> &x, TPZVec<STATE> &f, T
 
 void NavierStokesTest::F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
     
-//    //Applying rotation:
-//    TPZVec<REAL> x_in = x;
-//    TPZVec<REAL> x_rot(3,0.);
-//
-//    f_InvT.Apply(x_in,x_rot);
-//    x[0] = x_rot[0];
-//    x[1] = x_rot[1];
+    //Applying rotation:
+    TPZVec<REAL> x_in = x;
+    TPZVec<REAL> x_rot(3,0.);
+
+    f_InvT.Apply(x_in,x_rot);
+    x[0] = x_rot[0];
+    x[1] = x_rot[1];
     
+    f.resize(3);
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    REAL x3 = x[2];
+
+    TPZVec<REAL> f_s(3,0), f_rot(3,0);
+    f_s[0] = -3.*sin(x1)*sin(x2);
+    f_s[1] = -1.*cos(x1)*cos(x2);
+
+    f_T.Apply(f_s, f_rot);
+    f_s = f_rot;
+
+    f[0] = f_s[0]; // x direction
+    f[1] = f_s[1]; // y direction
+    f[2] = f_s[2];
+
 //    f.resize(3);
 //    REAL x1 = x[0];
 //    REAL x2 = x[1];
 //    REAL x3 = x[2];
 //
+//    REAL nu = 0.1;
+//    REAL Re = 1./nu; // Artigo 2016 : 1/mu
+//    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
+//    REAL lambda = Re/2.-Ty;
+//
 //    TPZVec<REAL> f_s(3,0), f_rot(3,0);
-//    f_s[0] = -3.*sin(x1)*sin(x2);
-//    f_s[1] = -1.*cos(x1)*cos(x2);
+//
+//    // For Stokes:
+//    f_s[0] = -exp(x1*lambda)*(exp(x1*lambda)*lambda+(4.*Pi*Pi-lambda*lambda)*nu*cos(2.*Pi*x2));
+//    f_s[1] = -exp(x1*lambda)*lambda*(-4.*Pi*Pi+lambda*lambda)*nu*sin(2.*Pi*x2)/(2.*Pi);
 //
 //    f_T.Apply(f_s, f_rot);
 //    f_s = f_rot;
@@ -2850,29 +2913,6 @@ void NavierStokesTest::F_source_Stokes(const TPZVec<REAL> &x, TPZVec<STATE> &f, 
 //    f[0] = f_s[0]; // x direction
 //    f[1] = f_s[1]; // y direction
 //    f[2] = f_s[2];
-
-    f.resize(3);
-    REAL x1 = x[0];
-    REAL x2 = x[1];
-    REAL x3 = x[2];
-    
-    REAL nu = 0.1;
-    REAL Re = 1./nu; // Artigo 2016 : 1/mu
-    REAL Ty = pow(Re*Re/4.+4.*Pi*Pi,0.5);
-    REAL lambda = Re/2.-Ty;
-    
-    TPZVec<REAL> f_s(3,0), f_rot(3,0);
-    
-    // For Stokes:
-    f_s[0] = -exp(x1*lambda)*(exp(x1*lambda)*lambda+(4.*Pi*Pi-lambda*lambda)*nu*cos(2.*Pi*x2));
-    f_s[1] = -exp(x1*lambda)*lambda*(-4.*Pi*Pi+lambda*lambda)*nu*sin(2.*Pi*x2)/(2.*Pi);
-
-    f_T.Apply(f_s, f_rot);
-    f_s = f_rot;
-    
-    f[0] = f_s[0]; // x direction
-    f[1] = f_s[1]; // y direction
-    f[2] = f_s[2];
     
 }
 
@@ -2950,32 +2990,33 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space, int pOrder)
         DebugStop();
     }
     
+
     // 1 - Condições de contorno
     TPZFMatrix<STATE> val1(1,1,0.), val2(2,1,0.);
     {
-        TPZMaterial * BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet, val1, val2);
+        TPZMaterial * BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond0);
         
-        TPZMaterial * BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet, val1, val2);
+        TPZMaterial * BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond1);
         
-        TPZMaterial * BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+        TPZMaterial * BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond2);
         
-        TPZMaterial * BCond3 = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
+        TPZMaterial * BCond3 = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond3);
     }
     
     if (f_Holemesh){
-        TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
+        TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCondHole);
     }
     
     if (f_3Dmesh) {
-        TPZMaterial * BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet, val1, val2);
+        TPZMaterial * BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond4);
         
-        TPZMaterial * BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet, val1, val2);
+        TPZMaterial * BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond5);
     }
     
@@ -3329,43 +3370,58 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->SetAllCreateFunctionsMultiphysicElem();
     
     // Criando material:
-    
     // 1 - Material volumétrico 2D
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
-    int fexact_order = 7;
-    TPZAutoPointer<TPZFunction<STATE> > fp;
-    TPZAutoPointer<TPZFunction<STATE> > solp;
+    material->SetProblemType(f_problemtype);
+    int fexact_order = 9;
+    TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
+    TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
     
-    if (f_StokesTest) {
-        
-        fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
+    //if(material->fTimeDependentForcingFunction) DebugStop();
     
-    }else if (f_OseenTest){
+//    if (f_domaintype==TStokesAnalytic::ESinCos) {
+//
+//        if (f_problemtype==TStokesAnalytic::EStokes) {
+//
+////            fp = f_ExactSol.ForcingFunction();
+//            solp = f_ExactSol.Exact();
+//            fp = new TPZDummyFunction<STATE> (F_source_Stokes, fexact_order);
+////            solp = new TPZDummyFunction<STATE> (Sol_exact_Stokes, fexact_order);
+//
+//        }else if (f_problemtype==TStokesAnalytic::EOseen){
+//
+//            fp = new TPZDummyFunction<STATE> (F_source_Oseen, fexact_order);
+//            solp = new TPZDummyFunction<STATE> (Sol_exact_Oseen, fexact_order);
+//
+//        } else {
+//
+//            fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
+//            solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
+//
+//        }
+//
+//    }else if (f_domaintype==TStokesAnalytic::EOneCurve){
+//
+//        fp = NULL;
+//        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
+//
+//    }
 
-        fp = new TPZDummyFunction<STATE> (F_source_Oseen, fexact_order);
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Oseen, fexact_order);
 
-    }else if (f_CurveTest){
-
-        fp = NULL;
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
-        
-    }else{
-        
-        fp = new TPZDummyFunction<STATE> (F_source, fexact_order);
-        solp = new TPZDummyFunction<STATE> (Sol_exact,fexact_order);
-        
-    }
-    
-    if (!f_CurveTest){
-        ((TPZDummyFunction<STATE>*)fp.operator->())->SetPolynomialOrder(fexact_order);
+    if(f_domaintype!=TStokesAnalytic::EOneCurve){
+        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
+//        ((TPZCompMesh *)(fp.operator->()))->NElements();
+        if(cast) cast->SetPolynomialOrder(fexact_order);
     }
     ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
+
+
+    
     material->SetForcingFunction(fp); //Caso simples sem termo fonte
     material->SetForcingFunctionExact(solp);
     
     cmesh->InsertMaterialObject(material);
+
     
     // 1 - Condições de contorno:
     // Condições de contorno - Impõe v fortemente
@@ -3395,38 +3451,38 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    cmesh->InsertMaterialObject(BC_right);
 
     val2(0,0) = 0.0;
-    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann, val1, val2);
+    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
     BC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_bott);
     
     val2(0,0) = 0.0; // vx -> 0
-    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann, val1, val2);
+    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
     BC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_top);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet, val1, val2);
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann_v, val1, val2);
     BC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_left);
     
     val2(0,0) = 0.0;
-    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet, val1, val2);
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
     BC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(BC_right);
     
     if (f_Holemesh){
         val2(0,0) = 0.0;
-        TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet, val1, val2);
+        TPZBndCond * BC_hole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         BC_hole->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_hole);
     }
 
     if (f_3Dmesh) {
-        TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet, val1, val2);
+        TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
         BC_bott_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_bott_z);
         
-        TPZBndCond * BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet, val1, val2);
+        TPZBndCond * BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
         BC_top_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(BC_top_z);
     }
@@ -3464,36 +3520,36 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    matLambdaBC_right->SetBCForcingFunction(0, solp);
 //    cmesh->InsertMaterialObject(matLambdaBC_right);
 
-    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
     matLambdaBC_bott->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
     
-    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
     matLambdaBC_top->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_top);
     
-    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
     matLambdaBC_left->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_left);
     
-    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann, val1, val2);
+    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
     matLambdaBC_right->SetBCForcingFunction(0, solp);
     cmesh->InsertMaterialObject(matLambdaBC_right);
     
     
     if (f_Holemesh){
         val2(0,0) = 0.0;
-        TPZBndCond *matLambdaBC_hole = material->CreateBC(material, fmatLambdaBC_hole, fdirichlet, val1, val2);
+        TPZBndCond *matLambdaBC_hole = material->CreateBC(material, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
         //    matLambdaBC_hole->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_hole);
     }
     
     if (f_3Dmesh) {
-        TPZBndCond *matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fneumann, val1, val2);
+        TPZBndCond *matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
         matLambdaBC_bott_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_bott_z);
         
-        TPZBndCond *matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fneumann, val1, val2);
+        TPZBndCond *matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
         matLambdaBC_top_z->SetBCForcingFunction(0, solp);
         cmesh->InsertMaterialObject(matLambdaBC_top_z);
     }
@@ -3517,12 +3573,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha:
     
-    TPZManVector<int,5> active_approx_spaces(2,1);
+    TPZManVector<int,5> active_approx_spaces(f_mesh_vector.size(),1);
     
     cmesh->BuildMultiphysicsSpace(active_approx_spaces,f_mesh_vector);
     cmesh->AdjustBoundaryElements();
     cmesh->CleanUpUnconnectedNodes();
-    
+
     return cmesh;
     
 }
@@ -3615,6 +3671,8 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     
     int64_t ncompel = cmesh_m->ElementVec().NElements();
     int dim = cmesh_m->Reference()->Dimension();
+    
+    std::set<int64_t> nodexternal;
 
     std::vector<int64_t> GroupIndex;
     TPZStack<TPZElementGroup *> elgroups;
@@ -3626,6 +3684,15 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
         TPZCompEl *cel = cmesh_m->Element(el);
         if (cel->Dimension()!=dim) {
             continue;
+        }
+        TPZMultiphysicsElement *mcel = dynamic_cast<TPZMultiphysicsElement *>(cel);
+        int numspaces = mcel->NMeshes();
+        if(numspaces < 4) DebugStop();
+        int num_connect_ext = numspaces-3;
+        int ncon = mcel->NConnects();
+        for (int ic = ncon-num_connect_ext; ic<ncon; ic++) {
+            int64_t conindex = cel->ConnectIndex(ic);
+            nodexternal.insert(conindex);
         }
         //GroupIndex[el] = cel->Index();
         count++;
@@ -3696,6 +3763,10 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     
     
     cmesh_m->ComputeNodElCon();
+    for (auto it = nodexternal.begin(); it != nodexternal.end(); it++) {
+        int conindex = *it;
+        cmesh_m->ConnectVec()[conindex].IncrementElConnected();
+    }
     // create condensed elements
     // increase the NumElConnected of one pressure connects in order to prevent condensation
 //    for (int64_t ienv=0; ienv<nenvel; ienv++) {
@@ -3703,21 +3774,6 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     int nenvel = elgroups.NElements();
     for (int64_t ienv=0; ienv<nenvel; ienv++) {
         TPZElementGroup *elgr = elgroups[ienv];
-        
-        int nc = elgroups[ienv]->GetElGroup()[0]->NConnects();
-        elgroups[ienv]->GetElGroup()[0]->Connect(nc-1).IncrementElConnected();
-        
-        
-//        for (int ic=0; ic<nc; ic++) {
-//            TPZConnect &c = elgr->Connect(ic);
-//            int connectpM = elgroups[ienv]->GetElGroup()[0]->NConnects();
-//            int nc = elgr->NConnects();
-//            TPZConnect &c = elgr->Connect(nc-1);
-//            if (c.LagrangeMultiplier() > 0) {
-//                c.IncrementElConnected();
-//                break;
-//            }
-//        }
         new TPZCondensedCompEl(elgr);
     }
 

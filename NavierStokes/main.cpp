@@ -14,7 +14,7 @@
 #include "NavierStokesTest.h"
 #include "tpzarc3d.h"
 #include "tpzgeoblend.h"
-#include "pzgengrid.h"
+#include "TPZGenGrid2D.h"
 
 #include <pzgeoel.h>
 #include "pzgeoelbc.h"
@@ -37,6 +37,7 @@
 #include "TPZSSpStructMatrix.h"
 #include "TPZGmshReader.h"
 #include "pztrnsform.h"
+#include "TPZAnalyticSolution.h"
 
 #include "fad.h"
 #include "fadType.h"
@@ -71,34 +72,31 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 2;
+    int pOrder = 1;
         
     for (int it=0; it<=0; it++) {
-        //h_level = pow(2., 2+it);
-        h_level = 1;
+        h_level = 1 << (it+1);
+        // what is the meaning of h_level?
+        h_level = 8;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
         
         n_s[2]=h_level; //Obs!!
             
-        REAL visc = 1.;
+        REAL visc = 0.01;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
-        //Test2->SetProblemType(NSObstacle);
-            
-            
         //Test2->SetElType(ETriangle);
-        Test2->SetInternRef(0);
-            
-        Test2->SetCurveTest();
-        //Test2->SetOseenTest();
-        //Test2->SetStokesTest();
-            
-            
         //Test2->SetHdivPlus();
-
+        Test2->SetInternRef(0);
+     
+        //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
+        Test2->SetProblemType(TStokesAnalytic::EOseen);
+        //Select domain type (EObstacle,EOneCurve,ESinCos,EKovasznay,EPconst)
+        Test2->SetDomainType(TStokesAnalytic::EKovasznay);
+        
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
 

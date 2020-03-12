@@ -82,7 +82,7 @@ public:
     }
 
     /// Configurate internal analysis objects and linked them through the memory shared pointer
-    void ConfigurateAnalysis(DecomposeType decompose_geo, TPZSimulationData * simulation_data, TPZCompMesh * cmesh_M, TPZManVector<TPZCompMesh * , 2> & mesh_vec, TPZVec<std::string> & var_names);
+    void ConfigurateAnalysis(DecomposeType decompose_geo, TPZSimulationData * simulation_data, TPZCompMesh * cmesh_M, TPZVec<TPZCompMesh *> & mesh_vec, TPZVec<std::string> & var_names);
     
     /// Execute the evolution for a single time step
     void ExecuteOneTimeStep();

@@ -15,11 +15,12 @@
 #include "tpzautopointer.h"
 #include "TPZMaterial.h"
 #include "pztrnsform.h"
+#include "TPZAnalyticSolution.h"
 
 #ifndef TPZNavierStokesMATERIAL
 #define TPZNavierStokesMATERIAL
 
-
+//enum NSProblemType {ENavierStokes,EOseen,EStokes,EBrinkman};
 
 class TPZNavierStokesMaterial : public TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >  {
     
@@ -42,9 +43,8 @@ protected:
     
     STATE fSigma;
     
-//    TPZTransform<STATE> f_T;
-//    
-//    TPZTransform<STATE> f_InvT;
+    TStokesAnalytic::MProblemType f_problemtype;
+    
     
 public:
     
@@ -98,6 +98,12 @@ public:
     void SetPermeability(REAL perm) {
         fk = perm;
     }
+    
+    void SetProblemType(TStokesAnalytic::MProblemType type){
+        f_problemtype = type;
+    };
+
+    
     
     /** returns the name of the material */
     std::string Name() {
