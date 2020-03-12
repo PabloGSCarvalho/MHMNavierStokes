@@ -698,7 +698,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
 
         TPZManVector<STATE> beta(u_n);
-        TPZFMatrix<STATE> grad_beta(3,3,0.);
+        TPZFNMatrix<9,STATE> grad_beta(3,3,0.);
         TPZFNMatrix<9,STATE> GradUn_Beta(3,1,0.),GradV_Beta(3,1,0.);
         if (f_problemtype==TStokesAnalytic::EOseen) {
             // this is an adjustment for a Oseen version of Navier Stokes?
@@ -918,6 +918,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     
 
 #ifdef PZDEBUG
+    if(0)
     {
         std::ofstream fileEK("FileEKContribute.txt");
         ek.Print("stiff = ",fileEK,EMathematicaInput);
@@ -1446,6 +1447,7 @@ void TPZNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REA
 
     
 #ifdef PZDEBUG
+    if(0)
     {
         std::ofstream fileEK("FileEKContributeBC.txt");
         std::ofstream fileEF("FileEFContributeBC.txt");

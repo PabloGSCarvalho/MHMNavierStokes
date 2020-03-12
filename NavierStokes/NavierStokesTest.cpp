@@ -118,7 +118,7 @@ NavierStokesTest::NavierStokesTest()
     
     f_is_hdivFull = false;
     
-    f_hdivPlus = false;
+    f_hdivPlus = 0;
     
     f_Holemesh = false;
     
@@ -128,7 +128,7 @@ NavierStokesTest::NavierStokesTest()
     
     feltype = EQuadrilateral;
     
-    f_problemtype = TStokesAnalytic::ENavierStokes;
+    f_problemtype = TStokesAnalytic::EStokes;
 
     f_domaintype = TStokesAnalytic::ESinCos;
 
@@ -184,13 +184,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
 #endif
     
     //Gerando malha computacional:
-    int n_mais = 0;
-    if (f_hdivPlus) {
-        n_mais = 1;
-    }
+    int n_mais = f_hdivPlus;
     
-    TPZCompMesh *cmesh_v = this->CMesh_v(gmesh, Space, pOrder);
-    TPZCompMesh *cmesh_p = this->CMesh_p(gmesh, Space, pOrder+n_mais);
+    TPZCompMesh *cmesh_v = this->CMesh_v(gmesh, Space);
+    TPZCompMesh *cmesh_p = this->CMesh_p(gmesh, Space);
     
     TPZCompMesh *cmesh_pM = this->CMesh_pM(gmesh, 0);
     TPZCompMesh *cmesh_gM = this->CMesh_gM(gmesh, 0);
@@ -251,7 +248,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     
     // Agrupar e condensar os elementos
-//    GroupAndCondense(cmesh_m);
+    GroupAndCondense(cmesh_m);
 
 #ifdef PZDEBUG
     {
@@ -270,8 +267,8 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
-    sim_data->SetOptimizeBandwidthQ(false);
-    sim_data->Set_n_iterations(2);
+    sim_data->SetOptimizeBandwidthQ(true);
+    sim_data->Set_n_iterations(3);
     sim_data->Set_epsilon_cor(0.1);
     sim_data->Set_epsilon_res(0.1);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
@@ -283,10 +280,10 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     DecomposeType decomposeType = ELU;
     
     if (f_problemtype==TStokesAnalytic::EStokes) {
-        decomposeType = ELDLt;
+        decomposeType = ELU;
     }
     
-    NS_analysis->ConfigurateAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
+    NS_analysis->ConfigureAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
     
     NS_analysis->ExecuteTimeEvolution();
  
@@ -2943,12 +2940,12 @@ void NavierStokesTest::ChangeExternalOrderConnects(TPZCompMesh *mesh, int addToO
             intel->SetPreferredOrder(neworder);
             nshape = intel->NConnectShapeF(ncon-1,neworder);
             
-            if(dim==2 && addToOrder==1)
+            if(dim==2 && addToOrder!=0)
             {
                 if(feltype==ETriangle){
                     nshape2 = (corder + 2)*(corder + 2)-1;
                 }else{//Quadrilateral
-                    nshape2 = 2*(corder + 1)*(corder + 2);
+                    nshape2 = 2*(neworder)*(neworder + 1);
                 }
                 if(nshape2!=nshape)
                 {
@@ -2965,13 +2962,13 @@ void NavierStokesTest::ChangeExternalOrderConnects(TPZCompMesh *mesh, int addToO
 }
 
 
-TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space, int pOrder)
+TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space)
 {
     //BDM test papapaapapap
     //Criando malha computacional:
     
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
-    cmesh->SetDefaultOrder(pOrder);//Insere ordem polimonial de aproximação
+    cmesh->SetDefaultOrder(f_fluxOrder);//Insere ordem polimonial de aproximação
     cmesh->SetDimModel(fdim);//Insere dimensão do modelo
     
     
@@ -3044,13 +3041,13 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space, int pOrder)
 }
 
 
-TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space, int pOrder)
+TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space)
 {
     
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
-    cmesh->SetDefaultOrder(pOrder); //Insere ordem polimonial de aproximação
+    cmesh->SetDefaultOrder(f_fluxOrder+f_hdivPlus); //Insere ordem polimonial de aproximação
     cmesh->SetDimModel(fdim); //Insere dimensão do modelo
     
     cmesh->SetAllCreateFunctionsContinuous(); //Criando funções H1
@@ -3159,15 +3156,25 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space, int pOrder)
         materialids.insert(fmatLambdaBC_top_z);
     }
         
-    cmesh->SetAllCreateFunctionsDiscontinuous();
-    cmesh->SetDefaultOrder(pOrder-1);
+    if(f_tractionOrder == 0)
+    {
+        cmesh->SetAllCreateFunctionsDiscontinuous();
+    }
+    else
+    {
+        cmesh->SetAllCreateFunctionsContinuous();
+        cmesh->ApproxSpace().CreateDisconnectedElements(true);
+    }
+    cmesh->SetDefaultOrder(f_tractionOrder);
     cmesh->SetDimModel(fdim-1);
     cmesh->AutoBuild(materialids);
     
-    cmesh->LoadReferences();
-    cmesh->SetAllCreateFunctionsContinuous();
-    cmesh->ApproxSpace().CreateDisconnectedElements(false);
-    cmesh->AutoBuild();
+//    cmesh->LoadReferences();
+//    cmesh->SetDimModel(fdim);
+//    cmesh->SetDefaultOrder(f_fluxOrder+f_hdivPlus);
+//    cmesh->SetAllCreateFunctionsContinuous();
+//    cmesh->ApproxSpace().CreateDisconnectedElements(true);
+//    cmesh->AutoBuild();
     
     
     // @omar::
@@ -3178,9 +3185,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space, int pOrder)
         newnod.SetLagrangeMultiplier(1);
     }
     
-    cmesh->AdjustBoundaryElements();
-    cmesh->CleanUpUnconnectedNodes();
-    
+    cmesh->ExpandSolution();
     return cmesh;
     
 }

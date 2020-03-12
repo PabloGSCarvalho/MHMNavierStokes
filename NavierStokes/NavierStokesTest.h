@@ -136,7 +136,11 @@ private:
     
     bool f_is_hdivFull;
     
-    bool f_hdivPlus;
+    int f_fluxOrder = 1;
+    
+    int f_tractionOrder = 0;
+    
+    int f_hdivPlus = 0;
     
     MElementType feltype;
     
@@ -222,8 +226,8 @@ public:
     
     TPZCompEl *CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh, int64_t &index);
     
-    TPZCompMesh *CMesh_v(TPZGeoMesh *gmesh, int Space, int pOrder);
-    TPZCompMesh *CMesh_p(TPZGeoMesh *gmesh, int Space, int pOrder);
+    TPZCompMesh *CMesh_v(TPZGeoMesh *gmesh, int Space);
+    TPZCompMesh *CMesh_p(TPZGeoMesh *gmesh, int Space);
     
     TPZCompMesh *CMesh_pM(TPZGeoMesh *gmesh, int pOrder);
     TPZCompMesh *CMesh_gM(TPZGeoMesh *gmesh, int pOrder);
@@ -243,17 +247,27 @@ public:
     
     void SetAllRefine(){
         f_allrefine = true;
-    };
+    }
 
 
     void Set3Dmesh(){
         f_3Dmesh = true;
         fdim = 3;
-    };
+    }
     
-    void SetHdivPlus(){
-        f_hdivPlus = true;
-    };
+    void SetHdivPlus(int order){
+        f_hdivPlus = order;
+    }
+    
+    void SetTractionOrder(int order)
+    {
+        f_tractionOrder = order;
+    }
+    
+    void SetFluxOrder(int order)
+    {
+        f_fluxOrder = order;
+    }
     
     
     void SetFullHdiv(){
