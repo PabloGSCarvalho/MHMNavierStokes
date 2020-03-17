@@ -268,9 +268,9 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZSimulationData *sim_data= new TPZSimulationData;
     sim_data->SetNthreads(0);
     sim_data->SetOptimizeBandwidthQ(true);
-    sim_data->Set_n_iterations(3);
-    sim_data->Set_epsilon_cor(0.1);
-    sim_data->Set_epsilon_res(0.1);
+    sim_data->Set_n_iterations(8);
+    sim_data->Set_epsilon_cor(0.001);
+    sim_data->Set_epsilon_res(0.000001);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
     
     TPZVec<std::string> var_name(2);
@@ -280,7 +280,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     DecomposeType decomposeType = ELU;
     
     if (f_problemtype==TStokesAnalytic::EStokes) {
-        decomposeType = ELU;
+        decomposeType = ELDLt;
     }
     
     NS_analysis->ConfigureAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
@@ -3378,7 +3378,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     // 1 - Material volumétrico 2D
     TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
     material->SetProblemType(f_problemtype);
-    int fexact_order = 9;
+    int fexact_order = 12;
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
     
@@ -3413,12 +3413,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    }
 
 
-    if(f_domaintype!=TStokesAnalytic::EOneCurve){
-        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
-//        ((TPZCompMesh *)(fp.operator->()))->NElements();
-        if(cast) cast->SetPolynomialOrder(fexact_order);
-    }
-    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
+//    if(f_domaintype!=TStokesAnalytic::EOneCurve){
+//        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
+////        ((TPZCompMesh *)(fp.operator->()))->NElements();
+//        if(cast) cast->SetPolynomialOrder(fexact_order);
+//    }
+//    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
 
 
     

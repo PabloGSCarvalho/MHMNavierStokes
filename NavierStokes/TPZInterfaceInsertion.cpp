@@ -269,9 +269,9 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
             TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
             elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
-            std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
-            " side " << neigh.Side() <<
-            " and interior 1D element " << gelside.Element()->Index() << std::endl;
+//            std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
+//            " side " << neigh.Side() <<
+//            " and interior 1D element " << gelside.Element()->Index() << std::endl;
             
         }
         
@@ -290,9 +290,9 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
             TPZMultiphysicsInterfaceElement *intface = new TPZMultiphysicsInterfaceElement(*cmesh, gbc.CreatedElement(), index, clarge, celside);
             intface->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
-            std::cout << "Created an interface element between volumetric element " << glarge.Element()->Index() <<
-            " side " << glarge.Side() <<
-            " and interior 1D element " << gelside.Element()->Index() << std::endl;
+//            std::cout << "Created an interface element between volumetric element " << glarge.Element()->Index() <<
+//            " side " << glarge.Side() <<
+//            " and interior 1D element " << gelside.Element()->Index() << std::endl;
             nneighs++;
         }
         
@@ -375,9 +375,9 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                     TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     num_interface_created++;
-                    std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
-                    " side " << subel[i_sub].Side() <<
-                    " and interior 1D element " << gelside.Element()->Index() << std::endl;
+//                    std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
+//                    " side " << subel[i_sub].Side() <<
+//                    " and interior 1D element " << gelside.Element()->Index() << std::endl;
 
                     
                 }
@@ -396,9 +396,9 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                 TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                 num_interface_created++;
-                std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
-                " side " << neigh.Side() <<
-                " and interior 1D element " << gelside.Element()->Index() << std::endl;
+//                std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
+//                " side " << neigh.Side() <<
+//                " and interior 1D element " << gelside.Element()->Index() << std::endl;
                 
             }
             
@@ -584,9 +584,9 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface(int matfrom, int matBCint
             elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
             
-            std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
-            " side " << neigh.Side() <<
-            " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+//            std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
+//            " side " << neigh.Side() <<
+//            " and boundary 1D element " << gelside.Element()->Index() << std::endl;
             
         }
     }
@@ -664,9 +664,9 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
                     
-                    std::cout << "****Created an BC interface element between volumetric element " << subelside[i_sub].Element()->Index() <<
-                    " side " << subelside[i_sub].Side() <<
-                    " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+//                    std::cout << "****Created an BC interface element between volumetric element " << subelside[i_sub].Element()->Index() <<
+//                    " side " << subelside[i_sub].Side() <<
+//                    " and boundary 1D element " << gelside.Element()->Index() << std::endl;
                 }
                 
             }else{
@@ -678,9 +678,9 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                 
                 
-                std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
-                " side " << neigh.Side() <<
-                " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+//                std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
+//                " side " << neigh.Side() <<
+//                " and boundary 1D element " << gelside.Element()->Index() << std::endl;
                 
             }
             

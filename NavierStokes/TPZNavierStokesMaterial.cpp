@@ -645,7 +645,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         }
 
         STATE divui = 0.;
-        divui = Tr( GradVi );
+        divui = Tr( GradVi ); //datavec[0].divphi(i);
+       // divui = datavec[0].divphi(i);
         
         if(this->HasForcingFunction()){
             TPZFMatrix<STATE> gradu;
@@ -675,7 +676,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         
         // why two negatives?
         STATE B_term_f = 0.; // B - Mixed term
-        B_term_f = - p_n * datavec[0].divphi(i);
+        B_term_f = - p_n * divui;
         ef(i) += weight * (-B_term_f);
         
         
@@ -837,7 +838,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
     
             STATE B_term = 0.;
-            B_term = (-1.) * weight * phiP(j,0) * datavec[0].divphi(i);
+            B_term = (-1.) * weight * phiP(j,0) * divui;
             // Matrix B
             ek(i, nshapeV+j) += B_term; // B - Bilinear div v * p
             // Matrix B^T
