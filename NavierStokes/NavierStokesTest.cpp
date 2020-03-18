@@ -270,7 +270,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     sim_data->SetOptimizeBandwidthQ(true);
     sim_data->Set_n_iterations(8);
     sim_data->Set_epsilon_cor(0.001);
-    sim_data->Set_epsilon_res(0.000001);
+    sim_data->Set_epsilon_res(0.0000000001);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
     
     TPZVec<std::string> var_name(2);

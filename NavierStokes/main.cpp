@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 2;
+    int pOrder = 3;
         
     for (int it=0; it<=4; it++) {
         h_level = 2 << (it+1);
@@ -84,11 +84,11 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
         
-        REAL visc = 0.01;
+        REAL visc = 0.1;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
-        Test2->SetElType(ETriangle);
+        //Test2->SetElType(ETriangle);
         //Test2->SetHdivPlus();
         Test2->SetFluxOrder(pOrder);
         Test2->SetHdivPlus(0);
