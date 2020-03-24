@@ -3408,12 +3408,12 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 //    }
 
 
-    if(f_domaintype!=TStokesAnalytic::EOneCurve){
-        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
-//        ((TPZCompMesh *)(fp.operator->()))->NElements();
-        if(cast) cast->SetPolynomialOrder(fexact_order);
-    }
-    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
+//    if(f_domaintype!=TStokesAnalytic::EOneCurve){
+//        TPZDummyFunction<STATE> *cast = dynamic_cast<TPZDummyFunction<STATE> *>(fp.operator->());
+////        ((TPZCompMesh *)(fp.operator->()))->NElements();
+//        if(cast) cast->SetPolynomialOrder(fexact_order);
+//    }
+//    ((TPZDummyFunction<STATE>*)solp.operator->())->SetPolynomialOrder(fexact_order);
 
 
     
