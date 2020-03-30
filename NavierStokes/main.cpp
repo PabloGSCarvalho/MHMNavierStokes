@@ -72,12 +72,12 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 3;
+    int pOrder = 2;
         
-    for (int it=0; it<=4; it++) {
+    for (int it=0; it<=0; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        //h_level = 32;
+        h_level = 4;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;

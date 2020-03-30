@@ -266,9 +266,9 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     //Resolvendo o Sistema Não-Linear:
     
     TPZSimulationData *sim_data= new TPZSimulationData;
-    sim_data->SetNthreads(0);
+    sim_data->SetNthreads(3);
     sim_data->SetOptimizeBandwidthQ(true);
-    sim_data->Set_n_iterations(8);
+    sim_data->Set_n_iterations(3);
     sim_data->Set_epsilon_cor(0.001);
     sim_data->Set_epsilon_res(0.0000000001);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
