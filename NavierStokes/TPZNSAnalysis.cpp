@@ -63,20 +63,20 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
     switch (decomposition) {
         case ELU:
         {
-#ifdef USING_MKL
-            TPZSpStructMatrix struct_mat(Mesh());
-            struct_mat.SetNumThreads(n_threads);
-            this->SetStructuralMatrix(struct_mat);
-#else
-            
+//#ifdef USING_MKL
+//            TPZSpStructMatrix struct_mat(Mesh());
+//            struct_mat.SetNumThreads(n_threads);
+//            this->SetStructuralMatrix(struct_mat);
+//#else
+
             TPZFStructMatrix struct_mat(Mesh());
             struct_mat.SetNumThreads(n_threads);
             this->SetStructuralMatrix(struct_mat);
             
-            TPZSkylineNSymStructMatrix struct_mat(Mesh());
-            struct_mat.SetNumThreads(n_threads);
-            this->SetStructuralMatrix(struct_mat);
-#endif
+//            TPZSkylineNSymStructMatrix struct_mat(Mesh());
+//            struct_mat.SetNumThreads(n_threads);
+//            this->SetStructuralMatrix(struct_mat);
+//#endif
         }
             break;
         case ELDLt:
@@ -184,6 +184,16 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         std::cout<< "residual norm 0 = " << Norm(this->Rhs()) <<std::endl;
     }
     for (int i = 1; i <= n_it; i++) {
+
+        TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
+
+        if(i==1){
+            mat->SetProblemType(TStokesAnalytic::EOseen);
+        }else{
+            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
+        }
+
+
         this->ExecuteNewtonIteration();
                 
         dU = Solution();
@@ -238,7 +248,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         m_dU_norm = norm_dU;
         
         
-        if (residual_stop_criterion_Q || correction_stop_criterion_Q) {
+        if (residual_stop_criterion_Q && correction_stop_criterion_Q) {
 #ifdef PZDEBUG
             std::cout << "TPZNSAnalysis:: Nonlinear process converged with residue norm = " << norm_res << std::endl;
             std::cout << "TPZNSAnalysis:: Number of iterations = " << i << std::endl;
@@ -550,7 +560,7 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 
 void TPZNSAnalysis::ExecuteNewtonIteration(){
     this->Assemble();
-    if(1)
+    if(0)
     {
         
         std::ofstream plotNavierStiff("NavierStiffness.txt");

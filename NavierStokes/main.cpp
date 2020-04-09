@@ -72,31 +72,42 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 2;
+    int pOrder = 3;
         
     for (int it=0; it<=0; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        h_level = 4;
+        h_level = 32;
             
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
         
         n_s[2]=h_level; //Obs!!
         
-        REAL visc = 0.1;
+        REAL visc = 0.01;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
-        //Test2->SetElType(ETriangle);
+        Test2->SetElType(ETriangle);
         //Test2->SetHdivPlus();
         Test2->SetFluxOrder(pOrder);
         Test2->SetHdivPlus(0);
         Test2->SetTractionOrder(pOrder-1);
         Test2->SetInternRef(0);
+
+        //Simulation Data
+        TPZSimulationData *sim_data= new TPZSimulationData;
+        sim_data->SetNthreads(4);
+        sim_data->SetOptimizeBandwidthQ(true);
+        sim_data->Set_n_iterations(100);
+        sim_data->Set_epsilon_cor(0.0002);
+        sim_data->Set_epsilon_res(0.000000000004);
+
+        Test2->SetSimulationData(sim_data);
+
      
         //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::EOseen);
+        Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
         //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst)
         Test2->SetDomainType(TStokesAnalytic::EKovasznay);
         

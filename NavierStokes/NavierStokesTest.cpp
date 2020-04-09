@@ -142,6 +142,7 @@ NavierStokesTest::NavierStokesTest()
     f_ArcCentralNode.clear();
     
     f_ExactSol.fProblemType = f_problemtype;
+
 }
 
 NavierStokesTest::~NavierStokesTest()
@@ -265,12 +266,12 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     //Resolvendo o Sistema Não-Linear:
     
-    TPZSimulationData *sim_data= new TPZSimulationData;
-    sim_data->SetNthreads(3);
-    sim_data->SetOptimizeBandwidthQ(true);
-    sim_data->Set_n_iterations(3);
-    sim_data->Set_epsilon_cor(0.001);
-    sim_data->Set_epsilon_res(0.0000000001);
+//    TPZSimulationData *sim_data= new TPZSimulationData;
+//    sim_data->SetNthreads(3);
+//    sim_data->SetOptimizeBandwidthQ(true);
+//    sim_data->Set_n_iterations(32);
+//    sim_data->Set_epsilon_cor(0.01);
+//    sim_data->Set_epsilon_res(0.00000001);
     TPZNSAnalysis *NS_analysis = new TPZNSAnalysis;
     
     TPZVec<std::string> var_name(2);
@@ -283,7 +284,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
         decomposeType = ELDLt;
     }
     
-    NS_analysis->ConfigureAnalysis(decomposeType, sim_data, cmesh_m, f_mesh_vector, var_name);
+    NS_analysis->ConfigureAnalysis(decomposeType, f_sim_data, cmesh_m, f_mesh_vector, var_name);
     
     NS_analysis->ExecuteTimeEvolution();
  

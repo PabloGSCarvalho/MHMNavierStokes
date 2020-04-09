@@ -177,6 +177,8 @@ private:
     bool f_OseenTest = false;
     
     bool f_CurveTest = false;
+
+    TPZSimulationData *f_sim_data;
     
 public:
 
@@ -244,6 +246,9 @@ public:
         ComputeSkelNeighbours();
     };
 
+    void SetSimulationData(TPZSimulationData *sim_data){
+        f_sim_data = sim_data;
+    }
     
     void SetAllRefine(){
         f_allrefine = true;
