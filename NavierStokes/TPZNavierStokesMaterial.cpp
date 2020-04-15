@@ -694,9 +694,25 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             ef(i) += -weight * C_term_f;
         }
 
+        if (f_problemtype==TStokesAnalytic::ENavierStokesCDG) {
+            // this is the original Navier Stokes term
+            TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.), GradUnTr_phiU(3,1,0.);
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                    GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
+                    GradUnTr_phiU(e,0) += gradUn(f,e)*u_n[f];
+                }
+            }
+
+            C_term_f = InnerVec(GradUn_phiU, phiVi) - InnerVec(GradUnTr_phiU, phiVi);
+
+            // factorM is equal to one!!
+            ef(i) += -weight * C_term_f;
+        }
+
         TPZManVector<STATE> beta(u_n);
         TPZFNMatrix<9,STATE> grad_beta(3,3,0.);
-        TPZFNMatrix<9,STATE> GradUn_Beta(3,1,0.),GradV_Beta(3,1,0.);
+        TPZFNMatrix<9,STATE> GradUn_Beta(3,1,0.),GradV_Beta(3,1,0.),GradUnTr_Beta(3,1,0.);
 
         if (f_problemtype==TStokesAnalytic::EOseen) {
             // this is an adjustment for a Oseen version of Navier Stokes?
@@ -726,6 +742,28 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 }
             }
             
+        }
+
+
+        if (f_problemtype==TStokesAnalytic::EOseenCDG) {
+
+            if(HasForcingFunctionExact())
+            {
+                TPZVec<STATE> x(3,0.),xrot(3,0.);
+                x=datavec[vindex].x;
+                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
+            }
+
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                    GradUn_Beta(e,0) += gradUn(e,f)*beta[f];
+                    GradUnTr_Beta(e,0) += gradUn(f,e)*beta[f];
+                }
+            }
+
+            C_term_f = InnerVec(GradUn_Beta, phiVi) - InnerVec(GradUnTr_Beta, phiVi);
+            ef(i) += -weight * C_term_f;
+
         }
     
         // A, C e D - velocity X velocity
@@ -783,6 +821,36 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 ek(i,j) += weight * C_term_2;  // C - Trilinear terms
                 
             }
+
+            if (f_problemtype==TStokesAnalytic::ENavierStokesCDG) {
+
+                TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradU_Un(e,0) += GradVj(e,f)*u_n[f]; //Oseen eqs
+                        GradUTr_Un(e,0)+= GradVj(f,e)*u_n[f];
+                    }
+                }
+
+                TPZFNMatrix<9,STATE> GradUn_phiV(3,1,0.),GradUnTr_phiV(3,1,0.);
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradUn_phiV(e,0) += gradUn(e,f)*phiVj(f,0);
+                        GradUnTr_phiV(e,0) += gradUn(f,e)*phiVj(f,0);
+                    }
+                }
+
+                STATE C_term = InnerVec(GradU_Un, phiVi) - InnerVec(GradUTr_Un, phiVi);
+
+                STATE C_term_2 = InnerVec(GradUn_phiV, phiVi) - InnerVec(GradUnTr_phiV, phiVi);
+
+                ek(i,j) += weight * C_term;  // C - Trilinear terms
+
+                ek(i,j) += weight * C_term_2;  // C - Trilinear terms
+
+            }
+
+
             
             if (f_problemtype==TStokesAnalytic::EOseen) {
 
@@ -797,21 +865,22 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
 
+            }
 
-//                TPZFNMatrix<9,STATE> GradBeta_phiV(3,1,0.);
-//                for (int e=0; e<3; e++) {
-//                    for (int f=0; f<3; f++) {
-//                        GradBeta_phiV(e,0) += grad_beta(e,f)*phiVj(f,0);
-//                    }
-//                }
+            if (f_problemtype==TStokesAnalytic::EOseenCDG) {
 
-                //STATE C_term_T = InnerVec(GradV_Beta, phiVj);
-                
-                //STATE C_term_2 = InnerVec(GradBeta_phiV, phiVi);
-                
-                //ek(i,j) += -0.5*weight * C_term_T;  // C - Trilinear terms
-                
-                //ek(i,j) += weight * C_term_2;  // C - Trilinear terms
+                TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.), GradUTr_Beta(3,1,0.);
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        GradU_Beta(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
+                        GradUTr_Beta(e,0) += GradVj(f,e)*beta[f];
+                    }
+                }
+
+                STATE C_term = InnerVec(GradU_Beta, phiVi) - InnerVec(GradUTr_Beta, phiVi);
+
+                ek(i,j) += weight * C_term;  // C - Trilinear terms
+
             }
 
             

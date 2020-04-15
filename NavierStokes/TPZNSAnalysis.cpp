@@ -188,9 +188,9 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
 
         if(i==1){
-            mat->SetProblemType(TStokesAnalytic::EOseen);
+            mat->SetProblemType(TStokesAnalytic::EOseenCDG);
         }else{
-            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
+            mat->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
         }
 
 
@@ -335,6 +335,11 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
                 UpdateState();
                 break;
             }
+            if (error_stop_criterion_Q && dU_stop_criterion_Q) {
+                std::cout << "Running post processing" << std::endl;
+                this->PostProcessTimeStep(file_NavierStokes);
+            }
+
         }
     }
 
