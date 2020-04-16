@@ -74,11 +74,12 @@ int main(int argc, char *argv[])
     
     int pOrder = 2;
         
-    for (int it=0; it<=0; it++) {
+    for (int it=1; it<=4; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        h_level = 16;
-            
+        //h_level = 8;
+        std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
+
         TPZVec<int> n_s(3,0.);
         n_s[0]=h_level ,n_s[1]=h_level;
         
@@ -101,7 +102,11 @@ int main(int argc, char *argv[])
         sim_data->SetOptimizeBandwidthQ(true);
         sim_data->Set_n_iterations(100);
         sim_data->Set_epsilon_cor(0.0002);
-        sim_data->Set_epsilon_res(0.000000000004);
+        sim_data->Set_epsilon_res(0.00000000000055);
+
+        if(h_level==64){
+            sim_data->ActivatePostProcessing();
+        }
 
         Test2->SetSimulationData(sim_data);
 

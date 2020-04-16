@@ -72,6 +72,8 @@ protected:
     
     /** @brief Directive that states if the current solution must be accepted inside the memory  */
     bool m_must_accept_solution_Q;
+
+    bool m_run_post_porcessing;
     
     /** @brief Vector that storages only volumetric material identifiers (higher dimension elements) */
     std::vector<int> m_volumetric_material_id;
@@ -228,7 +230,13 @@ public:
     
     /** @brief Get current time state */
     bool IsCurrentStateQ() {return m_is_current_state_Q;}
-    
+
+    /** @brief Set current time state */
+    void ActivatePostProcessing() { m_run_post_porcessing = true; }
+
+    bool IsPostProcessingActivatedQ() {return m_run_post_porcessing;}
+
+
     /** @brief Set the directive that states if the current solution must be accepted inside the memory  */
     void Set_must_accept_solution_Q(bool must_accept_solution_Q){
         m_must_accept_solution_Q = must_accept_solution_Q;

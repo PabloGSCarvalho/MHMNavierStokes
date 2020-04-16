@@ -28,6 +28,7 @@ TPZSimulationData::TPZSimulationData()
     m_volumetric_material_id.resize(1);
     m_volumetric_material_id[0]=1;
     m_optimizeBandwidth_Q = false;
+    m_run_post_porcessing = false;
     
 }
 
@@ -55,6 +56,7 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_must_accept_solution_Q            = other.m_must_accept_solution_Q;
     m_volumetric_material_id            = other.m_volumetric_material_id;
     m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
+    m_run_post_porcessing               = other.m_run_post_porcessing;
 }
 
 TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
@@ -78,6 +80,7 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_must_accept_solution_Q            = other.m_must_accept_solution_Q;
         m_volumetric_material_id            = other.m_volumetric_material_id;
         m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
+        m_run_post_porcessing               = other.m_run_post_porcessing;
     }
     return *this;
 }

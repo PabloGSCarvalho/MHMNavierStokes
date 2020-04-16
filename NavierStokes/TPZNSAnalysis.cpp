@@ -335,7 +335,8 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
                 UpdateState();
                 break;
             }
-            if (error_stop_criterion_Q && dU_stop_criterion_Q) {
+            bool postprocessingQ = m_simulation_data->IsPostProcessingActivatedQ();
+            if (error_stop_criterion_Q && dU_stop_criterion_Q && postprocessingQ) {
                 std::cout << "Running post processing" << std::endl;
                 this->PostProcessTimeStep(file_NavierStokes);
             }
