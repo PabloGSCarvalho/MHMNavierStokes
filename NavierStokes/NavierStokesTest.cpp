@@ -319,14 +319,15 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
     ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
     ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
+    if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
+        ErroOut <<"Norma L2 - P - CDG formulation = "<< Errors[5] << std::endl;
+    }
     ErroOut <<"-------------" << std::endl;
     ErroOut.flush();
-    
-    
-    
+
     return;
     
-    
+
     
     int numthreads = 3;
     

@@ -147,6 +147,8 @@ int TPZNavierStokesMaterial::VariableIndex(const std::string &name) {
     if (!strcmp("P_exact", name.c_str()))   return 4;
     if (!strcmp("Div", name.c_str()))   return 5;
     if (!strcmp("SymTensorNorm", name.c_str()))   return 6;
+    if (!strcmp("P_CDG", name.c_str()))  return 7;
+    if (!strcmp("P_exact_CDG", name.c_str()))  return 8;
     //    if (!strcmp("V_exactBC", name.c_str()))   return 5;
     
     std::cout  << " Var index not implemented " << std::endl;
@@ -174,6 +176,10 @@ int TPZNavierStokesMaterial::NSolutionVariables(int var) {
             return 1; // Divergente
         case 6:
             return 1; // Symetric tensor norm
+        case 7:
+            return 1; // Pressure for CDG Navier-Stokes formulation
+        case 8:
+            return 1; // Exact pressure for CDG Navier-Stokes formulation
             
             //        case 5:
             //            return this->Dimension(); // V_exactBC, Vector
@@ -219,7 +225,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
             Solout[0] = p_h[0];
         }
             break;
-            
+
         case 1: //Velocity
         {
             Solout[0] = v_h[0]; // Vx
@@ -273,7 +279,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
             
         }
             break;
-         
+
         case 5: //div
         {
             STATE Div=0.;
@@ -392,7 +398,26 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
             
         }
             break;
-            
+
+        case 7: //PressureCDG
+        {
+            Solout[0] = p_h[0]-(v_h[0]*v_h[0]+v_h[1]*v_h[1]+v_h[2]*v_h[2])*0.5;
+        }
+            break;
+        case 8: //p_exact_CDG
+        {
+            TPZVec<STATE> sol(4,0.0);
+            if(this->HasForcingFunctionExact()){
+                TPZVec<STATE> x(3,0.),xrot(3,0.);
+                x=datavec[pindex].x;
+
+                this->fForcingFunctionExact->Execute(x, sol, gradu); // @omar::check it!
+            }
+            Solout[0] = sol[3]-(sol[0]*sol[0]+sol[1]*sol[1]+sol[2]*sol[2])*0.5; // px
+
+        }
+            break;
+
         default:
         {
             std::cout  << " Var index not implemented " << std::endl;
@@ -1729,6 +1754,12 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
     diffp = Pressure[0] - sol_exact[3];
     errors[shift+1]  = diffp*diffp;
     
+    if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
+        STATE diffp_CDG = 0.;
+        diffp = (Pressure[0]-(Velocity[0]*Velocity[0]+Velocity[1]*Velocity[1]+Velocity[2]*Velocity[2])*0.5) - (sol_exact[3]-(sol_exact[0]*sol_exact[0]+sol_exact[1]*sol_exact[1]+sol_exact[2]*sol_exact[2])*0.5);
+        errors[shift+2]  = diffp*diffp;
+    }
+
 
     
     ////////////////////////////////////////////////// HDIV

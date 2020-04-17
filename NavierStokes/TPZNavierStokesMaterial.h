@@ -101,9 +101,11 @@ public:
     
     void SetProblemType(TStokesAnalytic::MProblemType type){
         f_problemtype = type;
-    };
+    }
 
-    
+    TStokesAnalytic::MProblemType GetProblemType(){
+        return f_problemtype;
+    }
     
     /** returns the name of the material */
     std::string Name() {

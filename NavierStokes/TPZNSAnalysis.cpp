@@ -288,7 +288,13 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     vecnames.Push("V_exact");
     scalnames.Push("P_exact");
     scalnames.Push("Div");
-    
+
+    TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
+    if(mat->GetProblemType()==TStokesAnalytic::EOseenCDG||mat->GetProblemType()==TStokesAnalytic::ENavierStokesCDG){
+        scalnames.Push("P_CDG");
+        scalnames.Push("P_exact_CDG");
+    }
+
     this->DefineGraphMesh(dim, scalnames, vecnames, res_file);
     this->PostProcess(div,dim);
     
