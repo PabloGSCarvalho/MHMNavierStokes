@@ -294,8 +294,11 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     NS_analysis->ConfigureAnalysis(decomposeType, f_sim_data, cmesh_m, f_mesh_vector, var_name);
     
     NS_analysis->ExecuteTimeEvolution();
- 
-    
+
+    if(f_domaintype==TStokesAnalytic::ECavity){
+        return;
+    }
+
     //Calculo do erro
     std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
@@ -3620,11 +3623,11 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
     TPZFMatrix<STATE> val1(3,3,0.), val2(3,1,0.);
 
     val2(0,0) = 0.0;
-    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
+    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_bott);
 
     val2(0,0) = 0.0; // vx -> 1
-    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
+    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_top);
 
     val2(0,0) = 0.0;
@@ -3657,7 +3660,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
     TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
 
-    val2(0,0) = 1.0;
+    val2(0,0) = 1.;
     TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_top);
 

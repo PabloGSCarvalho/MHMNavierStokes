@@ -56,7 +56,7 @@ const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, pe
 int main(int argc, char *argv[])
 {
     
-    TPZMaterial::gBigNumber = 1.e16;
+    TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
     
 #ifdef LOG4CXX
@@ -72,12 +72,12 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 1;
+    int pOrder = 2;
         
-    for (int it=1; it<=3; it++) {
+    for (int it=1; it<=1; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        h_level = 64;
+        h_level = 32;
         std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
         TPZVec<int> n_s(3,0.);
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
         
-        REAL visc = .1;
+        REAL visc = .001;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
@@ -101,8 +101,8 @@ int main(int argc, char *argv[])
         sim_data->SetNthreads(4);
         sim_data->SetOptimizeBandwidthQ(true);
         sim_data->Set_n_iterations(100);
-        sim_data->Set_epsilon_cor(0.0000002);
-        sim_data->Set_epsilon_res(0.00000000001251435);
+        sim_data->Set_epsilon_cor(1.002);
+        sim_data->Set_epsilon_res(0.0001);
 
         if(h_level==64&&pOrder==3){
             sim_data->ActivatePostProcessing();
