@@ -241,6 +241,8 @@ public:
     //TPZCompMesh *CMesh_St(TPZGeoMesh *gmesh, int Space, int pOrder);
     TPZMultiphysicsCompMesh *CMesh_m(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco);
 
+    TPZMultiphysicsCompMesh *CMesh_m_cavity(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco);
+
     void SetOriginalMesh(TPZGeoMesh *gmesh){
         f_mesh0 = gmesh;
         ComputeSkelNeighbours();

@@ -130,7 +130,7 @@ NavierStokesTest::NavierStokesTest()
     
     f_problemtype = TStokesAnalytic::EStokes;
 
-    f_domaintype = TStokesAnalytic::ESinCos;
+    f_domaintype = TStokesAnalytic::ENone;
 
     f_mesh_vector.resize(4);
     f_mesh_vector.Fill(nullptr);
@@ -210,7 +210,14 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     f_mesh_vector[3]=cmesh_gM;
     
 //    f_mesh_vector.Resize(2);
-    TPZMultiphysicsCompMesh *cmesh_m = this->CMesh_m(gmesh, Space, pOrder, visco); //Função para criar a malha computacional multifísica
+    TPZMultiphysicsCompMesh *cmesh_m;
+
+    if(f_domaintype==TStokesAnalytic::ECavity){
+        cmesh_m = this->CMesh_m_cavity(gmesh, Space, pOrder, visco);
+    }else{
+        cmesh_m = this->CMesh_m(gmesh, Space, pOrder, visco);
+    }
+
     
 #ifdef PZDEBUG
     {
@@ -3589,6 +3596,99 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     return cmesh;
     
 }
+
+TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco)
+{
+
+    //Criando malha computacional:
+
+    TPZMultiphysicsCompMesh * cmesh = new TPZMultiphysicsCompMesh(gmesh);
+    cmesh->SetDefaultOrder(pOrder); //Insere ordem polimonial de aproximação
+    cmesh->SetDimModel(fdim); //Insere dimensão do modelo
+    cmesh->SetAllCreateFunctionsMultiphysicElem();
+
+    // Criando material:
+    // 1 - Material volumétrico 2D
+    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
+    material->SetProblemType(f_problemtype);
+    int fexact_order = 12;
+
+    cmesh->InsertMaterialObject(material);
+
+    // 1 - Condições de contorno:
+
+    TPZFMatrix<STATE> val1(3,3,0.), val2(3,1,0.);
+
+    val2(0,0) = 0.0;
+    TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
+    cmesh->InsertMaterialObject(BC_bott);
+
+    val2(0,0) = 0.0; // vx -> 1
+    TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
+    cmesh->InsertMaterialObject(BC_top);
+
+    val2(0,0) = 0.0;
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
+    cmesh->InsertMaterialObject(BC_left);
+
+    val2(0,0) = 0.0;
+    TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
+    cmesh->InsertMaterialObject(BC_right);
+
+
+    // 2.1 - Material para tração tangencial 1D (Interior)
+    TPZNullMaterial *matLambda = new TPZNullMaterial(fmatLambda);
+    matLambda->SetDimension(fdim-1);
+    matLambda->SetNStateVariables(1);
+    cmesh->InsertMaterialObject(matLambda);
+
+    // 2.2 - Material for interfaces (Interior)
+    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(fmatInterfaceLeft,fdim,Space,visco,0,0);
+    matInterfaceLeft->SetMultiplier(1.);
+    cmesh->InsertMaterialObject(matInterfaceLeft);
+
+    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(fmatInterfaceRight,fdim,Space,visco,0,0);
+    matInterfaceRight->SetMultiplier(-1.);
+    cmesh->InsertMaterialObject(matInterfaceRight);
+
+
+    // 3.1 - Material para tração tangencial 1D nos contornos
+    val2(0,0) = 0.0;
+    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+    cmesh->InsertMaterialObject(matLambdaBC_bott);
+
+    val2(0,0) = 1.0;
+    TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+    cmesh->InsertMaterialObject(matLambdaBC_top);
+
+    val2(0,0) = 0.0;
+    TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+    cmesh->InsertMaterialObject(matLambdaBC_left);
+
+    TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+    cmesh->InsertMaterialObject(matLambdaBC_right);
+
+    int ncel = cmesh->NElements();
+    for(int i =0; i<ncel; i++){
+        TPZCompEl * compEl = cmesh->ElementVec()[i];
+        if(!compEl) continue;
+        TPZInterfaceElement * facel = dynamic_cast<TPZInterfaceElement *>(compEl);
+        if(facel)DebugStop();
+
+    }
+
+    //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha:
+
+    TPZManVector<int,5> active_approx_spaces(f_mesh_vector.size(),1);
+
+    cmesh->BuildMultiphysicsSpace(active_approx_spaces,f_mesh_vector);
+    cmesh->AdjustBoundaryElements();
+    cmesh->CleanUpUnconnectedNodes();
+
+    return cmesh;
+
+}
+
 
 void NavierStokesTest::InsertInterfaces(TPZMultiphysicsCompMesh *cmesh_m){
     

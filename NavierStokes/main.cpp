@@ -72,12 +72,12 @@ int main(int argc, char *argv[])
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
     
-    int pOrder = 2;
+    int pOrder = 1;
         
-    for (int it=1; it<=4; it++) {
+    for (int it=1; it<=3; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        //h_level = 16;
+        h_level = 64;
         std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
         TPZVec<int> n_s(3,0.);
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
         
-        REAL visc = 0.1;
+        REAL visc = .1;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
@@ -101,20 +101,20 @@ int main(int argc, char *argv[])
         sim_data->SetNthreads(4);
         sim_data->SetOptimizeBandwidthQ(true);
         sim_data->Set_n_iterations(100);
-        sim_data->Set_epsilon_cor(0.0002);
-        sim_data->Set_epsilon_res(0.00000000000065);
+        sim_data->Set_epsilon_cor(0.0000002);
+        sim_data->Set_epsilon_res(0.00000000001251435);
 
-        if(h_level==64){
+        if(h_level==64&&pOrder==3){
             sim_data->ActivatePostProcessing();
         }
-
+        sim_data->ActivatePostProcessing();
         Test2->SetSimulationData(sim_data);
 
      
-        //Select problem type (ENavierStokes,EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::EOseenCDG);
-        //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst)
-        Test2->SetDomainType(TStokesAnalytic::EKovasznayCDG);
+        //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
+        Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+        //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
+        Test2->SetDomainType(TStokesAnalytic::ECavity);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);

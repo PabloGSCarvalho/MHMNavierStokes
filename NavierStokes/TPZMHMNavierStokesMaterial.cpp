@@ -218,7 +218,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             
             
             // Neumann vector
-            
+
             for (int i = 0; i<3; i++) {
                 v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i] + 0.0*u_x_beta_n(i,0);
             }
@@ -227,8 +227,19 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         
         
     }else{
-        
-        //DebugStop();
+
+
+        for (int i = 0; i<3; i++) {
+            v_Dirichlet[i] = bc.Val2()(i,0);
+        }
+
+        for (int i = 0; i<3; i++) {
+            for (int j = 0; j<3; j++) {
+       //         v_Neumann[i] +=  bc.Val1()(i,j) * datavec[0].normal[j];
+            }
+        }
+
+
         //std::cout<<"!!!!!!!!! falta esta condição de contorno aqui !!!!!!!!!!!!!"<<std::endl;
     }
     
