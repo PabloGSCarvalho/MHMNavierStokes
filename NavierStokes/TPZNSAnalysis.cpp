@@ -63,20 +63,20 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
     switch (decomposition) {
         case ELU:
         {
-//#ifdef USING_MKL
-//            TPZSpStructMatrix struct_mat(Mesh());
-//            struct_mat.SetNumThreads(n_threads);
-//            this->SetStructuralMatrix(struct_mat);
-//#else
+#ifdef USING_MKL
+            TPZSpStructMatrix struct_mat(Mesh());
+            struct_mat.SetNumThreads(n_threads);
+            this->SetStructuralMatrix(struct_mat);
+#else
 
             TPZFStructMatrix struct_mat(Mesh());
             struct_mat.SetNumThreads(n_threads);
             this->SetStructuralMatrix(struct_mat);
             
-//            TPZSkylineNSymStructMatrix struct_mat(Mesh());
-//            struct_mat.SetNumThreads(n_threads);
-//            this->SetStructuralMatrix(struct_mat);
-//#endif
+            TPZSkylineNSymStructMatrix struct_mat(Mesh());
+            struct_mat.SetNumThreads(n_threads);
+            this->SetStructuralMatrix(struct_mat);
+#endif
         }
             break;
         case ELDLt:

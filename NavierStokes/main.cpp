@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     for (int it=1; it<=1; it++) {
         h_level = 2 << (it+1);
         // what is the meaning of h_level?
-        h_level = 32;
+        h_level = 100;
         std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
         TPZVec<int> n_s(3,0.);
@@ -85,7 +85,8 @@ int main(int argc, char *argv[])
         
         n_s[2]=h_level; //Obs!!
         
-        REAL visc = .001;
+        //REAL visc = 0.005;
+        REAL visc = .0033333333333333;
         
         NavierStokesTest  * Test2 = new NavierStokesTest();
         //Test2->Set3Dmesh();
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
         sim_data->SetOptimizeBandwidthQ(true);
         sim_data->Set_n_iterations(100);
         sim_data->Set_epsilon_cor(1.002);
-        sim_data->Set_epsilon_res(0.0001);
+        sim_data->Set_epsilon_res(0.00006);
 
         if(h_level==64&&pOrder==3){
             sim_data->ActivatePostProcessing();
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
 
      
         //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+        Test2->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
         //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
         Test2->SetDomainType(TStokesAnalytic::ECavity);
         
