@@ -74,9 +74,13 @@ protected:
     bool m_must_accept_solution_Q;
 
     bool m_run_post_porcessing;
-    
+
+    bool m_is_pardiso_Q;
+
     /** @brief Vector that storages only volumetric material identifiers (higher dimension elements) */
     std::vector<int> m_volumetric_material_id;
+
+
     
 public:
     
@@ -224,7 +228,17 @@ public:
     bool IsInitialStateQ() {
         return m_is_initial_state_Q;
     }
-    
+
+    /** @brief Set Pardiso option */
+    void SetPardisoSolver() {
+        m_is_pardiso_Q = true;
+    }
+
+    /** @brief Get Pardiso option */
+    bool IsPardisoSolverQ() {
+        return m_is_pardiso_Q;
+    }
+
     /** @brief Set current time state */
     void SetCurrentStateQ(bool state) { m_is_current_state_Q = state; }
     
