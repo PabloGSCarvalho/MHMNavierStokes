@@ -201,7 +201,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
 //    TPZCompMesh *cmesh_gM_0 = this->CMesh_gM_0(f_mesh0, 0);
     
     ChangeExternalOrderConnects(cmesh_v,n_mais);
-    // ChangeExternalOrderConnects(cmesh_p,n_mais);
+//    ChangeExternalOrderConnects(cmesh_p,n_mais);
     
   
     f_mesh_vector[0]=cmesh_v;

@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
         h_level = pow(2,it+3);
 
 //                2 << (it+3);
-        //h_level = 16;
+//        h_level = 128;
         std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
         TPZVec<int> n_s(3,0.);
@@ -94,33 +94,33 @@ int main(int argc, char *argv[])
         //Test2->SetElType(ETriangle);
         //Test2->SetHdivPlus();
         Test2->SetFluxOrder(pOrder);
-        Test2->SetHdivPlus(0);
+        Test2->SetHdivPlus(2);
         Test2->SetTractionOrder(pOrder-1);
         Test2->SetInternRef(0);
 
         //Simulation Data
         TPZSimulationData *sim_data= new TPZSimulationData;
-        sim_data->SetNthreads(4);
+        sim_data->SetNthreads(24);
         sim_data->SetOptimizeBandwidthQ(true);
         sim_data->Set_n_iterations(100);
-        sim_data->Set_epsilon_cor(0.00001);
-        sim_data->Set_epsilon_res(0.00006);
+        sim_data->Set_epsilon_cor(0.00000001);
+        sim_data->Set_epsilon_res(0.000000001);
 
         if(h_level==64&&pOrder==3){
             sim_data->ActivatePostProcessing();
         }
-        if(h_level>=64){
+        if(h_level>=128){
             sim_data->SetPardisoSolver();
         }
 
-        sim_data->ActivatePostProcessing();
+        //sim_data->ActivatePostProcessing();
         Test2->SetSimulationData(sim_data);
 
      
         //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+        Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
         //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-        Test2->SetDomainType(TStokesAnalytic::EKovasznayCDG);
+        Test2->SetDomainType(TStokesAnalytic::EKovasznay);
         
         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
         Test2->SetTransform(Transf, InvTransf);
