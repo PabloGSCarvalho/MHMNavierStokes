@@ -988,7 +988,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             ek(nshapeV+j,nshapeV+nshapeP+2) += fact0;
             
         }
-        DebugStop();
+        //DebugStop();
         // matrix E0 - injection and average-pressure
         
         STATE factG0 = (1.) * weight * phigM0(0,0) * phipM0(0,0);

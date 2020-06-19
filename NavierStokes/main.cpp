@@ -38,6 +38,7 @@
 #include "TPZGmshReader.h"
 #include "pztrnsform.h"
 #include "TPZAnalyticSolution.h"
+#include "MHMNavierStokesTest.h"
 
 #include "fad.h"
 #include "fadType.h"
@@ -51,7 +52,7 @@ const REAL Pi=M_PI;
 //Verificação dos modelos:
 
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
-
+bool MHMProblem = true;
 
 int main(int argc, char *argv[])
 {
@@ -71,73 +72,124 @@ int main(int argc, char *argv[])
     
     TPZVec<REAL> h_s(3,0);
     h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
-    
-    int pOrder = 2;
-        
-    for (int it=1; it<=4; it++) {
-        h_level = pow(2,it+3);
+
+
+    if (MHMProblem)
+    {
+
+        for (int it=0; it<=0; it++) {
+            //h_level = pow(2., 1+it);
+            h_level = 4;
+
+            TPZVec<int> n_s(3,0.);
+            n_s[0]=h_level,n_s[1]=h_level;
+            n_s[2]=h_level; //Obs!!
+
+            MHMNavierStokesTest  * Test2 = new MHMNavierStokesTest();
+            //Test2->Set3Dmesh();
+            //Test2->SetElType(ECube);
+            //Test2->SetHdivPlus();
+
+            TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
+            Test2->SetTransform(Transf, InvTransf);
+
+            REAL rot_x = 5.;
+            REAL rot_z = 44.;
+            REAL rot_y = -85.;
+            rot_z = rot_z*Pi/180.;
+            rot_y = rot_y*Pi/180.;
+            rot_z = rot_z*Pi/180.;
+
+            //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
+            TPZSimulationData simdata;
+            simdata.SetInternalOrder(1);
+            simdata.SetSkeletonOrder(1);
+            simdata.SetCoarseDivisions(n_s);
+            simdata.SetDomainSize(h_s);
+            simdata.SetNInterRefs(1);
+            simdata.SetViscosity(1.);
+            simdata.SetNthreads(4);
+            //simdata.SetShapeTest(); // Test for shape functions
+
+            Test2->SetProblemType(TStokesAnalytic::EStokes);
+            Test2->SetSimulationData(simdata);
+            Test2->Run();
+
+        }
+
+    }else{
+
+        int pOrder = 2;
+
+        for (int it=1; it<=4; it++) {
+            h_level = pow(2,it+3);
 
 //                2 << (it+3);
 //        h_level = 128;
-        std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
+            std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
-        TPZVec<int> n_s(3,0.);
-        n_s[0]=h_level ,n_s[1]=h_level;
-        
-        n_s[2]=h_level; //Obs!!
-        
-        //REAL visc = 0.005;
-        REAL visc = 0.01;
-        
-        NavierStokesTest  * Test2 = new NavierStokesTest();
-        //Test2->Set3Dmesh();
-        //Test2->SetElType(ETriangle);
-        //Test2->SetHdivPlus();
-        Test2->SetFluxOrder(pOrder);
-        Test2->SetHdivPlus(2);
-        Test2->SetTractionOrder(pOrder-1);
-        Test2->SetInternRef(0);
+            TPZVec<int> n_s(3,0.);
+            n_s[0]=h_level ,n_s[1]=h_level;
 
-        //Simulation Data
-        TPZSimulationData *sim_data= new TPZSimulationData;
-        sim_data->SetNthreads(24);
-        sim_data->SetOptimizeBandwidthQ(true);
-        sim_data->Set_n_iterations(100);
-        sim_data->Set_epsilon_cor(0.00000001);
-        sim_data->Set_epsilon_res(0.000000001);
+            n_s[2]=h_level; //Obs!!
 
-        if(h_level==64&&pOrder==3){
-            sim_data->ActivatePostProcessing();
+            //REAL visc = 0.005;
+            REAL visc = 0.01;
+
+            NavierStokesTest  * Test2 = new NavierStokesTest();
+            //Test2->Set3Dmesh();
+            //Test2->SetElType(ETriangle);
+            //Test2->SetHdivPlus();
+            Test2->SetFluxOrder(pOrder);
+            Test2->SetHdivPlus(0);
+            Test2->SetTractionOrder(pOrder-1);
+            Test2->SetInternRef(0);
+
+            //Simulation Data
+            TPZSimulationData *sim_data= new TPZSimulationData;
+            sim_data->SetNthreads(4);
+            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->Set_n_iterations(100);
+            sim_data->Set_epsilon_cor(0.00000001);
+            sim_data->Set_epsilon_res(0.000000001);
+
+            if(h_level==64&&pOrder==3){
+                sim_data->ActivatePostProcessing();
+            }
+            if(h_level>=128){
+                sim_data->SetPardisoSolver();
+            }
+
+            //sim_data->ActivatePostProcessing();
+            Test2->SetSimulationData(sim_data);
+
+
+            //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+            //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
+            Test2->SetDomainType(TStokesAnalytic::EKovasznay);
+
+            TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
+            Test2->SetTransform(Transf, InvTransf);
+
+            REAL rot_x = 5.;
+            REAL rot_z = 44.;
+            REAL rot_y = -85.;
+            rot_z = rot_z*Pi/180.;
+            rot_y = rot_y*Pi/180.;
+            rot_z = rot_z*Pi/180.;
+
+            //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
+            //Test2->SetAllRefine();
+            Test2->Run(SpaceHDiv, pOrder, n_s, h_s,visc);
+
         }
-        if(h_level>=128){
-            sim_data->SetPardisoSolver();
-        }
-
-        //sim_data->ActivatePostProcessing();
-        Test2->SetSimulationData(sim_data);
-
-     
-        //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-        Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
-        //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-        Test2->SetDomainType(TStokesAnalytic::EKovasznay);
-        
-        TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
-        Test2->SetTransform(Transf, InvTransf);
-
-        REAL rot_x = 5.;
-        REAL rot_z = 44.;
-        REAL rot_y = -85.;
-        rot_z = rot_z*Pi/180.;
-        rot_y = rot_y*Pi/180.;
-        rot_z = rot_z*Pi/180.;
-        
-        //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
-        //Test2->SetAllRefine();
-        Test2->Run(SpaceHDiv, pOrder, n_s, h_s,visc);
-            
     }
-    
+
+
+
+
+
     return 0;
 }
 
