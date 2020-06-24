@@ -77,6 +77,8 @@ int main(int argc, char *argv[])
     if (MHMProblem)
     {
 
+        int pOrder = 1;
+
         for (int it=0; it<=0; it++) {
             //h_level = pow(2., 1+it);
             h_level = 4;
@@ -101,31 +103,45 @@ int main(int argc, char *argv[])
             rot_z = rot_z*Pi/180.;
 
             //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
-            TPZSimulationData simdata;
-            simdata.SetInternalOrder(1);
-            simdata.SetSkeletonOrder(1);
-            simdata.SetCoarseDivisions(n_s);
-            simdata.SetDomainSize(h_s);
-            simdata.SetNInterRefs(1);
-            simdata.SetViscosity(1.);
-            simdata.SetNthreads(4);
+            TPZSimulationData *sim_data= new TPZSimulationData;
+            sim_data->SetInternalOrder(pOrder);
+            sim_data->SetSkeletonOrder(pOrder);
+            sim_data->SetCoarseDivisions(n_s);
+            sim_data->SetDomainSize(h_s);
+            sim_data->SetNInterRefs(0);
+            sim_data->SetViscosity(1.);
+            sim_data->SetNthreads(4);
             //simdata.SetShapeTest(); // Test for shape functions
 
+            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->Set_n_iterations(3);
+            sim_data->Set_epsilon_cor(0.00000001);
+            sim_data->Set_epsilon_res(0.000000001);
+            //sim_data->SetPardisoSolver();
+
+            //if(h_level==64&&pOrder==3){
+            sim_data->ActivatePostProcessing();
+            //}
+            if(h_level>=128){
+                sim_data->SetPardisoSolver();
+            }
+
             Test2->SetProblemType(TStokesAnalytic::EStokes);
-            Test2->SetSimulationData(simdata);
+            Test2->SetDomainType(TStokesAnalytic::ESinCos);
+            Test2->SetSimulationData(sim_data);
             Test2->Run();
 
         }
 
     }else{
 
-        int pOrder = 2;
+        int pOrder = 1;
 
-        for (int it=1; it<=4; it++) {
+        for (int it=1; it<=1; it++) {
             h_level = pow(2,it+3);
 
 //                2 << (it+3);
-//        h_level = 128;
+        h_level = 4;
             std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
             TPZVec<int> n_s(3,0.);
@@ -134,7 +150,7 @@ int main(int argc, char *argv[])
             n_s[2]=h_level; //Obs!!
 
             //REAL visc = 0.005;
-            REAL visc = 0.01;
+            REAL visc = 1.0;
 
             NavierStokesTest  * Test2 = new NavierStokesTest();
             //Test2->Set3Dmesh();
@@ -165,9 +181,9 @@ int main(int argc, char *argv[])
 
 
             //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+            Test2->SetProblemType(TStokesAnalytic::EStokes);
             //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-            Test2->SetDomainType(TStokesAnalytic::EKovasznay);
+            Test2->SetDomainType(TStokesAnalytic::ESinCos);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);

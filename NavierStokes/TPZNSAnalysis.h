@@ -6,6 +6,7 @@
 
 #ifndef TPZNSAnalysis_h
 #define TPZNSAnalysis_h
+#include "TPZMultiphysicsCompMesh.h"
 
 #include <stdio.h>
 #include "TPZMatWithMem.h"
