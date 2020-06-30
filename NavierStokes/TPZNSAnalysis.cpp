@@ -338,7 +338,7 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
     //Testes
     std::string file_NavierStokes_test("NavierStokes_test.vtk");
 
-    int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    int n_max_fss_iterations = 3; // @TODO:: MS, please to xml file structure
     int n_enforced_fss_iterations = 2; // @TODO:: MS, please to xml file structure
     int n_time_steps = 1;
     REAL res_norm = m_simulation_data->Get_epsilon_res();
@@ -356,14 +356,24 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
         std::ofstream filecM("MalhaC_M_AfterAdjust.txt"); //Impressão da malha computacional da velocidade (formato txt)
         Mesh()->Print(filecM);
     }
-    
+    {
+        int64_t neq = Mesh()->Solution().Rows();
+        for (int is = 0; is<neq; is++) {
+            Mesh()->Solution()(is,0) = 1.;
+        }
+        Mesh()->LoadSolution((Mesh()->Solution()));
+        TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+        mphys->LoadSolutionFromMultiPhysics();
+    }
     
     for (int it = 0; it < n_time_steps; it++) { //??
         for (int k = 1; k <= n_max_fss_iterations; k++) {
             this->ExecuteOneTimeStep();
 
-            error_stop_criterion_Q = this->Get_error() < res_norm;
-            dU_stop_criterion_Q = this->Get_dU_norm() < dU_norm;
+            REAL rhsnomr = this->Get_error();
+            REAL dunorm = this->Get_dU_norm();
+            error_stop_criterion_Q = (rhsnomr < res_norm);
+            dU_stop_criterion_Q = (dunorm < dU_norm);
             //this->PostProcessTimeStep(file_NavierStokes_test);
 
             if ((error_stop_criterion_Q && (k > n_enforced_fss_iterations)) && dU_stop_criterion_Q) {

@@ -52,7 +52,7 @@ const REAL Pi=M_PI;
 //Verificação dos modelos:
 
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
-bool MHMProblem = true; //True for MHM problem, False for hybrid formulation problem
+bool MHMProblem = false; //True for MHM problem, False for hybrid formulation problem
 
 int main(int argc, char *argv[])
 {
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
             //Simulation Data
             TPZSimulationData *sim_data= new TPZSimulationData;
-            sim_data->SetNthreads(4);
+            sim_data->SetNthreads(0);
             sim_data->SetOptimizeBandwidthQ(true);
             sim_data->Set_n_iterations(100);
             sim_data->Set_epsilon_cor(0.00000001);

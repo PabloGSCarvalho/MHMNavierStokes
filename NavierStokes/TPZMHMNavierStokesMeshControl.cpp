@@ -32,6 +32,12 @@
 #include "TPZVTKGeoMesh.h"
 #include "TPZNullMaterial.h"
 
+#ifdef LOG4CXX
+#include "pzlog.h"
+static LoggerPtr logger(Logger::getLogger("pz.mhmNavierStokesmeshcontrol"));
+#endif
+
+
 TPZMHMNavierStokesMeshControl::TPZMHMNavierStokesMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh, TPZVec<int64_t> &coarseindices) : TPZMHMixedMeshControl(gmesh,coarseindices), fBCTractionMatIds()
 {
     fAveragePressMesh = new TPZCompMesh(fGMesh);
