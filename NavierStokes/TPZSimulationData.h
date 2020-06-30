@@ -77,6 +77,8 @@ protected:
 
     bool m_is_pardiso_Q;
 
+    bool m_is_static_condensation_Q;
+
     /** @brief Vector that storages only volumetric material identifiers (higher dimension elements) */
     std::vector<int> m_volumetric_material_id;
 
@@ -237,6 +239,16 @@ public:
     /** @brief Get Pardiso option */
     bool IsPardisoSolverQ() {
         return m_is_pardiso_Q;
+    }
+
+    /** @brief Set Pardiso option */
+    void SetStaticCondensation(bool static_condense) {
+        m_is_static_condensation_Q = static_condense;
+    }
+
+    /** @brief Get Pardiso option */
+    bool IsStaticCondensedQ() {
+        return m_is_static_condensation_Q;
     }
 
     /** @brief Set current time state */

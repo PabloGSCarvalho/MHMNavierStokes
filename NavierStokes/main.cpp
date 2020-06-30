@@ -52,7 +52,7 @@ const REAL Pi=M_PI;
 //Verificação dos modelos:
 
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
-bool MHMProblem = true;
+bool MHMProblem = true; //True for MHM problem, False for hybrid formulation problem
 
 int main(int argc, char *argv[])
 {
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
         for (int it=0; it<=0; it++) {
             //h_level = pow(2., 1+it);
-            h_level = 4;
+            h_level = 1;
 
             TPZVec<int> n_s(3,0.);
             n_s[0]=h_level,n_s[1]=h_level;
@@ -114,7 +114,8 @@ int main(int argc, char *argv[])
             //simdata.SetShapeTest(); // Test for shape functions
 
             sim_data->SetOptimizeBandwidthQ(true);
-            sim_data->Set_n_iterations(3);
+            //sim_data->SetStaticCondensation(false);
+            sim_data->Set_n_iterations(2);
             sim_data->Set_epsilon_cor(0.00000001);
             sim_data->Set_epsilon_res(0.000000001);
             //sim_data->SetPardisoSolver();
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
             h_level = pow(2,it+3);
 
 //                2 << (it+3);
-        h_level = 4;
+            h_level = 1;
             std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
             TPZVec<int> n_s(3,0.);

@@ -30,6 +30,7 @@ TPZSimulationData::TPZSimulationData()
     m_optimizeBandwidth_Q = false;
     m_run_post_porcessing = false;
     m_is_pardiso_Q = false;
+    m_is_static_condensation_Q = true;
     
 }
 
@@ -59,6 +60,7 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
     m_run_post_porcessing               = other.m_run_post_porcessing;
     m_is_pardiso_Q                      = other.m_is_pardiso_Q;
+    m_is_static_condensation_Q          = other.m_is_static_condensation_Q;
 }
 
 TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
@@ -84,6 +86,7 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_optimizeBandwidth_Q               = other.m_optimizeBandwidth_Q;
         m_run_post_porcessing               = other.m_run_post_porcessing;
         m_is_pardiso_Q                      = other.m_is_pardiso_Q;
+        m_is_static_condensation_Q          = other.m_is_static_condensation_Q;
     }
     return *this;
 }
