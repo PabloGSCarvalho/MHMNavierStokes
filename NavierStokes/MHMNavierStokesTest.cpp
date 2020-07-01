@@ -424,7 +424,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
 
     //papapapapap
-    std::cout << cmesh_m.operator->()->Solution() << std::endl;
+    //std::cout << cmesh_m.operator->()->Solution() << std::endl;
 
     cmesh_m->SolutionN();
 

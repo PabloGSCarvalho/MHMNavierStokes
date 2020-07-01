@@ -201,28 +201,25 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         this->ExecuteNewtonIteration();
 
         dU = Solution();
-        m_U_Plus += fCompMesh->Solution();
-//      m_U_Plus += dU;
 
-        LoadSolution(m_U_Plus);
+      //  m_U_Plus += fCompMesh->Solution();
+      //  m_U_Plus += dU;
+      // LoadSolution(m_U_Plus);
+
+        cmesh->UpdatePreviousState(1.);
         //cmesh->LoadSolutionFromMultiPhysics();
-        //fCompMesh->TransferMultiphysicsSolution()ç
+        Mesh()->TransferMultiphysicsSolution();
 
-        LoadCurrentState();
+        //LoadCurrentState();
 
-        std::ofstream filCmesh00("MalhaCompIteration.txt");
-        cmesh->Print(filCmesh00);
+//        std::ofstream filCmesh00("MalhaCompIteration.txt");
+//        cmesh->Print(filCmesh00);
 
-        std::string file_NavierStokes_test("NavierStokes_test.vtk");
-        this->PostProcessTimeStep(file_NavierStokes_test);
+//        std::string file_NavierStokes_test("NavierStokes_test.vtk");
+//        this->PostProcessTimeStep(file_NavierStokes_test);
 
-
-
-        // will copy m_U_Plus in the mesh
-        //LoadLastState();
 
         AssembleResidual();
-
 
         norm_dU  = Norm(dU);
         m_R_Plus = this->Rhs();
