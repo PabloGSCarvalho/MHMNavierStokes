@@ -186,6 +186,17 @@ public:
     
     ~NavierStokesTest();
     
+    NavierStokesTest(const NavierStokesTest &cp)
+    {
+        DebugStop();
+    }
+
+    NavierStokesTest &operator =(const NavierStokesTest &cp)
+    {
+        DebugStop();
+        return *this;
+    }
+
     void Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s, STATE visco);
     
     /*  Malhas geometricas */

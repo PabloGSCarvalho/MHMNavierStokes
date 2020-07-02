@@ -57,7 +57,14 @@ public:
     ~TPZInterfaceInsertion();
     
     /// Copy constructor
-    TPZInterfaceInsertion(TPZInterfaceInsertion & other);
+    TPZInterfaceInsertion(const TPZInterfaceInsertion & other);
+    
+    /// Copy constructor
+    TPZInterfaceInsertion &operator=(const TPZInterfaceInsertion & other)
+    {
+        DebugStop();
+        return *this;
+    }
     
     /// Constructor based on a computational mesh and Interface material id
     TPZInterfaceInsertion(TPZCompMesh *m_cmesh, int Interface_id, std::set<int> & boundaries_ids, MElementType eltype);

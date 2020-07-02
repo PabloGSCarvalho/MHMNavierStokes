@@ -63,6 +63,12 @@ public:
     {
     }
     
+    TPZMHMNavierStokesMaterial &operator=(const TPZMHMNavierStokesMaterial &copy)
+    {
+        DebugStop();
+        return *this;
+    }
+    
     virtual void SetMultiplier(STATE mult)
     {
         fMultiplier = mult;

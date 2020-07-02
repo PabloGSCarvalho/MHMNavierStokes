@@ -33,7 +33,7 @@ TPZInterfaceInsertion::~TPZInterfaceInsertion(){
 }
 
 /// Copy constructor
-TPZInterfaceInsertion::TPZInterfaceInsertion(TPZInterfaceInsertion & other){
+TPZInterfaceInsertion::TPZInterfaceInsertion(const TPZInterfaceInsertion & other){
     m_interface_id       = other.m_interface_id;
     m_interfaceVector_ids     = other.m_interfaceVector_ids;
     m_id_flux_wrap       = other.m_id_flux_wrap;

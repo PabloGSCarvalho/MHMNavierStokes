@@ -149,7 +149,19 @@ public:
     MHMNavierStokesTest();
     
     ~MHMNavierStokesTest();
-    
+  
+    MHMNavierStokesTest(const MHMNavierStokesTest &cp)
+    {
+        DebugStop();
+    }
+
+    MHMNavierStokesTest &operator =(const MHMNavierStokesTest &cp)
+    {
+        DebugStop();
+        return *this;
+    }
+
+
     void Run();
     
     void SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec<TPZAutoPointer<TPZCompMesh> > compmeshes, std::string prefix );

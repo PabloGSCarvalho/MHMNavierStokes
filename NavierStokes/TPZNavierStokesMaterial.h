@@ -70,7 +70,12 @@ public:
      */
     ~TPZNavierStokesMaterial();
     
-    
+    TPZNavierStokesMaterial &operator=(const TPZNavierStokesMaterial &copy)
+    {
+        TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >::operator=(copy);
+        DebugStop();
+        return *this;
+    }
     
     void FillDataRequirements(TPZMaterialData &data) override;
     /** Fill material data parameter with necessary requirements for the

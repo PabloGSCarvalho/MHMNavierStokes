@@ -354,6 +354,7 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
         std::ofstream filecM("MalhaC_M_AfterAdjust.txt"); //Impressão da malha computacional da velocidade (formato txt)
         Mesh()->Print(filecM);
     }
+    if(0)
     {
         int64_t neq = Mesh()->Solution().Rows();
         for (int is = 0; is<neq; is++) {

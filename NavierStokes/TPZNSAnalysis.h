@@ -77,6 +77,11 @@ public:
     /// Copy constructor
     TPZNSAnalysis(const TPZNSAnalysis & other);
     
+    TPZNSAnalysis &operator=(const TPZNSAnalysis &copy)
+    {
+        DebugStop();
+        return *this;
+    }
     /// Set the pointer of Simulation data object
     void SetSimulationData(TPZSimulationData * simulation_data){
         m_simulation_data = simulation_data;
