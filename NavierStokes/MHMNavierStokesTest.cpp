@@ -430,20 +430,20 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->SetExact(f_ExactSol.ExactSolution());
 
-//    TPZMultiphysicsCompMesh * cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(cmesh_m.operator->());
-//    cmesh->LoadSolutionFromMultiPhysics();
 
-    NS_analysis->SetThreadsForError(3);
+    NS_analysis->Mesh()->SetNMeshes(4);
+
+    NS_analysis->SetThreadsForError(0);
     NS_analysis->PostProcessError(Errors,false);
 
-    ErroOut <<"  //  Ordem = "<< f_sim_data->GetInternalOrder() << "  //  Número de refs interno = " << f_sim_data->GetNInterRefs() << std::endl;
+    ErroOut <<"  //  Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
-    ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
-    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
-    ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
+    ErroOut <<"L2-norm - V = "<< Errors[1] << std::endl;
+    ErroOut <<"H1/Hdiv semi-norm - V = "<< Errors[2] << std::endl;
+    ErroOut <<"L2-norm - P = "<< Errors[4] << std::endl;
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
-        ErroOut <<"Norma L2 - P - CDG formulation = "<< Errors[5] << std::endl;
+        ErroOut <<"L2-norm - P - CDG formulation = "<< Errors[5] << std::endl;
     }
     ErroOut <<"-------------" << std::endl;
     ErroOut.flush();

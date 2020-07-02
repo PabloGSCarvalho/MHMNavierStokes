@@ -927,7 +927,6 @@ void TPZMHMNavierStokesMeshControl::BuildSubMeshes(){
             continue;
         }
 
-
         int nsides=cel->Reference()->NSides();
         TPZGeoElSide gelside(gel,nsides-1);
         TPZGeoElSide neighbour = gel->Neighbour(nsides-1);

@@ -1676,7 +1676,7 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
         diff = Velocity[i] - sol_exact[i];
         errors[1]  += diff*diff;
     }
-    
+
     ////////////////////////////////////////////////// H1 / GD
     
     if(fSpace==2){

@@ -76,13 +76,15 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
             break;
         case ELDLt:
         {
-//            TPZSymetricSpStructMatrix struct_mat(Mesh());
-//            struct_mat.SetNumThreads(n_threads);
-//            this->SetStructuralMatrix(struct_mat);
-            TPZFStructMatrix struct_mat(Mesh());
-            struct_mat.SetNumThreads(n_threads);
-            this->SetStructuralMatrix(struct_mat);
-            
+            if(m_simulation_data->IsPardisoSolverQ() == true){
+                TPZSymetricSpStructMatrix struct_mat(Mesh());
+                struct_mat.SetNumThreads(n_threads);
+                this->SetStructuralMatrix(struct_mat);
+            }else{
+                TPZFStructMatrix struct_mat(Mesh());
+                struct_mat.SetNumThreads(n_threads);
+                this->SetStructuralMatrix(struct_mat);
+            }
         }
             break;
         default:
@@ -177,7 +179,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
     REAL res_norm = m_simulation_data->Get_epsilon_res();
     REAL dU_norm = m_simulation_data->Get_epsilon_cor();
     int n_it = m_simulation_data->Get_n_iterations();
-    m_U_Plus = fCompMesh->Solution();
+    //m_U_Plus = fCompMesh->Solution();
     //m_U_Plus.Redim(Solution().Rows(),Solution().Cols());
     if(0)
     {
@@ -210,22 +212,12 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         //cmesh->LoadSolutionFromMultiPhysics();
         Mesh()->TransferMultiphysicsSolution();
 
-        //LoadCurrentState();
-
-//        std::ofstream filCmesh00("MalhaCompIteration.txt");
-//        cmesh->Print(filCmesh00);
-
-//        std::string file_NavierStokes_test("NavierStokes_test.vtk");
-//        this->PostProcessTimeStep(file_NavierStokes_test);
-
-
         AssembleResidual();
 
         norm_dU  = Norm(dU);
         m_R_Plus = this->Rhs();
 
 //        std::cout<<this->Rhs()<<std::endl;
-//        std::cout<<m_U_Plus<<std::endl;
 
         m_res_error =  Norm(m_R_Plus); // residue error
         std::cout << "Correction norm 1 = " << norm_dU << std::endl;
@@ -336,8 +328,8 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
     //Testes
     std::string file_NavierStokes_test("NavierStokes_test.vtk");
 
-    int n_max_fss_iterations = 3; // @TODO:: MS, please to xml file structure
-    int n_enforced_fss_iterations = 2; // @TODO:: MS, please to xml file structure
+    int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    int n_enforced_fss_iterations = 1; // @TODO:: MS, please to xml file structure
     int n_time_steps = 1;
     REAL res_norm = m_simulation_data->Get_epsilon_res();
     REAL dU_norm = m_simulation_data->Get_epsilon_cor();
@@ -364,7 +356,7 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
         TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
         mphys->LoadSolutionFromMultiPhysics();
     }
-    
+
     for (int it = 0; it < n_time_steps; it++) { //??
         for (int k = 1; k <= n_max_fss_iterations; k++) {
             this->ExecuteOneTimeStep();
@@ -382,15 +374,15 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
                 break;
             }
             bool postprocessingQ = m_simulation_data->IsPostProcessingActivatedQ();
-//            if (error_stop_criterion_Q && dU_stop_criterion_Q && postprocessingQ) {
-//                std::cout << "Running post processing" << std::endl;
-//                this->PostProcessTimeStep(file_NavierStokes);
-//            }
-
-            if (postprocessingQ) {
+            if (error_stop_criterion_Q && dU_stop_criterion_Q && postprocessingQ) {
                 std::cout << "Running post processing" << std::endl;
                 this->PostProcessTimeStep(file_NavierStokes);
             }
+
+//            if (postprocessingQ) {
+//                std::cout << "Running post processing" << std::endl;
+//                this->PostProcessTimeStep(file_NavierStokes);
+//            }
 
         }
     }
@@ -437,7 +429,6 @@ void TPZNSAnalysis::ExecuteNewtonIteration(){
     }
 
     this->Rhs() *= 1.0;
-
     {
         std::cout<< "residual norm 0.5 = " << Norm(this->Rhs()) <<std::endl;
     }
@@ -450,14 +441,7 @@ void TPZNSAnalysis::ExecuteNewtonIteration(){
 void TPZNSAnalysis::LoadCurrentState(){
      fCompMesh->Solution() = m_U_Plus;
     // LoadSolution(m_U_Plus);
-
-    TPZMultiphysicsCompMesh * cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(fCompMesh);
-    if (!cmesh) {
-        DebugStop();
-    }
-    cmesh->LoadSolutionFromMultiPhysics();
-
-    //TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
+    TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
 
 }
 
