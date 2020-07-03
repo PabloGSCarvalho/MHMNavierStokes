@@ -13,6 +13,11 @@
 #include "TPZMatLaplacian.h"
 #include "TPZLagrangeMultiplier.h"
 
+#include "pzsmanal.h"
+#include "pzanalysis.h"
+#include "TPZSpStructMatrix.h"
+#include "pzstepsolver.h"
+
 #include <iostream>
 #include <sstream>
 #include <iterator>
@@ -1343,7 +1348,7 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
 
         subcmesh->CleanUpUnconnectedNodes();
 
-        int numthreads = 0;
+        int numthreads = 4;
         int preconditioned = 0;
 #ifdef LOG4CXX2
         if(logger->isDebugEnabled())
@@ -1354,8 +1359,20 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
         }
 #endif
         TPZAutoPointer<TPZGuiInterface> guiInterface;
-//        subcmesh->SetAnalysisSparse(numthreads);
-        subcmesh->SetAnalysisSkyline(numthreads, preconditioned, guiInterface);
+
+        int ninter_materials = subcmesh->MaterialVec().size();
+
+        if(ninter_materials>3){
+            subcmesh->SetAnalysisFStruct(numthreads);
+        }else{
+            subcmesh->SetAnalysisNonSymSparse(numthreads);
+        }
+
+        //subcmesh->SetAnalysisFrontal(numthreads, guiInterface);
+        //subcmesh->SetAnalysisSparse(numthreads);
+        //subcmesh->SetAnalysisSkyline(numthreads, preconditioned, guiInterface);
+
+
         std::ofstream filehide2("subcmeshAfter.txt");
         subcmesh->Print(filehide2);
     }

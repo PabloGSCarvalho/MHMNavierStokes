@@ -597,11 +597,18 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     
     int dimmodel = 2;
     TPZManVector<REAL,3> x0(3,0.),x1(3,0.);
-    x0[0] = 0., x0[1] = -1.;
-    x1[0] = 2., x1[1] = 1.;
-    
-//    x0[0] = 0., x0[1] = 0.;
-//    x1[0] = 4., x1[1] = 2.;
+    x0[0] = -0.5, x0[1] = 0.;
+    x1[0] = 1.5, x1[1] = 2.;
+
+    if(f_domaintype==TStokesAnalytic::ECavity){
+        x0[0] = 0., x0[1] = 0.;
+        x1[0] = 1., x1[1] = 1.;
+    }
+
+    if(f_domaintype==TStokesAnalytic::ESinCos){
+        x0[0] = 0., x0[1] = -1.;
+        x1[0] = 2., x1[1] = 1.;
+    }
 
     TPZGenGrid2D grid(n_div,x0,x1);
     

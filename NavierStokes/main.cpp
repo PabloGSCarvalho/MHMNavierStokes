@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
         for (int it=0; it<=0; it++) {
             //h_level = pow(2., 1+it);
-            h_level = 1;
+            h_level = 4;
 
             TPZVec<int> n_s(3,0.);
             n_s[0]=h_level,n_s[1]=h_level;
@@ -121,14 +121,14 @@ int main(int argc, char *argv[])
             //sim_data->SetPardisoSolver();
 
             //if(h_level==64&&pOrder==3){
-            sim_data->ActivatePostProcessing();
+            //sim_data->ActivatePostProcessing();
             //}
             if(h_level>=128){
                 sim_data->SetPardisoSolver();
             }
 
-            Test2->SetProblemType(TStokesAnalytic::EStokes);
-            Test2->SetDomainType(TStokesAnalytic::ESinCos);
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+            Test2->SetDomainType(TStokesAnalytic::EKovasznay);
             Test2->SetSimulationData(sim_data);
             Test2->Run();
 
@@ -183,9 +183,9 @@ int main(int argc, char *argv[])
 
 
             //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-            Test2->SetProblemType(TStokesAnalytic::EStokes);
+            Test2->SetProblemType(TStokesAnalytic::EOseen);
             //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-            Test2->SetDomainType(TStokesAnalytic::ESinCos);
+            Test2->SetDomainType(TStokesAnalytic::EKovasznay);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);

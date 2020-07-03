@@ -878,7 +878,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
         x1[0] = 1., x1[1] = 1.;
     }
 
-    if(f_problemtype==TStokesAnalytic::EStokes){
+    if(f_domaintype==TStokesAnalytic::ESinCos){
         x0[0] = 0., x0[1] = -1.;
         x1[0] = 2., x1[1] = 1.;
     }
