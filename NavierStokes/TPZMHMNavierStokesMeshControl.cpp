@@ -136,14 +136,13 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     }
 #endif
     
-#ifdef PZDEBUG
-    std::ofstream fileg1("MalhaGeo_test.txt"); //Impressão da malha geométrica (formato txt)
-    std::ofstream filegvtk1("MalhaGeo_test.vtk"); //Impressão da malha geométrica (formato vtk)
-    fGMesh->Print(fileg1);
-    TPZVTKGeoMesh::PrintGMeshVTK(fGMesh, filegvtk1,true);
-#endif
-    
-    
+    if(0){
+        std::ofstream fileg1("MalhaGeo_test.txt"); //Impressão da malha geométrica (formato txt)
+        std::ofstream filegvtk1("MalhaGeo_test.vtk"); //Impressão da malha geométrica (formato vtk)
+        fGMesh->Print(fileg1);
+        TPZVTKGeoMesh::PrintGMeshVTK(fGMesh, filegvtk1,true);
+    }
+
     InsertPeriferalPressureMaterialObjects();
     CreatePressureAndTractionMHMMesh();
     
@@ -177,7 +176,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     
     fCMesh->ComputeNodElCon();
 #ifdef PZDEBUG
-    {
+    if(0){
         std::ofstream out("Friendly.txt");
         PrintFriendly(out);
     }
@@ -333,12 +332,13 @@ void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
             SetSubdomain(cel, -1);
         }
 
-
     }
 
-    std::ofstream out("PressureAndTractionFineMesh.txt");
-    fPressureFineMesh->Print(out);
-    
+    if(0){
+        std::ofstream out("PressureAndTractionFineMesh.txt");
+        fPressureFineMesh->Print(out);
+    }
+
 }
 
 void TPZMHMNavierStokesMeshControl::InsertInternalSkeleton(){
@@ -518,7 +518,7 @@ void TPZMHMNavierStokesMeshControl::CreateAveragePressMHMMesh(){
         SetSubdomain(cel, fGeoToMHMDomain[gel->Index()]);
     }
     
-    if(1)
+    if(0)
     {
         std::ofstream out("AveragePressureMesh.txt");
         fAveragePressMesh->Print(out);
@@ -561,7 +561,7 @@ void TPZMHMNavierStokesMeshControl::CreateCoarseAveragePressMHMMesh(){
     cmeshAverPressute->AutoBuild(matids);
     fAveragePressMesh->ExpandSolution();
     
-    if(1)
+    if(0)
     {
         std::ofstream out("CoarseAveragePressureMesh.txt");
         fAveragePressMesh->Print(out);
@@ -705,7 +705,7 @@ void TPZMHMNavierStokesMeshControl::CreateDistributedFluxMHMMesh(){
     }
     
     
-    if(1)
+    if(0)
     {
         std::ofstream out("DistributedFluxMesh.txt");
         fDistrFluxMesh->Print(out);
@@ -758,7 +758,7 @@ void TPZMHMNavierStokesMeshControl::CreateCoarseDistributedFluxMHMMesh(){
     cmeshDistributedFlux->AutoBuild(matids);
     fDistrFluxMesh->ExpandSolution();
     
-    if(1)
+    if(0)
     {
         std::ofstream out("CoarseDistributedFluxMesh.txt");
         fDistrFluxMesh->Print(out);
@@ -873,10 +873,12 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
 //    TPZCompMeshTools::PutinSubmeshes(mixed_cmesh, ElementGroups, submeshindices, KeepOneLagrangian);
 
 #ifdef PZDEBUG
+    if(0) {
         std::ofstream file("multiphysics.vtk");
-        TPZVTKGeoMesh::PrintCMeshVTK(MixedFluxPressureCmesh, file,true);
+        TPZVTKGeoMesh::PrintCMeshVTK(MixedFluxPressureCmesh, file, true);
         std::ofstream out("multiphysics_without_condensation.txt");
         MixedFluxPressureCmesh->Print(out);
+    }
 #endif
 
     if(0) {
@@ -893,8 +895,11 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
         fGlobalSystemSize = fCMesh->Solution().Rows();
 
 #ifdef PZDEBUG
-        std::ofstream out("multiphysics_after_condensation.txt");
-        MixedFluxPressureCmesh->Print(out);
+        if(0)
+        {
+            std::ofstream out("multiphysics_after_condensation.txt");
+            MixedFluxPressureCmesh->Print(out);
+        }
 #endif
     }
 
@@ -1054,23 +1059,6 @@ void TPZMHMNavierStokesMeshControl::PutinSubmeshes(TPZCompMesh *cmesh, std::map<
             }
         }
 
-//        int nel = subcmesh->NElements();
-//        for (int64_t el=0; el<nel; el++) {
-//            TPZCompEl *cel = subcmesh->Element(el);
-//            if (!cel) {
-//                continue;
-//            }
-//            int nconnects = cel->NConnects();
-//            for (int icon=0; icon<nconnects; icon++) {
-//                TPZConnect &connect = cel->Connect(icon);
-//
-//                int lagrangemult = connect.LagrangeMultiplier();
-//                //Increment the number of connected elements for the avg pressure in order to not condense them
-//                if (lagrangemult==3) {
-//                    connect.IncrementElConnected();
-//                }
-//            }
-//        }
 
         subcmesh->MakeAllInternal();
     }
@@ -1161,9 +1149,11 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsInterfaceElements(){
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
 #ifdef PZDEBUG
-                    std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
-                    " side " << subel[i_sub].Side() <<
-                    " and Skeleton element " << gelside.Element()->Index() << std::endl;
+                    if(0){
+                        std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
+                                  " side " << subel[i_sub].Side() <<
+                                  " and Skeleton element " << gelside.Element()->Index() << std::endl;
+                    }
 #endif
 
                 }
@@ -1178,10 +1168,12 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsInterfaceElements(){
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
-                std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
-                " side " << neigh.Side() <<
-                " and interior 1D element " << gelside.Element()->Index() << std::endl;
-
+                if(0) {
+                    std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index()
+                              <<
+                              " side " << neigh.Side() <<
+                              " and interior 1D element " << gelside.Element()->Index() << std::endl;
+                }
 #endif
                 
             }
@@ -1258,9 +1250,11 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBCInterfaceElements(){
                         elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
-                        std::cout << "****Created an BC interface element between volumetric element " << subelside[i_sub].Element()->Index() <<
-                        " side " << subelside[i_sub].Side() <<
-                        " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                        if(0){
+                            std::cout << "****Created an BC interface element between volumetric element " << subelside[i_sub].Element()->Index() <<
+                                      " side " << subelside[i_sub].Side() <<
+                                      " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                        }
 #endif
                         
                     }
@@ -1274,9 +1268,11 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBCInterfaceElements(){
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
 #ifdef PZDEBUG
-                    std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
-                    " side " << neigh.Side() <<
-                    " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                    if(0){
+                        std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
+                                  " side " << neigh.Side() <<
+                                  " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                    }
 #endif
                 }
                 
@@ -1321,8 +1317,6 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
             std::ofstream out("submesh.txt");
             subcmesh->Print(out);
         }
-
-
 
         // Increment nelconnected of exterior connects
 
@@ -1374,9 +1368,11 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
         //subcmesh->SetAnalysisSparse(numthreads);
         //subcmesh->SetAnalysisSkyline(numthreads, preconditioned, guiInterface);
 
+        if(0) {
+            std::ofstream filehide2("subcmeshAfter.txt");
+            subcmesh->Print(filehide2);
+        }
 
-        std::ofstream filehide2("subcmeshAfter.txt");
-        subcmesh->Print(filehide2);
     }
     
 }

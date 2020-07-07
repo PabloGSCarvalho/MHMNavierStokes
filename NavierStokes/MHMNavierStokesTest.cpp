@@ -144,12 +144,13 @@ void MHMNavierStokesTest::Run()
     SubdomainRefine(nrefs,gmesh,coarseindex);
     //InsertLowerDimMaterial(gmesh);
     
-#ifdef PZDEBUG
-    std::ofstream fileg("MalhaGeo_0.txt"); //Impressão da malha geométrica (formato txt)
-    std::ofstream filegvtk("MalhaGeo_0.vtk"); //Impressão da malha geométrica (formato vtk)
-    gmesh->Print(fileg);
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk,true);
-#endif
+    if(0){
+        std::ofstream fileg("MalhaGeo_0.txt"); //Impressão da malha geométrica (formato txt)
+        std::ofstream filegvtk("MalhaGeo_0.vtk"); //Impressão da malha geométrica (formato vtk)
+        gmesh->Print(fileg);
+        TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk,true);
+    }
+
     
     //Criando objeto para gerenciar a malha MHM
     TPZAutoPointer<TPZGeoMesh> gmeshpointer(gmesh);
@@ -185,10 +186,8 @@ void MHMNavierStokesTest::Run()
     
     StokesControl->SetInternalPOrder(int_order);
     StokesControl->SetSkeletonPOrder(skeleton_order);
-    
-    StokesControl->DivideSkeletonElements(0); //Insere material id do skeleton wrap
+    //StokesControl->DivideSkeletonElements(0); //Insere material id do skeleton wrap
 
-    
     //if (fsimData.GetNInterRefs()>0) {
     StokesControl->SetCoarseAverageMultipliers(true);
     //}
@@ -198,31 +197,19 @@ void MHMNavierStokesTest::Run()
     StokesControl->BuildComputationalMesh(0);
     
 #ifdef PZDEBUG
-    std::ofstream fileg1("MalhaGeo_1.txt"); //Impressão da malha geométrica (formato txt)
-    std::ofstream filegvtk1("MalhaGeo_1.vtk"); //Impressão da malha geométrica (formato vtk)
+    std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
+    std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
     StokesControl->GMesh()->Print(fileg1);
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
 #endif
 
-    
+
 #ifdef PZDEBUG
     {
-        //Impressão da malha computacional da velocidade (formato txt)
-//        std::ofstream filecv("MalhaC_v.txt");
-//        std::ofstream filecp("MalhaC_p.txt");
-//        std::ofstream filecpM("MalhaC_pM.txt");
-//        std::ofstream filecgM("MalhaC_gM.txt");
-//        cmesh_v->Print(filecv);
-//        cmesh_p->Print(filecp);
-//        cmesh_pM->Print(filecpM);
-//        cmesh_gM->Print(filecgM);
-        
         std::ofstream filecm("MalhaC_MHM.txt");
         StokesControl->CMesh()->Print(filecm);
     }
-#endif
-    
-    {
+    if(0){
         
         TPZCompMesh *cmeshP = StokesControl->GetMeshes()[1].operator->();
         std::ofstream outp("Malha_P_MHM.vtk");
@@ -240,7 +227,8 @@ void MHMNavierStokesTest::Run()
         TPZVTKGeoMesh::PrintCMeshVTK(cmeshM, out, false);
         
     }
-   
+#endif
+
     std::cout << "MHM Hdiv Computational meshes created\n";
     std::cout << "Number of equations MHMStokes " << StokesControl->CMesh()->NEquations() << std::endl;
     std::string configuration;
@@ -422,7 +410,6 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
-
     //papapapapap
     //std::cout << cmesh_m.operator->()->Solution() << std::endl;
 
@@ -430,11 +417,23 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->SetExact(f_ExactSol.ExactSolution());
 
+    NS_analysis->SetThreadsForError(3);
 
-    NS_analysis->Mesh()->SetNMeshes(4);
-
-    NS_analysis->SetThreadsForError(0);
+    auto old_buffer = std::cout.rdbuf(nullptr);
     NS_analysis->PostProcessError(Errors,false);
+    std::cout.rdbuf(old_buffer);
+
+#ifdef PZDEBUG
+    std::cout <<"-------------" << std::endl;
+    std::cout <<"Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
+    std::cout <<"L2-norm - V = "<< Errors[1] << std::endl;
+    std::cout  <<"H1/Hdiv semi-norm - V = "<< Errors[2] << std::endl;
+    std::cout <<"L2-norm - P = "<< Errors[4] << std::endl;
+    if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
+        std::cout <<"L2-norm - P - CDG formulation = "<< Errors[5] << std::endl;
+    }
+    std::cout <<"-------------" << std::endl;
+#endif
 
     ErroOut <<"  //  Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
     ErroOut <<" " << std::endl;
@@ -495,7 +494,6 @@ void MHMNavierStokesTest::Rotate(TPZVec<REAL> &co, TPZVec<REAL> &co_r, bool rota
         co_r[1] = - co[0]*sin(phi_r) + co[1]*cos(phi_r);
         
     }
-    
     
 }
 
@@ -570,7 +568,6 @@ void MHMNavierStokesTest::InsertLowerDimMaterial(TPZGeoMesh *gmesh){
 
 }
 
-
 bool MHMNavierStokesTest::IsSkellNeighbour(TPZGeoElSide neighbour){
 
     if (neighbour.Element()->Dimension() == f_mesh0->Dimension()) {
@@ -590,7 +587,6 @@ bool MHMNavierStokesTest::IsSkellNeighbour(TPZGeoElSide neighbour){
     
     return false;
 }
-
 
 TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
 {
@@ -644,8 +640,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     
     gmesh->BuildConnectivity();
 
-
-        {
+        if(0){
             std::ofstream Dummyfile("GeometricMesh2d.vtk");
             TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
         }

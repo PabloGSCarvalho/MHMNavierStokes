@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
         for (int it=0; it<=0; it++) {
             //h_level = pow(2., 1+it);
-            h_level = 16;
+            h_level = 4;
 
             TPZVec<int> n_s(3,0.);
             n_s[0]=h_level,n_s[1]=h_level;
