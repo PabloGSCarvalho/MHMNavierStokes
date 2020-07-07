@@ -121,7 +121,9 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     if (fpOrderInternal == 0 || fpOrderSkeleton == 0) {
         DebugStop();
     }
-    
+    BuildWrapMesh(fGMesh->Dimension());
+    fGeoToMHMDomain.Resize(fGMesh->NElements(), -1);
+
     //InsertPeriferalMaterialObjects();  //Skeleton com dirichlet v=0
     CreateHDivMHMMesh();
     
