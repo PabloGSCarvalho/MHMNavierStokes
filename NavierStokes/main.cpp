@@ -77,11 +77,11 @@ int main(int argc, char *argv[])
     if (MHMProblem)
     {
 
-        int pOrder = 1;
+        int pOrder = 2;
 
-        for (int it=0; it<=0; it++) {
+        for (int it=1; it<=1; it++) {
             //h_level = pow(2., 1+it);
-            h_level = 4;
+            h_level = 32;
 
             TPZVec<int> n_s(3,0.);
             n_s[0]=h_level,n_s[1]=h_level;
@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
 
             MHMNavierStokesTest  * Test2 = new MHMNavierStokesTest();
             //Test2->Set3Dmesh();
-            //Test2->SetElType(ECube);
             //Test2->SetHdivPlus();
+            //Test2->SetElType(ETriangle);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);
@@ -108,27 +108,27 @@ int main(int argc, char *argv[])
             sim_data->SetSkeletonOrder(pOrder);
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
-            sim_data->SetNInterRefs(1);
-            sim_data->SetViscosity(1.);
+            sim_data->SetNInterRefs(3);
+            sim_data->SetViscosity(.01);
             sim_data->SetNthreads(4);
             //simdata.SetShapeTest(); // Test for shape functions
 
             sim_data->SetOptimizeBandwidthQ(true);
             //sim_data->SetStaticCondensation(false);
-            sim_data->Set_n_iterations(10);
-            sim_data->Set_epsilon_cor(0.00000001);
-            sim_data->Set_epsilon_res(0.000000001);
-            //sim_data->SetPardisoSolver();
+            sim_data->Set_n_iterations(20);
+            sim_data->Set_epsilon_cor(0.0005);
+            sim_data->Set_epsilon_res(0.0001);
+            sim_data->SetPardisoSolver();
 
             //if(h_level==64&&pOrder==3){
-            //sim_data->ActivatePostProcessing();
+            sim_data->ActivatePostProcessing();
             //}
-            if(h_level>=128){
-                sim_data->SetPardisoSolver();
+            if(h_level>=32){
+            //    sim_data->SetPardisoSolver();
             }
 
-            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
-            Test2->SetDomainType(TStokesAnalytic::EKovasznay);
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+            Test2->SetDomainType(TStokesAnalytic::ECavity);
             Test2->SetSimulationData(sim_data);
             Test2->Run();
 

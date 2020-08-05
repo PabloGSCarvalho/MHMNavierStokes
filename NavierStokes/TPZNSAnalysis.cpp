@@ -69,6 +69,7 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
                 this->SetStructuralMatrix(struct_mat);
             }else{
                 TPZFStructMatrix struct_mat(Mesh());
+                //TPZSkylineNSymStructMatrix struct_mat(Mesh());
                 struct_mat.SetNumThreads(n_threads);
                 this->SetStructuralMatrix(struct_mat);
             }
@@ -194,11 +195,11 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
 
         TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
 
-        if(i==1){
-            mat->SetProblemType(TStokesAnalytic::EOseen);
-        }else{
-            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
-        }
+//        if(i==1){
+//            mat->SetProblemType(TStokesAnalytic::EOseenCDG);
+//        }else{
+//            mat->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+//        }
 
         this->ExecuteNewtonIteration();
 

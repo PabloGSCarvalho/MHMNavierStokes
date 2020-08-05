@@ -98,8 +98,12 @@ private:
     int fmatPoint;
     
     //Condições de contorno do problema
-    int fdirichlet;
-    int fneumann;
+    int fdirichlet_v;
+    int fneumann_v;
+
+    int fdirichlet_sigma;
+    int fneumann_sigma;
+
     int fpenetration;
     int fpointtype;
     int fdirichletvar;
