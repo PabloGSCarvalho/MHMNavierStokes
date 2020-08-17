@@ -207,7 +207,8 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
 
       //  m_U_Plus += fCompMesh->Solution();
       //  m_U_Plus += dU;
-      // LoadSolution(m_U_Plus);
+
+  //      std::cout<<this->Rhs()<<std::endl;
 
         cmesh->UpdatePreviousState(1.);
         //cmesh->LoadSolutionFromMultiPhysics();
@@ -218,7 +219,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         norm_dU  = Norm(dU);
         m_R_Plus = this->Rhs();
 
-//        std::cout<<this->Rhs()<<std::endl;
+        std::cout<<this->Rhs()<<std::endl;
 
         m_res_error =  Norm(m_R_Plus); // residue error
         std::cout << "Correction norm 1 = " << norm_dU << std::endl;
@@ -380,10 +381,10 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
                 this->PostProcessTimeStep(file_NavierStokes);
             }
 
-//            if (postprocessingQ) {
-//                std::cout << "Running post processing" << std::endl;
-//                this->PostProcessTimeStep(file_NavierStokes);
-//            }
+            if (postprocessingQ) {
+                std::cout << "Running post processing" << std::endl;
+                this->PostProcessTimeStep(file_NavierStokes);
+            }
 
         }
     }
@@ -420,7 +421,7 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 
 void TPZNSAnalysis::ExecuteNewtonIteration(){
     this->Assemble();
-    if(0)
+    if(1)
     {
         
         std::ofstream plotNavierStiff("NavierStiffness_NewtonIteration.txt");

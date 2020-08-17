@@ -642,11 +642,28 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     TPZFNMatrix<100,STATE> divphi;
     TPZFNMatrix<40,STATE> div_on_master;
-    TPZFNMatrix<10,STATE> gradUn = datavec[vindex].dsol[0];
+    TPZFNMatrix<10,STATE> dsolVec = datavec[vindex].dsol[0];
     // u_n is the solution at the previous iteration
     TPZManVector<STATE,3> u_n    = datavec[vindex].sol[0];
     STATE p_n                  = datavec[pindex].sol[0][0];
-    
+//    p_n = 0.;
+//    dsolVec.Zero();
+//    u_n[0]=0.;
+//    u_n[1]=0.;
+    //std::cout<<datavec[vindex].axes<<std::endl;
+
+
+    TPZFNMatrix<10,STATE> gradUn(dsolVec.Rows(),dsolVec.Cols()), grad_axes;
+    grad_axes = datavec[vindex].axes;
+    grad_axes.Resize(dsolVec.Rows(),dsolVec.Cols());
+
+    //std::cout<<grad_axes<<std::endl;
+    gradUn=dsolVec;
+    //TPZAxesTools<REAL>::Axes2XYZ( dsolVec,gradUn, grad_axes);
+
+
+
+
     if (fSpace==1) {
         datavec[0].ComputeFunctionDivergence();
     }
@@ -671,7 +688,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
         STATE divui = 0.;
         divui = Tr( GradVi ); //datavec[0].divphi(i);
-       // divui = datavec[0].divphi(i);
+        //divui = datavec[0].divphi(i);
         
         if(this->HasForcingFunction()){
             TPZFMatrix<STATE> gradu;
@@ -695,9 +712,10 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
         }
         A_term_f = Inner(Dui, DUn_j);
+
         ef(i) += 2. * fViscosity * weight * (-A_term_f);
-        
-        // why two negatives?
+
+        // why two negatives ? Following formulation signs
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - p_n * divui;
         ef(i) += weight * (-B_term_f);
@@ -932,7 +950,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     
     // VERIFY!!!
     for (int i = 0; i < nshapeP; i++) {
- 
+
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - phiP(i,0)*Tr(gradUn);
         ef(i+nshapeV) += weight * (-B_term_f);
@@ -998,7 +1016,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         ek(nshapeV+nshapeP+2,nshapeV+nshapeP+3) += -factG0;
         
     }
-    
+    //lalalala
+    //ef.Zero();
 
 #ifdef PZDEBUG
     if(0)

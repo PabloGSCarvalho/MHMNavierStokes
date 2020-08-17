@@ -134,7 +134,10 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         }
         ef(i1+nshapeV) += -fMultiplier * weight*phiLambda_dot_U;
     }
-    
+
+    //lalala
+    //ef.Zero();
+
 }
 
 
@@ -149,9 +152,8 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     TPZManVector<REAL,3> u_n  = datavec[0].sol[0];
 
     TPZManVector<REAL,3> l_n  = datavec[1].sol[0];
-    
-    //std::cout<<u_n<<std::endl;
-    
+
+
     if(nshapeV!=0&&nshapeLambda!=0){
         DebugStop();
     }
@@ -298,9 +300,9 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 //            std::cout << "u_n = "<< u_n << std::endl;
 //            std::cout << "normal = "<< datavec[0].normal << std::endl;
 //            std::cout << "val 1 = "<< value << std::endl;
-//            
-            value = value - u_n[0];
 //
+            value = value - u_n[0];
+
 //            std::cout << "val 2 = "<< value << std::endl;
 //            std::cout << "________" << std::endl;
             
@@ -327,7 +329,9 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
                 //                        std::cout << "l_n = "<< l_n << std::endl;
                 //                        std::cout << "normal = "<< datavec[1].axes << std::endl;
                 //                        std::cout << "val 1 = "<< value << std::endl;
+                //
                 value = value - l_n[0];
+
                 //                        std::cout << "val 2 = "<< value << std::endl;
                 //                        std::cout << "________" << std::endl;
 
@@ -356,6 +360,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             
             for(int j1 = 0; j1 < phi->Rows(); j1++)
             {
+
                 ef(j1,0) += gBigNumber*value*(*phi)(j1,0)*weight;
 
                 for(int i1 = 0; i1 < phi->Rows(); i1++)
@@ -407,8 +412,6 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         }
             break;
     }
-
-    
 
 }
 

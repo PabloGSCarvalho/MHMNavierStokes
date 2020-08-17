@@ -69,6 +69,8 @@ private:
     int fmatBCleft;
     int fmatBCright;
 
+    int fmatBChole;
+
     int fmatBCtop_z;
     int fmatBCbott_z;//normal negativa
     
@@ -80,6 +82,8 @@ private:
     int fmatLambdaBC_top;
     int fmatLambdaBC_left;
     int fmatLambdaBC_right;
+
+    int fmatLambdaBC_hole;
     
     int fmatLambdaBC_top_z;
     int fmatLambdaBC_bott_z;
@@ -93,6 +97,9 @@ private:
     int fmatIntBCtop_z;
     int fmatIntBCbott_z;
 
+    std::map<int,TPZManVector<REAL,3>> f_HoleCoord; //Dado o indice do elemento 2D, devolve a coord do hole associado
+
+    std::map<int,int> f_ArcCentralNode; //Dado o indice do elemento 2D, devolve o indice do nó central do arco
     
     //Materia de um ponto
     int fmatPoint;
@@ -180,6 +187,10 @@ public:
     TPZGeoMesh *CreateGMesh3D(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
     
     TPZGeoMesh *CreateGMeshCurve();
+
+    TPZGeoMesh *CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<REAL> &h_s);
+
+    TPZAutoPointer<TPZRefPattern> CreateGMeshObstacle(TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el);
 
     TPZManVector<REAL,3> ParametricCircle(REAL radius,REAL theta);
     

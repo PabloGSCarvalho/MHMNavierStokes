@@ -121,7 +121,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     if (fpOrderInternal == 0 || fpOrderSkeleton == 0) {
         DebugStop();
     }
-    BuildWrapMesh(fGMesh->Dimension());
+    //BuildWrapMesh(fGMesh->Dimension());
     fGeoToMHMDomain.Resize(fGMesh->NElements(), -1);
 
     //InsertPeriferalMaterialObjects();  //Skeleton com dirichlet v=0
@@ -136,7 +136,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     }
 #endif
     
-    if(0){
+    if(1){
         std::ofstream fileg1("MalhaGeo_test.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk1("MalhaGeo_test.vtk"); //Impressão da malha geométrica (formato vtk)
         fGMesh->Print(fileg1);
