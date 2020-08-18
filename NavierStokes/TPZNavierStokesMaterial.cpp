@@ -581,7 +581,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     }
     Normalvec=datavec[vindex].fDeformedDirections;
 
-    // I LOVE THE COMMENT ASSOCIATED WITH THESE CONSTANTS
     // substitute by an enumerated variable
     REAL factorM = 1.;
     REAL factorMk = 1.;
@@ -635,7 +634,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         DebugStop();
 #endif
     }
-    
+
     TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
     
     TPZFMatrix<STATE> phiVi(3,1,0.0),phiVj(3,1,0.0);

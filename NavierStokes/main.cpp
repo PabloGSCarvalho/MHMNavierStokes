@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
             n_s[0]=h_level,n_s[1]=h_level;
             n_s[2]=h_level; //Obs!!
 
-            MHMNavierStokesTest  * Test2 = new MHMNavierStokesTest();
+            MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
             //Test2->Set3Dmesh();
             //Test2->SetHdivPlus();
             //Test2->SetElType(ETriangle);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
             h_level = pow(2,it+3);
 
 //                2 << (it+3);
-            h_level = 1;
+            h_level = 2;
             std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
             TPZVec<int> n_s(3,0.);
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
             Test2->SetFluxOrder(pOrder);
             Test2->SetHdivPlus(0);
             Test2->SetTractionOrder(pOrder-1);
-            Test2->SetInternRef(0);
+            Test2->SetInternRef(2);
 
             //Simulation Data
             TPZSimulationData *sim_data= new TPZSimulationData;
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
             //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
             Test2->SetProblemType(TStokesAnalytic::EStokes);
             //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-            Test2->SetDomainType(TStokesAnalytic::EObstacles);
+            Test2->SetDomainType(TStokesAnalytic::EOneCurve);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);
