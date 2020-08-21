@@ -121,7 +121,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     if (fpOrderInternal == 0 || fpOrderSkeleton == 0) {
         DebugStop();
     }
-    //BuildWrapMesh(fGMesh->Dimension());
+    BuildWrapMesh(fGMesh->Dimension());
     fGeoToMHMDomain.Resize(fGMesh->NElements(), -1);
 
     //InsertPeriferalMaterialObjects();  //Skeleton com dirichlet v=0
@@ -1363,9 +1363,9 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
         }else{
             subcmesh->SetAnalysisNonSymSparse(numthreads);
         }
-
+//        subcmesh->SetAnalysisNonSymSparse(numthreads);
         //subcmesh->SetAnalysisFrontal(numthreads, guiInterface);
-        //subcmesh->SetAnalysisSparse(numthreads);
+        //subcmesh->SetAnalysisNonSymSparse(numthreads);
         //subcmesh->SetAnalysisSkyline(numthreads, preconditioned, guiInterface);
 
         if(0) {

@@ -621,8 +621,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
         }
         //if(fDimension != 2) DebugStop();
+        TPZFNMatrix<9,REAL> Grad0(3,3,0.); // 2x2
         for (int s = 0; s < normvecCols; s++) {
-            TPZFNMatrix<9,REAL> Grad0(3,3,0.); // 2x2
             for (int i = 0; i < fDimension; i++) {
                 for (int j = 0; j < fDimension; j++) {
                     Grad0(i,j)=datavec[vindex].fDeformedDirectionsFad(i,s).fastAccessDx(j);
@@ -645,7 +645,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     // u_n is the solution at the previous iteration
     TPZManVector<STATE,3> u_n    = datavec[vindex].sol[0];
     STATE p_n                  = datavec[pindex].sol[0][0];
-//    p_n = 0.;
+//p_n = 0.;
 //    dsolVec.Zero();
 //    u_n[0]=0.;
 //    u_n[1]=0.;
@@ -718,7 +718,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         STATE B_term_f = 0.; // B - Mixed term
         B_term_f = - p_n * divui;
         ef(i) += weight * (-B_term_f);
-        
+
+        //std::cout<<ef<<std::endl;
         
         STATE C_term_f = 0.; // C - Trilinear terms
         if (f_problemtype==TStokesAnalytic::ENavierStokes) {

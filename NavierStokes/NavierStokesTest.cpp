@@ -259,7 +259,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     
     // Agrupar e condensar os elementos
-    //GroupAndCondense(cmesh_m);
+    GroupAndCondense(cmesh_m);
 
 #ifdef PZDEBUG
     {
@@ -739,7 +739,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<R
             gmesh->NodeVec().Resize(nnodes+1);
             nodeindex = nnodes;
             gmesh->SetNodeIdUsed(nodeindex);
-            REAL radius = h_s[0]/(4*n_div[0]);
+            REAL radius = h_s[0]/(8.*n_div[0]);
             
             //Find hole central coord
             int nsides = gel->NSides();
@@ -1416,7 +1416,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     geomesh->SetDimension(2);
     
     int nodes = 25;
-    REAL radius = h_el[0]/4.;
+    REAL radius = h_el[0]/8.;
     geomesh->SetMaxNodeId(nodes-1);
     geomesh->NodeVec().Resize(nodes);
     TPZManVector<TPZGeoNode,7> Node(nodes);
@@ -1465,7 +1465,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[1] = 2;
     TopolQuadrilateral[2] = 8;
     TopolQuadrilateral[3] = 6;
-    
+
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * father = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
     elementid++;
 
@@ -1569,12 +1569,12 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 //    TopolLine[1] = 5;
 //    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCright,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolLine[0] = 5;
 //    TopolLine[1] = 8;
 //    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCright,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolLine[0] = 8;
 //    TopolLine[1] = 7;
 //    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCtop,*geomesh);
@@ -1589,12 +1589,12 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 //    TopolLine[1] = 3;
 //    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCleft,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolLine[0] = 3;
 //    TopolLine[1] = 0;
 //    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCleft,*geomesh);
 //    elementid++;
-//    
+//
 //    //Holes
 
     
@@ -1604,7 +1604,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 //    TopolArc[2] = 10;
 //    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolArc[0] = 11;
 //    TopolArc[1] = 13;
 //    TopolArc[2] = 12;
@@ -1616,7 +1616,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 //    TopolArc[2] = 14;
 //    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolArc[0] = 15;
 //    TopolArc[1] = 17;
 //    TopolArc[2] = 16;
@@ -1628,19 +1628,19 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 //    TopolArc[2] = 18;
 //    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolArc[0] = 19;
 //    TopolArc[1] = 21;
 //    TopolArc[2] = 20;
 //    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolArc[0] = 21;
 //    TopolArc[1] = 23;
 //    TopolArc[2] = 22;
 //    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
 //    elementid++;
-//    
+//
 //    TopolArc[0] = 23;
 //    TopolArc[1] = 9;
 //    TopolArc[2] = 24;
@@ -3324,7 +3324,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
             TPZBndCond *BC_top = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh->InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 1.0;
+            val2(0, 0) = 1.;
             TPZBndCond *BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
             //BC_left->SetBCForcingFunction(0, sol_teste);
             cmesh->InsertMaterialObject(BC_left);
@@ -3344,22 +3344,23 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
 
             val2(0,0) = 0.0;
             TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
-            BC_bott->SetBCForcingFunction(0, solp);
+            //BC_bott->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_bott);
 
             val2(0,0) = 0.0; // vx -> 0
             TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
-            BC_top->SetBCForcingFunction(0, solp);
+            //BC_top->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_top);
 
             val2(0,0) = 0.0;
             TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            //BC_left->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_left);
 
-            val2(0,0) = 0.0;
+            val2(1,0) = -1.0;
+            val2(0,0) = -1.0;
             TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
-            BC_right->SetBCForcingFunction(0, solp);
+            //BC_right->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_right);
 
         }
@@ -3444,21 +3445,21 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
             break;
 
         case TStokesAnalytic::EOneCurve: {
-
-            TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
-            matLambdaBC_bott->SetBCForcingFunction(0, solp);
+            val2(0,0) = 0.0;
+            TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
+            //matLambdaBC_bott->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(matLambdaBC_bott);
 
-            TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
-            matLambdaBC_top->SetBCForcingFunction(0, solp);
+            TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann_sigma, val1, val2);
+            //matLambdaBC_top->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(matLambdaBC_top);
 
-            TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
-            matLambdaBC_left->SetBCForcingFunction(0, solp);
+            TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fneumann_sigma, val1, val2);
+            //matLambdaBC_left->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
-            matLambdaBC_right->SetBCForcingFunction(0, solp);
+            TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fneumann_sigma, val1, val2);
+            //matLambdaBC_right->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(matLambdaBC_right);
         }
             break;

@@ -161,7 +161,7 @@ void MHMNavierStokesTest::Run()
     SubdomainRefine(nrefs,gmesh,coarseindex);
     //InsertLowerDimMaterial(gmesh);
     
-    if(0){
+    if(1){
         std::ofstream fileg("MalhaGeo_0.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk("MalhaGeo_0.vtk"); //Impressão da malha geométrica (formato vtk)
         gmesh->Print(fileg);
@@ -423,7 +423,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->ExecuteTimeEvolution();
 
-    if(f_domaintype==TStokesAnalytic::ECavity){
+    if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles){
         return;
     }
 
@@ -1312,6 +1312,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
     for (int iel = 0; iel < nel; iel++) {
         TPZGeoEl *gel = gmesh->ElementVec()[iel];
         if(!gel){
+            delete gmesh->ElementVec()[iel];
             continue;
         }
         TPZManVector<int64_t> nodeindices;
@@ -1333,9 +1334,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
     gmesh->BuildConnectivity();
 
 
-
-
-    int nref2 = 1; //refinamentos internos
+    int nref2 = 0; //refinamentos internos
     TPZVec<TPZGeoEl *> sons3;
     for (int iref = 0; iref < nref2; iref++) {
         int nel = gmesh->NElements();
@@ -1352,6 +1351,22 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
             //}
         }
     }
+
+    //Remove filiation:
+//    nel = gmesh->NElements();
+//    for (int iel = 0; iel < nel; iel++) {
+//        TPZGeoEl *gel = gmesh->ElementVec()[iel];
+//        if(gel->HasSubElement()) {
+//            int nsubel = gel->NSubElements();
+//            for (int isub=0; isub<nsubel; isub++) {
+//                //set center coord of father in subelements
+//                int sub_index = gel->SubElement(isub)->Index();
+//                gel->SubElement(isub)->SetFatherIndex(-1);
+//                gel->SetSubElement(isub, 0);
+//            }
+//            gmesh->DeleteElement(gel);
+//        }
+//    }
 
     gmesh->BuildConnectivity();
     //InsertLowerDimMaterial(gmesh);
@@ -1677,7 +1692,9 @@ void MHMNavierStokesTest::SubdomainRefine(int nrefine, TPZGeoMesh *gmesh, TPZVec
         {
             
             TPZGeoEl * gel = gelvec[elem];
-         
+            if(!gel){
+                 continue;
+            }
             // BC elements
 //            if(gel->MaterialId()<0){
 //                    if(!gel->HasSubElement()) gel->Divide(filhos);

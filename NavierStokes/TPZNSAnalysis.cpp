@@ -219,7 +219,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         norm_dU  = Norm(dU);
         m_R_Plus = this->Rhs();
 
-        std::cout<<this->Rhs()<<std::endl;
+        //std::cout<<this->Rhs()<<std::endl;
 
         m_res_error =  Norm(m_R_Plus); // residue error
         std::cout << "Correction norm 1 = " << norm_dU << std::endl;
@@ -381,10 +381,10 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
                 this->PostProcessTimeStep(file_NavierStokes);
             }
 
-            if (postprocessingQ) {
-                std::cout << "Running post processing" << std::endl;
-                this->PostProcessTimeStep(file_NavierStokes);
-            }
+//            if (postprocessingQ) {
+//                std::cout << "Running post processing" << std::endl;
+//                this->PostProcessTimeStep(file_NavierStokes);
+//            }
 
         }
     }

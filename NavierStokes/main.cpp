@@ -52,12 +52,12 @@ const REAL Pi=M_PI;
 //Verificação dos modelos:
 
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
-bool MHMProblem = false; //True for MHM problem, False for hybrid formulation problem
+bool MHMProblem = true; //True for MHM problem, False for hybrid formulation problem
 
 int main(int argc, char *argv[])
 {
     
-    TPZMaterial::gBigNumber = 1.e12;
+    TPZMaterial::gBigNumber = 1.e10;
 //    gRefDBase.InitializeAllUniformRefPatterns();
     
 #ifdef LOG4CXX
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
             //sim_data->SetStaticCondensation(false);
             sim_data->Set_n_iterations(40);
             sim_data->Set_epsilon_cor(0.000001);
-            sim_data->Set_epsilon_res(0.001);
+            sim_data->Set_epsilon_res(0.0002);
             sim_data->SetPardisoSolver();
 
             //if(h_level==64&&pOrder==3){
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
             //    sim_data->SetPardisoSolver();
             }
 
-            Test2->SetProblemType(TStokesAnalytic::EStokes);
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
             Test2->SetDomainType(TStokesAnalytic::EObstacles);
             Test2->SetSimulationData(sim_data);
             Test2->Run();
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
             h_level = pow(2,it+3);
 
 //                2 << (it+3);
-            h_level = 2;
+            h_level = 1;
             std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
 
             TPZVec<int> n_s(3,0.);
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
             n_s[2]=h_level; //Obs!!
 
             //REAL visc = 0.005;
-            REAL visc = 1.;
+            REAL visc = .01;
 
             NavierStokesTest  * Test2 = new NavierStokesTest();
             //Test2->Set3Dmesh();
@@ -160,15 +160,15 @@ int main(int argc, char *argv[])
             Test2->SetFluxOrder(pOrder);
             Test2->SetHdivPlus(0);
             Test2->SetTractionOrder(pOrder-1);
-            Test2->SetInternRef(2);
+            Test2->SetInternRef(4);
 
             //Simulation Data
             TPZSimulationData *sim_data= new TPZSimulationData;
             sim_data->SetNthreads(0);
-            sim_data->SetOptimizeBandwidthQ(false);
-            sim_data->Set_n_iterations(1);
-            sim_data->Set_epsilon_cor(0.00001);
-            sim_data->Set_epsilon_res(0.001);
+            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->Set_n_iterations(20);
+            sim_data->Set_epsilon_cor(0.0002);
+            sim_data->Set_epsilon_res(0.0002);
             //sim_data->SetPardisoSolver();
             sim_data->ActivatePostProcessing();
 
@@ -184,9 +184,9 @@ int main(int argc, char *argv[])
 
 
             //Select problem type (ENavierStokes,ENavierStokesCDG, EOseen,EStokes,EBrinkman)
-            Test2->SetProblemType(TStokesAnalytic::EStokes);
-            //Select domain type (EObstacle,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
-            Test2->SetDomainType(TStokesAnalytic::EOneCurve);
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+            //Select domain type (EObstacles,EOneCurve,ERetangular,EPconst,EKovasznay,EKovasznayCDG)
+            Test2->SetDomainType(TStokesAnalytic::EObstacles);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);
