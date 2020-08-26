@@ -161,7 +161,7 @@ void MHMNavierStokesTest::Run()
     SubdomainRefine(nrefs,gmesh,coarseindex);
     //InsertLowerDimMaterial(gmesh);
     
-    if(1){
+    if(0){
         std::ofstream fileg("MalhaGeo_0.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk("MalhaGeo_0.vtk"); //Impressão da malha geométrica (formato vtk)
         gmesh->Print(fileg);
@@ -982,8 +982,9 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
     gmesh->SetDimension(2);
     gmeshRef->SetDimension(2);
 
-    int nquadnods=n_div[0]+1;
-    int nodes = nquadnods*nquadnods;
+    int nquadnods_x=n_div[0]+1;
+    int nquadnods_y=n_div[1]+1;
+    int nodes = nquadnods_x*nquadnods_y;
     gmesh->SetMaxNodeId(nodes-1);
     gmesh->NodeVec().Resize(nodes);
 
@@ -1002,10 +1003,10 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
 
 
     //Exterior coordinates
-    for(int i = 0; i < nquadnods; i++){
-        for(int j = 0; j < nquadnods; j++){
-            coord[0] = (j)*h_s[0]/(nquadnods-1);
-            coord[1] = (i)*h_s[1]/(nquadnods-1);
+    for(int i = 0; i < nquadnods_y; i++){
+        for(int j = 0; j < nquadnods_x; j++){
+            coord[0] = (j)*h_s[0]/(nquadnods_x-1);
+            coord[1] = (i)*h_s[1]/(nquadnods_y-1);
             gmesh->NodeVec()[nodeindex].SetCoord(coord);
             gmesh->NodeVec()[nodeindex].SetNodeId(nodeindex);
             nodeindex++;
@@ -1047,27 +1048,30 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
         h_el[0]=h_s[0]/n_div[0];
         h_el[1]=h_s[1]/n_div[1];
 
-        int nreft = 1;
-        int nelemRef = 0 ;
+        int nreft = 3;
         TPZVec<TPZGeoEl *> sons1;
-        for (int iref = 0; iref < nreft; iref++) {
-            int nel = gmesh->NElements();
-            for (int iel = 0; iel < nel; iel++) {
-                TPZGeoEl *gel = gmesh->ElementVec()[iel];
-                if (gel->HasSubElement()) {
-                    continue;
-                }
+        //for (int iref = 0; iref < nreft; iref++) {
+        int nel = gmesh->NElements();
+        for (int iel = 0; iel < nel; iel++) {
+            TPZGeoEl *gel = gmesh->ElementVec()[iel];
+            if (gel->HasSubElement()) {
+                continue;
+            }
 
-                MElementType elType = gel->Type();
-                if(gel->MaterialId()==1&&elType==EQuadrilateral){
+            MElementType elType = gel->Type();
+            if(gel->MaterialId()==1&&elType==EQuadrilateral&&iel==0){
 
-                    TPZAutoPointer<TPZRefPattern> RefpObst = CreateGMeshObstacle(FirstCoord,h_el);
-                    gel->SetRefPattern(RefpObst);
-                    gel->Divide(sons1);
+                TPZAutoPointer<TPZRefPattern> RefpObst = CreateGMeshObstacle(nreft,FirstCoord,h_el);
+                gel->SetRefPattern(RefpObst);
+                gel->Divide(sons1);
 
-                }
+            }else{
+                TPZAutoPointer<TPZRefPattern> uniform = CreateGMeshQuadRef(nreft,h_el);
+                gel->SetRefPattern(uniform);
+                gel->Divide(sons1);
             }
         }
+        //}
 
   //  }
 
@@ -1090,7 +1094,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
     }
 
     // BC and Hole elements
-    int nel = gmesh->NElements();
+    nel = gmesh->NElements();
     for (int iel = 0; iel < nel; iel++) {
         TPZGeoEl *gel = gmesh->ElementVec()[iel];
         if (gel->HasSubElement()) {
@@ -1352,22 +1356,6 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
         }
     }
 
-    //Remove filiation:
-//    nel = gmesh->NElements();
-//    for (int iel = 0; iel < nel; iel++) {
-//        TPZGeoEl *gel = gmesh->ElementVec()[iel];
-//        if(gel->HasSubElement()) {
-//            int nsubel = gel->NSubElements();
-//            for (int isub=0; isub<nsubel; isub++) {
-//                //set center coord of father in subelements
-//                int sub_index = gel->SubElement(isub)->Index();
-//                gel->SubElement(isub)->SetFatherIndex(-1);
-//                gel->SetSubElement(isub, 0);
-//            }
-//            gmesh->DeleteElement(gel);
-//        }
-//    }
-
     gmesh->BuildConnectivity();
     //InsertLowerDimMaterial(gmesh);
     //SetOriginalMesh(gmesh);
@@ -1387,159 +1375,141 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
 
 }
 
-TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el)
+TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs, TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el)
 {
 
     TPZGeoMesh geomesh;
     geomesh.SetDimension(2);
 
-    int nodes = 25;
+    int nrefs_c = 20;
+
+    int nquadnods=pow(2.,1+nrefs)+1;
+    int n_ext_nds = 8*pow(2,nrefs);
+    int n_cir_nds = 16 * pow(2, nrefs);
+    int nodes = n_ext_nds+n_cir_nds*(1+nrefs_c);
+
     REAL radius = h_el[0]/4.;
     geomesh.SetMaxNodeId(nodes-1);
     geomesh.NodeVec().Resize(nodes);
-    TPZManVector<TPZGeoNode,7> Node(nodes);
+    //TPZManVector<TPZGeoNode,7> Node(nodes);
 
-    TPZManVector<int64_t,6> TopolQQuadrilateral(6);
     TPZManVector<int64_t,8> TopolQuadrilateral(4);
-    TPZManVector<int64_t,6> TopolQTriangle(3);
-    TPZManVector<int64_t,2> TopolLine(2);
-    TPZManVector<int64_t,3> TopolArc(3);
+
     TPZManVector<REAL,3> coord(3,0.);
-    TPZManVector<REAL,3> coordCentralnode(3,0.);
+
     TPZVec<REAL> xc(3,0.);
 
-    int nquadnods=3;
     REAL hx = h_el[0];
     REAL hy = h_el[1];
 
-    int64_t nodeindex = 0;
+    int64_t nodeindex_r = 0,nodeindex = 0,  index_j1 = 0, index_j2 = 0;
+
+
+    // External nodes for father
+    TopolQuadrilateral[0] = n_ext_nds-nquadnods-(nquadnods-3)/2;
+    TopolQuadrilateral[1] = TopolQuadrilateral[0]+nquadnods-1;
+    TopolQuadrilateral[3] = n_ext_nds-1-2*(nquadnods-1)-(nquadnods-3)/2;
+    TopolQuadrilateral[2] = TopolQuadrilateral[3]+1-nquadnods;
 
     //Exterior coordinates
     for(int i = 0; i < nquadnods; i++){
         for(int j = 0; j < nquadnods; j++){
             coord[0] = (j)*hx/(nquadnods - 1);
             coord[1] = (i)*hy/(nquadnods - 1);
+            if((coord[0]>0&&coord[0]<hx)&&(coord[1]>0&&coord[1]<hy)){
+                continue;
+            }
+            if(i==0){
+                nodeindex_r=TopolQuadrilateral[0]+j;
+            }else if(i>0&&i<nquadnods-1&&j==0){
+                nodeindex_r=TopolQuadrilateral[0]-i;
+            }else if(i>0&&i<nquadnods-1&&j==nquadnods-1&&coord[1]<hy/2.){
+                index_j2++;
+                nodeindex_r=TopolQuadrilateral[1]+index_j2;
+            }else if(i>0&&i<nquadnods-1&&j==nquadnods-1&&coord[1]>hy/2.){
+                index_j1++;
+                nodeindex_r=index_j1;
+            }else if(i==nquadnods-1){
+                nodeindex_r=TopolQuadrilateral[3]-j;
+            }else{
+                nodeindex_r=0;
+            }
+
+            geomesh.NodeVec()[nodeindex_r].SetCoord(coord);
+            geomesh.NodeVec()[nodeindex_r].SetNodeId(nodeindex);
+        }
+    }
+    nodeindex = n_ext_nds;
+    //Circunference coordinates
+    REAL refradius = 0.;
+    REAL circle_pos = hx/2.;
+
+    nrefs = 6;
+
+    for (int iref = 0; iref <= nrefs_c; iref++) {
+        for (int inode = 0; inode < n_cir_nds ; inode++) {
+            // i node
+            refradius = radius+iref*((circle_pos-radius)/(1+nrefs_c));
+            coord = ParametricCircle(refradius, inode *2.*M_PI/n_cir_nds);
+            coord[0] += circle_pos;
+            coord[1] += circle_pos;
             geomesh.NodeVec()[nodeindex].SetCoord(coord);
             geomesh.NodeVec()[nodeindex].SetNodeId(nodeindex);
             nodeindex++;
         }
     }
 
-    //Circunference coordinates
-    for (REAL inode = 0; inode < 16 ; inode++) {
-        // i node
-        coord = ParametricCircle(radius, inode * M_PI/8.0);
-        coord[0] += hx/2.;
-        coord[1] += hy/2.;
-        geomesh.NodeVec()[nodeindex].SetCoord(coord);
-        geomesh.NodeVec()[nodeindex].SetNodeId(nodeindex);
-        nodeindex++;
-    }
-
 
     int64_t elementid = 0;
 
-    TopolQuadrilateral[0] = 0;
-    TopolQuadrilateral[1] = 2;
-    TopolQuadrilateral[2] = 8;
-    TopolQuadrilateral[3] = 6;
-
+    //father element
     TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * father = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
     elementid++;
 
+    for (int iref = 0; iref <= nrefs_c; ++iref) {
+        for (int inode = 0; inode < n_ext_nds; inode++) {
+            if(iref==nrefs_c){ //Pegar os nós externos
+                TopolQuadrilateral[0] = n_ext_nds+n_cir_nds*nrefs_c+inode*2;
+                TopolQuadrilateral[1] = inode;
+                TopolQuadrilateral[2] = inode+1;
+                if(TopolQuadrilateral[2]==n_ext_nds){
+                    TopolQuadrilateral[2] = 0;
+                }
+                TopolQuadrilateral[3] = TopolQuadrilateral[0]+2;
+                if(TopolQuadrilateral[3]==nodes){
+                    TopolQuadrilateral[3] = n_ext_nds+n_cir_nds*nrefs_c;
+                }
 
-    TopolQuadrilateral[0] = 9;
-    TopolQuadrilateral[1] = 5;
-    TopolQuadrilateral[2] = 8;
-    TopolQuadrilateral[3] = 11;
+                TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son_ext = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
+                son_ext->SetFather(father);
+                son_ext->SetFatherIndex(father->Index());
+                elementid++;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son1 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son1->SetFather(father);
-    son1->SetFatherIndex(father->Index());
-    elementid++;
+            }else{
 
-    TopolQuadrilateral[0] = 11;
-    TopolQuadrilateral[1] = 8;
-    TopolQuadrilateral[2] = 7;
-    TopolQuadrilateral[3] = 13;
+                TopolQuadrilateral[0] = n_ext_nds+n_cir_nds*iref+inode*2;
+                TopolQuadrilateral[1] = n_ext_nds+n_cir_nds*(iref+1)+inode*2;
+                TopolQuadrilateral[2] = n_ext_nds+n_cir_nds*(iref+1)+inode*2+2;
+                if(TopolQuadrilateral[2]==n_ext_nds+n_cir_nds*(iref+2)){
+                    TopolQuadrilateral[2] = n_ext_nds+n_cir_nds*(iref+1);
+                }
+                TopolQuadrilateral[3] = n_ext_nds+n_cir_nds*iref+inode*2+2;
+                if(TopolQuadrilateral[3]==n_ext_nds+n_cir_nds*(iref+1)){
+                    TopolQuadrilateral[3] = n_ext_nds+n_cir_nds*(iref);
+                }
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son2 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son2->SetFather(father);
-    son2->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 13;
-    TopolQuadrilateral[1] = 7;
-    TopolQuadrilateral[2] = 6;
-    TopolQuadrilateral[3] = 15;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son3 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son3->SetFather(father);
-    son3->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 15;
-    TopolQuadrilateral[1] = 6;
-    TopolQuadrilateral[2] = 3;
-    TopolQuadrilateral[3] = 17;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son4 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son4->SetFather(father);
-    son4->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 17;
-    TopolQuadrilateral[1] = 3;
-    TopolQuadrilateral[2] = 0;
-    TopolQuadrilateral[3] = 19;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son5 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son5->SetFather(father);
-    son5->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 19;
-    TopolQuadrilateral[1] = 0;
-    TopolQuadrilateral[2] = 1;
-    TopolQuadrilateral[3] = 21;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son6 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son6->SetFather(father);
-    son6->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 21;
-    TopolQuadrilateral[1] = 1;
-    TopolQuadrilateral[2] = 2;
-    TopolQuadrilateral[3] = 23;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son7 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son7->SetFather(father);
-    son7->SetFatherIndex(father->Index());
-    elementid++;
-
-    TopolQuadrilateral[0] = 23;
-    TopolQuadrilateral[1] = 2;
-    TopolQuadrilateral[2] = 5;
-    TopolQuadrilateral[3] = 9;
-
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son8 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
-    son8->SetFather(father);
-    son8->SetFatherIndex(father->Index());
-    elementid++;
-
+                TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son_int = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
+                son_int->SetFather(father);
+                son_int->SetFatherIndex(father->Index());
+                elementid++;
+            }
+        }
+    }
 
 //    TPZCheckGeom check(geomesh);
 //    check.CheckUniqueId();
 
-    int Nelements = geomesh.NElements();
-
     geomesh.BuildConnectivity();
-
-    for(int iel  = 1; iel < Nelements; iel++){
-        geomesh.Element(iel)->SetFather(geomesh.Element(0));
-    }
-
     std::ofstream out("CurvedGeometry.vtk");
     TPZVTKGeoMesh::PrintGMeshVTK(&geomesh, out, true);
 
@@ -1553,6 +1523,83 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(TPZManVec
     return refPattern;
 
 }
+
+TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshQuadRef(int nrefs, TPZManVector<REAL,6> &h_el)
+{
+
+    TPZGeoMesh geomesh;
+    geomesh.SetDimension(2);
+
+    int nnodes_x = pow(2.,1+nrefs)+1;
+    int nnodes = nnodes_x*nnodes_x;
+    geomesh.SetMaxNodeId(nnodes-1);
+    geomesh.NodeVec().Resize(nnodes);
+    TPZManVector<TPZGeoNode,7> Node(nnodes);
+
+    TPZManVector<int64_t,8> TopolQuadrilateral(4);
+    TPZManVector<REAL,3> coord(3,0.);
+    TPZVec<REAL> xc(3,0.);
+
+    REAL hx = h_el[0];
+    REAL hy = h_el[1];
+
+    int64_t nodeindex = 0;
+
+    //Exterior coordinates
+    for(int i = 0; i < nnodes_x; i++){
+        for(int j = 0; j < nnodes_x; j++){
+            coord[0] = (j)*hx/(nnodes_x - 1);
+            coord[1] = (i)*hy/(nnodes_x - 1);
+            geomesh.NodeVec()[nodeindex].SetCoord(coord);
+            geomesh.NodeVec()[nodeindex].SetNodeId(nodeindex);
+            nodeindex++;
+        }
+    }
+
+    int64_t elementid = 0;
+
+    TopolQuadrilateral[0] = 0;
+    TopolQuadrilateral[1] = nnodes_x-1;
+    TopolQuadrilateral[2] = nnodes_x*nnodes_x-1;
+    TopolQuadrilateral[3] = nnodes_x*nnodes_x-nnodes_x;
+
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * father = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
+    elementid++;
+
+    for(int i = 0; i < nnodes_x-1; i++){
+        for(int j = 0; j < nnodes_x-1; j++){
+            TopolQuadrilateral[0] = nnodes_x*i+j;
+            TopolQuadrilateral[1] = TopolQuadrilateral[0]+1;
+            TopolQuadrilateral[3] = nnodes_x*(i+1)+j;
+            TopolQuadrilateral[2] = TopolQuadrilateral[3]+1;
+
+            TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,geomesh);
+            son->SetFather(father);
+            son->SetFatherIndex(father->Index());
+            elementid++;
+        }
+    }
+
+//    for(int iel  = 1; iel < nel; iel++){
+//        geomesh.Element(iel)->SetFather(geomesh.Element(0));
+//    }
+    geomesh.BuildConnectivity();
+    std::ofstream out("QuadGeometry.vtk");
+    TPZVTKGeoMesh::PrintGMeshVTK(&geomesh, out, true);
+
+    TPZAutoPointer<TPZRefPattern> refPattern = new TPZRefPattern(geomesh);
+    TPZAutoPointer<TPZRefPattern> Found = gRefDBase.FindRefPattern(refPattern);
+    if(!Found)
+    {
+        gRefDBase.InsertRefPattern(refPattern);
+    }
+
+    return refPattern;
+
+}
+
+
+
 
 TPZGeoMesh *MHMNavierStokesTest::CreateGMeshCurve()
 {

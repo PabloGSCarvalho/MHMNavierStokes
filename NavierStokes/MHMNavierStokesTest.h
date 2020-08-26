@@ -190,7 +190,9 @@ public:
 
     TPZGeoMesh *CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<REAL> &h_s);
 
-    TPZAutoPointer<TPZRefPattern> CreateGMeshObstacle(TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el);
+    TPZAutoPointer<TPZRefPattern> CreateGMeshObstacle(int nrefs, TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el);
+
+    TPZAutoPointer<TPZRefPattern> CreateGMeshQuadRef(int nrefs, TPZManVector<REAL,6> &h_el);
 
     TPZManVector<REAL,3> ParametricCircle(REAL radius,REAL theta);
     

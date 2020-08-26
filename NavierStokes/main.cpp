@@ -84,8 +84,9 @@ int main(int argc, char *argv[])
             h_level = 1;
 
             TPZVec<int> n_s(3,0.);
-            n_s[0]=h_level,n_s[1]=h_level;
+            n_s[0]=h_level*4,n_s[1]=h_level;
             n_s[2]=h_level; //Obs!!
+            h_s[0]=4*h_s[0];
 
             MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
             //Test2->Set3Dmesh();
@@ -108,8 +109,8 @@ int main(int argc, char *argv[])
             sim_data->SetSkeletonOrder(pOrder);
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
-            sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(1.);
+            sim_data->SetNInterRefs(1);
+            sim_data->SetViscosity(.005);
             sim_data->SetNthreads(4);
             //simdata.SetShapeTest(); // Test for shape functions
 
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
             //    sim_data->SetPardisoSolver();
             }
 
-            Test2->SetProblemType(TStokesAnalytic::ENavierStokes);
+            Test2->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
             Test2->SetDomainType(TStokesAnalytic::EObstacles);
             Test2->SetSimulationData(sim_data);
             Test2->Run();
