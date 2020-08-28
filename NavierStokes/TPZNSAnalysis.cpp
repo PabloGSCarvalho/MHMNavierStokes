@@ -24,6 +24,8 @@ TPZNSAnalysis::TPZNSAnalysis() : TPZAnalysis() {
     m_vec_var_names.resize(0);
     m_R_Plus.Resize(0,0);
     m_R_n.Resize(0,0);
+    m_LastStepRhs.Resize(0,0);
+
 }
 
 TPZNSAnalysis::~TPZNSAnalysis(){
@@ -43,6 +45,7 @@ TPZNSAnalysis::TPZNSAnalysis(const TPZNSAnalysis & other){
     m_vec_var_names     = other.m_vec_var_names;
     m_R_Plus            = other.m_R_Plus;
     m_R_n               = other.m_R_n;
+    m_LastStepRhs       = other.m_LastStepRhs;
 }
 
 
@@ -141,18 +144,11 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
     if (m_simulation_data->IsInitialStateQ()) {
         m_U_n = Solution();
     }
-    // Set current state false means overwriting p of the memory
-    //m_simulation_data->SetCurrentStateQ(false);
-    // Accect time solution means writing one of the vectors of this object in the memory
-    //AcceptTimeStepSolution();
 
     //    // Initial guess
     //    m_X_n = m_X;
     // Set current state true means overwriting p_n of the memory object
     //m_simulation_data->SetCurrentStateQ(true);
-
-    // Accept time solution here means writing one of the vectors of the object into the memory
-    //AcceptTimeStepSolution();
 
     
     std::ofstream plotNavierEK("NavierStiffness.txt");
@@ -222,8 +218,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         //std::cout<<this->Rhs()<<std::endl;
 
         m_res_error =  Norm(m_R_Plus); // residue error
-        std::cout << "Correction norm 1 = " << norm_dU << std::endl;
-        std::cout<< "residual norm 1 = " << Norm(this->Rhs()) <<std::endl;
+
         
         
 #ifdef LOG4CXX
@@ -250,8 +245,16 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
             std::ofstream plotNavierRhs("NavierRhs_iteration.txt");;
             fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
         }
-        
+
         norm_res = Norm(Rhs());
+        if(m_simulation_data->IsTransientQ()){
+            m_R_Plus += m_LastStepRhs;
+            norm_res = Norm(m_R_Plus);
+        }
+
+        std::cout << "Correction norm 1 = " << norm_dU << std::endl;
+        std::cout<< "residual norm 1 = " << norm_res <<std::endl;
+
         residual_stop_criterion_Q   = norm_res < res_norm;
         correction_stop_criterion_Q = norm_dU  < dU_norm;
         
@@ -266,7 +269,7 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
             std::cout << "TPZNSAnalysis:: Number of iterations = " << i << std::endl;
             std::cout << "TPZNSAnalysis:: Correction norm = " << norm_dU << std::endl;
 #endif
-            m_simulation_data->SetCurrentStateQ(true);
+            //m_simulation_data->SetCurrentStateQ(true);
 
             break;
         }
@@ -318,13 +321,15 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
 
 
     this->DefineGraphMesh(dim, scalnames, vecnames, res_file);
-    std::cout<<this->Mesh()->Solution()<<std::endl;
+    //std::cout<<this->Mesh()->Solution()<<std::endl;
+    REAL time = m_simulation_data->GetTime();
+    this->SetTime(time);
     this->PostProcess(div,dim);
     
 
 }
 
-void TPZNSAnalysis::ExecuteTimeEvolution(){
+void TPZNSAnalysis::SolveSystem(){
 
     std::string file_NavierStokes("NavierStokes.vtk");
     //Testes
@@ -332,13 +337,12 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
 
     int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
     int n_enforced_fss_iterations = 1; // @TODO:: MS, please to xml file structure
-    int n_time_steps = 1;
     REAL res_norm = m_simulation_data->Get_epsilon_res();
     REAL dU_norm = m_simulation_data->Get_epsilon_cor();
     bool error_stop_criterion_Q = false;
     bool dU_stop_criterion_Q = false;
     this->SetInitialParameters();
-    
+
     {
    //     std::ofstream filecE("MalhaC_E_AfterAdjust.txt"); //Impressão da malha computacional da velocidade (formato txt)
    //     m_elastoplast_analysis->Mesh()->Print(filecE);
@@ -359,8 +363,85 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
         mphys->LoadSolutionFromMultiPhysics();
     }
 
-    for (int it = 0; it < n_time_steps; it++) { //??
+
+    for (int k = 1; k <= n_max_fss_iterations; k++) {
+        this->ExecuteOneTimeStep();
+
+        REAL rhsnomr = this->Get_error();
+        REAL dunorm = this->Get_dU_norm();
+        error_stop_criterion_Q = (rhsnomr < res_norm);
+        dU_stop_criterion_Q = (dunorm < dU_norm);
+        //this->PostProcessTimeStep(file_NavierStokes_test);
+
+        if ((error_stop_criterion_Q && (k > n_enforced_fss_iterations)) && dU_stop_criterion_Q) {
+            //this->PostProcessTimeStep(file_NavierStokes);
+            std::cout << "TPZNSAnalysis:: Iterative process converged with residue norm  = " << this->Get_error() << std::endl;
+            UpdateState();
+            break;
+        }
+        bool postprocessingQ = m_simulation_data->IsPostProcessingActivatedQ();
+        if (error_stop_criterion_Q && dU_stop_criterion_Q && postprocessingQ) {
+            std::cout << "Running post processing" << std::endl;
+            this->PostProcessTimeStep(file_NavierStokes);
+        }
+
+//      if (postprocessingQ) {
+//           std::cout << "Running post processing" << std::endl;
+//                this->PostProcessTimeStep(file_NavierStokes);
+//      }
+
+    }
+
+}
+
+void TPZNSAnalysis::SolveSystemTransient(){
+
+    std::string file_NavierStokes("NavierStokes.vtk");
+    //Testes
+    std::string file_NavierStokes_test("NavierStokes_test.vtk");
+
+    int n_max_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    int n_enforced_fss_iterations = 1; // @TODO:: MS, please to xml file structure
+    REAL time_total = m_simulation_data->GetTimeTotal();
+    REAL time = 0.;
+    REAL deltaT = m_simulation_data->GetTimeStep();
+    int n_time_steps = time_total/deltaT;
+    REAL res_norm = m_simulation_data->Get_epsilon_res();
+    REAL dU_norm = m_simulation_data->Get_epsilon_cor();
+
+    bool error_stop_criterion_Q = false;
+    bool dU_stop_criterion_Q = false;
+    this->SetInitialParameters();
+
+    {
+        //     std::ofstream filecE("MalhaC_E_AfterAdjust.txt"); //Impressão da malha computacional da velocidade (formato txt)
+        //     m_elastoplast_analysis->Mesh()->Print(filecE);
+    }
+    if(0)
+    {
+        std::ofstream filecM("MalhaC_M_AfterAdjust.txt"); //Impressão da malha computacional da velocidade (formato txt)
+        Mesh()->Print(filecM);
+    }
+    if(0)
+    {
+        int64_t neq = Mesh()->Solution().Rows();
+        for (int is = 0; is<neq; is++) {
+            Mesh()->Solution()(is,0) = 1.;
+        }
+        Mesh()->LoadSolution((Mesh()->Solution()));
+        TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+        mphys->LoadSolutionFromMultiPhysics();
+    }
+    m_simulation_data->SetTransientQ(false);
+    this->ExecuteOneTimeStep();
+    AssembleLastStep();
+    m_simulation_data->SetTransientQ(true);
+
+    //std::cout<<this->Rhs()<<std::endl;
+    for (int it = 0; it < n_time_steps; it++) {
         for (int k = 1; k <= n_max_fss_iterations; k++) {
+
+            SetCurrentState();
             this->ExecuteOneTimeStep();
 
             REAL rhsnomr = this->Get_error();
@@ -385,8 +466,10 @@ void TPZNSAnalysis::ExecuteTimeEvolution(){
 //                std::cout << "Running post processing" << std::endl;
 //                this->PostProcessTimeStep(file_NavierStokes);
 //            }
-
         }
+        m_simulation_data->UpdateTime();
+        AssembleLastStep();
+
     }
 
 }
@@ -420,14 +503,20 @@ void TPZNSAnalysis::AdjustIntegrationOrder(TPZCompMesh * cmesh_o, TPZCompMesh * 
 }
 
 void TPZNSAnalysis::ExecuteNewtonIteration(){
+
+    //std::cout<<this->Rhs()<<std::endl;
     this->Assemble();
-    if(1)
+    if(0)
     {
-        
         std::ofstream plotNavierStiff("NavierStiffness_NewtonIteration.txt");
         fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
         std::ofstream plotNavierRhs("NavierRhs_NewtonIteration.txt");;
         fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
+    }
+
+    if(m_simulation_data->IsTransientQ()){
+        m_LastStepRhs.Resize(Rhs().Rows(),Rhs().Cols());
+        this->Rhs()+=m_LastStepRhs;
     }
 
     this->Rhs() *= 1.0;
@@ -450,6 +539,44 @@ void TPZNSAnalysis::LoadCurrentState(){
 void TPZNSAnalysis::LoadLastState(){
     LoadSolution(m_U_n);
     TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
+}
+
+void TPZNSAnalysis::SetCurrentState(){
+
+    TPZCompMesh * mesh = this->Mesh();
+    std::map<int, TPZMaterial * >::iterator matit;
+    for(matit = mesh->MaterialVec().begin(); matit != mesh->MaterialVec().end(); matit++)
+    {
+        if(!matit->second) continue;
+        TPZMHMNavierStokesMaterial * MHMNavierStokeMaterial = dynamic_cast< TPZMHMNavierStokesMaterial *>(matit->second);
+        if (MHMNavierStokeMaterial){
+            MHMNavierStokeMaterial->SetCurrentState();
+        }
+    }
+
+}
+
+void TPZNSAnalysis::SetLastState(){
+
+    TPZCompMesh * mesh = this->Mesh();
+    std::map<int, TPZMaterial * >::iterator matit;
+    for(matit = mesh->MaterialVec().begin(); matit != mesh->MaterialVec().end(); matit++)
+    {
+        if(!matit->second) continue;
+        TPZMHMNavierStokesMaterial * MHMNavierStokeMaterial = dynamic_cast< TPZMHMNavierStokesMaterial *>(matit->second);
+        if (MHMNavierStokeMaterial){
+            MHMNavierStokeMaterial->SetLastState();
+        }
+    }
+
+}
+
+void TPZNSAnalysis::AssembleLastStep(){
+
+    SetLastState();
+    AssembleResidual();
+    m_LastStepRhs = this->Rhs();
+
 }
 
 void TPZNSAnalysis::AcceptTimeStepSolution(){

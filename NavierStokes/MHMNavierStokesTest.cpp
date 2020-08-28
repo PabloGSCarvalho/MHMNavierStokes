@@ -136,6 +136,9 @@ void MHMNavierStokesTest::Run()
     TPZVec<int> n_s = f_sim_data->GetCoarseDivisions();
     TPZVec<REAL> h_s = f_sim_data->GetDomainSize();
     int nrefs = f_sim_data->GetNInterRefs();
+    f_problemtype = f_sim_data->GetProblemType();
+    f_domaintype = f_sim_data->GetDomainType();
+
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
     }
@@ -421,7 +424,11 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->ConfigureAnalysis(decomposeType, f_sim_data, cmesh_m.operator->(), meshVecPtr, var_name);
 
-    NS_analysis->ExecuteTimeEvolution();
+    if(f_sim_data->IsTransientQ()){
+        NS_analysis->SolveSystemTransient();
+    }else{
+        NS_analysis->SolveSystem();
+    }
 
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles){
         return;
@@ -1048,7 +1055,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
         h_el[0]=h_s[0]/n_div[0];
         h_el[1]=h_s[1]/n_div[1];
 
-        int nreft = 3;
+        int nreft = 1;
         TPZVec<TPZGeoEl *> sons1;
         //for (int iref = 0; iref < nreft; iref++) {
         int nel = gmesh->NElements();
@@ -1381,7 +1388,7 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs
     TPZGeoMesh geomesh;
     geomesh.SetDimension(2);
 
-    int nrefs_c = 20;
+    int nrefs_c = 8;
 
     int nquadnods=pow(2.,1+nrefs)+1;
     int n_ext_nds = 8*pow(2,nrefs);
@@ -2471,9 +2478,8 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     TPZCompMesh &cmesh = control->CMesh();
 
-    REAL visco = f_sim_data->GetViscosity();
-    TPZMHMNavierStokesMaterial *mat1 = new TPZMHMNavierStokesMaterial(fmatID,fdim,1,visco,0,0);
-    mat1->SetProblemType(f_problemtype);
+    TPZMHMNavierStokesMaterial *mat1 = new TPZMHMNavierStokesMaterial(fmatID,fdim);
+    mat1->SetSimulationData(f_sim_data);
 
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
@@ -2592,11 +2598,13 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     
     // 2.2 - Material for interfaces (Interior)
-    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(control->fLagrangeMatIdLeft,fdim,1,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(control->fLagrangeMatIdLeft,fdim);
+    matInterfaceLeft->SetSimulationData(f_sim_data);
     matInterfaceLeft->SetMultiplier(1.);
     cmesh.InsertMaterialObject(matInterfaceLeft);
     
-    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(control->fLagrangeMatIdRight,fdim,1,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(control->fLagrangeMatIdRight,fdim);
+    matInterfaceRight->SetSimulationData(f_sim_data);
     matInterfaceRight->SetMultiplier(-1.);
     cmesh.InsertMaterialObject(matInterfaceRight);
     

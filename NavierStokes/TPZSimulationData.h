@@ -20,6 +20,7 @@
 #include "pzgmesh.h"
 #include "TPZVTKGeoMesh.h"
 #include "pzcheckgeom.h"
+#include "TPZAnalyticSolution.h"
 
 
 /** @brief Object conatining several kind of informations being used anytime and anywhere */
@@ -51,7 +52,22 @@ protected:
 
     /** Viscosity coeficient */
     REAL m_visco;
-    
+
+    /** Density of the fluid */
+    REAL m_density;
+
+    /** Coeficient for symmetry */
+    REAL m_Sym_coef;
+
+    /** Coeficient for approximation Space*/
+    int m_space;
+
+    /** Set the formulation of the problem*/
+    TStokesAnalytic::MProblemType m_problem_type;
+
+    /** Set the domain of the problem*/;
+    TStokesAnalytic::EExactSol m_domain_type;
+
     /** Testing shape function */
     bool m_testshape;
     
@@ -82,8 +98,14 @@ protected:
     /** @brief Vector that storages only volumetric material identifiers (higher dimension elements) */
     std::vector<int> m_volumetric_material_id;
 
+    bool m_is_transient_Q;
 
-    
+    REAL m_deltaT;
+
+    REAL m_time;
+
+    REAL m_timeTotal;
+
 public:
     
     /** default constructor */
@@ -179,6 +201,53 @@ public:
     /** Get the viscosity coeficient */
     REAL GetViscosity(){
         return m_visco;
+    }
+
+    /** Set the density coeficient */
+    void SetDensity(REAL density){
+        m_density = density;
+    }
+
+    /** Get the density coeficient */
+    REAL GetDensity(){
+        return m_density;
+    }
+
+    /** Set the symmetry coeficient */
+    void SetSymmetryCoef(REAL sym_coef){
+        m_Sym_coef = sym_coef;
+    }
+
+    /** Get the symmetry coeficient */
+    REAL GetSymmetryCoef(){
+        return m_Sym_coef;
+    }
+
+    /** Set the space coeficient */
+    void SetSpaceCoef(int space_coef){
+        m_space = space_coef;
+    }
+
+    /** Get the symmetry coeficient */
+    int GetSpaceCoef(){
+        return m_space;
+    }
+
+    void SetProblemType(TStokesAnalytic::MProblemType type){
+        m_problem_type = type;
+    }
+
+    TStokesAnalytic::MProblemType GetProblemType(){
+        return m_problem_type;
+    }
+
+
+    void SetDomainType(TStokesAnalytic::EExactSol type){
+        m_domain_type = type;
+    }
+
+    TStokesAnalytic::EExactSol GetDomainType(){
+        return m_domain_type;
     }
 
     /** Set shape test true */
@@ -288,8 +357,44 @@ public:
     bool GetOptimizeBandwidthQ(){
         return m_optimizeBandwidth_Q;
     }
-    
-    
+
+    void SetTimeStep(REAL deltaT){
+        m_deltaT = deltaT;
+    }
+
+    REAL GetTimeStep(){
+        return m_deltaT;
+    }
+
+    void SetTransientQ(bool is_transient_Q){
+        m_is_transient_Q = is_transient_Q;
+    }
+
+    bool IsTransientQ(){
+        return m_is_transient_Q;
+    }
+
+    void SetTime(REAL time){
+        m_time = time;
+    }
+
+    REAL GetTime(){
+        return m_time;
+    }
+
+    void SetTimeTotal(REAL timeTotal){
+        m_timeTotal = timeTotal;
+        if(m_timeTotal>0){
+            SetTransientQ(true);
+        }
+    }
+
+    REAL GetTimeTotal(){
+        return m_timeTotal;
+    }
+
+    void UpdateTime();
+
 };
 
 #endif /* TPZSimulationData_h */

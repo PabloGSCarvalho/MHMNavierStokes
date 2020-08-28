@@ -110,7 +110,7 @@ NavierStokesTest::NavierStokesTest()
     fpermeability=1.;
     ftheta=-1.;
     
-    fSpaceV=0;
+    fSpaceV=1;
     
     fphi_r=0;
     
@@ -119,9 +119,7 @@ NavierStokesTest::NavierStokesTest()
     f_is_hdivFull = false;
     
     f_hdivPlus = 0;
-    
-    f_Holemesh = false;
-    
+
     f_StokesTest = false;
     
     f_OseenTest = false;
@@ -150,13 +148,14 @@ NavierStokesTest::~NavierStokesTest()
     
 }
 
-void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s, STATE visco)
+void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
 {
     
     //Gerando malha geométrica:
-    fSpaceV = Space;
     TPZGeoMesh *gmesh;
-    
+    f_problemtype = f_sim_data->GetProblemType();
+    f_domaintype = f_sim_data->GetDomainType();
+    STATE visco = f_sim_data->GetViscosity();
     
     if (f_3Dmesh) {
         gmesh = CreateGMesh3D(n_s, h_s);
@@ -190,8 +189,8 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     //Gerando malha computacional:
     int n_mais = f_hdivPlus;
     
-    TPZCompMesh *cmesh_v = this->CMesh_v(gmesh, Space);
-    TPZCompMesh *cmesh_p = this->CMesh_p(gmesh, Space);
+    TPZCompMesh *cmesh_v = this->CMesh_v(gmesh);
+    TPZCompMesh *cmesh_p = this->CMesh_p(gmesh);
     
     TPZCompMesh *cmesh_pM = this->CMesh_pM(gmesh, 0);
     TPZCompMesh *cmesh_gM = this->CMesh_gM(gmesh, 0);
@@ -216,9 +215,9 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     TPZMultiphysicsCompMesh *cmesh_m;
 
     if(f_domaintype==TStokesAnalytic::ECavity){
-        cmesh_m = this->CMesh_m_cavity(gmesh, Space, pOrder, visco);
+        cmesh_m = this->CMesh_m_cavity(gmesh, pOrder);
     }else{
-        cmesh_m = this->CMesh_m(gmesh, Space, pOrder, visco);
+        cmesh_m = this->CMesh_m(gmesh, pOrder);
     }
 
     
@@ -259,7 +258,7 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     
     
     // Agrupar e condensar os elementos
-    GroupAndCondense(cmesh_m);
+    //GroupAndCondense(cmesh_m);
 
 #ifdef PZDEBUG
     {
@@ -295,8 +294,12 @@ void NavierStokesTest::Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL>
     }
     
     NS_analysis->ConfigureAnalysis(decomposeType, f_sim_data, cmesh_m, f_mesh_vector, var_name);
-    
-    NS_analysis->ExecuteTimeEvolution();
+
+    if(f_sim_data->IsTransientQ()){
+        NS_analysis->SolveSystemTransient();
+    }else{
+        NS_analysis->SolveSystem();
+    }
 
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EOneCurve){
         return;
@@ -530,9 +533,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<R
     }
     
     gmesh->BuildConnectivity();
-    
-    
-    if(f_Holemesh){
+
+    if(f_domaintype==TStokesAnalytic::EObstacles){
         TPZManVector<REAL,6> FirstCoord(3,0.), h_el(3,0.);
         h_el[0]=h_s[0]/n_div[0];
         h_el[1]=h_s[1]/n_div[1];
@@ -1550,154 +1552,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     son8->SetFatherIndex(father->Index());
     elementid++;
     
-    //InsertLowerDimMaterial(geomesh);
-    //SetOriginalMesh(geomesh);
-    
-    //Outer bc's
-    
-//    TopolLine[0] = 1;
-//    TopolLine[1] = 0;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCbott,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 1;
-//    TopolLine[1] = 2;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCbott,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 2;
-//    TopolLine[1] = 5;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCright,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 5;
-//    TopolLine[1] = 8;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCright,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 8;
-//    TopolLine[1] = 7;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCtop,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 7;
-//    TopolLine[1] = 6;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCtop,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 6;
-//    TopolLine[1] = 3;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCleft,*geomesh);
-//    elementid++;
-//
-//    TopolLine[0] = 3;
-//    TopolLine[1] = 0;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear > (elementid,TopolLine, fmatBCleft,*geomesh);
-//    elementid++;
-//
-//    //Holes
 
-    
-    
-//    TopolArc[0] = 9;
-//    TopolArc[1] = 11;
-//    TopolArc[2] = 10;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 11;
-//    TopolArc[1] = 13;
-//    TopolArc[2] = 12;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 13;
-//    TopolArc[1] = 15;
-//    TopolArc[2] = 14;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 15;
-//    TopolArc[1] = 17;
-//    TopolArc[2] = 16;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 17;
-//    TopolArc[1] = 19;
-//    TopolArc[2] = 18;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 19;
-//    TopolArc[1] = 21;
-//    TopolArc[2] = 20;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 21;
-//    TopolArc[1] = 23;
-//    TopolArc[2] = 22;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-//
-//    TopolArc[0] = 23;
-//    TopolArc[1] = 9;
-//    TopolArc[2] = 24;
-//    new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, fmatBChole,*geomesh);
-//    elementid++;
-    
-//    char buf[] =
-//    "6     3  "
-//    "-50       UnifTri2 "
-//    " 1.    -1.     0. "
-//    " 1.     0.     0. "
-//    " 1.    1.     0. "
-//    " -1     -1.     0. "
-//    " -1.     0.     0. "
-//    " -1.     1.     0. "
-//    " 3     4     3     0     2     5 "
-//    " 2     3     3     0     5 "
-//    " 2     3     2     5     0 ";
-//
-//    std::istringstream str(buf);
-//    TPZAutoPointer<TPZRefPattern> refpattri = new TPZRefPattern(str);
-//
-//    if(feltype==ETriangle){
-//        int nreft = 1;
-//        TPZVec<TPZGeoEl *> sons1;
-//        for (int iref = 0; iref < nreft; iref++) {
-//            int nel = geomesh->NElements();
-//            for (int iel = 0; iel < nel; iel++) {
-//                TPZGeoEl *gel = geomesh->ElementVec()[iel];
-//                if (gel->HasSubElement()) {
-//                    continue;
-//                }
-//                MElementType elType = gel->Type();
-//                if(gel->MaterialId()==1&&elType==EQuadrilateral){
-//                    gel->SetRefPattern(refpattri);
-//                    gel->Divide(sons1);
-//                }
-//            }
-//        }
-//    }
-    
-//    int nref = 2;
-//    TPZVec<TPZGeoEl *> sons;
-//    for (int iref = 0; iref < nref; iref++) {
-//        int nel = geomesh->NElements();
-//        for (int iel = 0; iel < nel; iel++) {
-//            TPZGeoEl *gel = geomesh->ElementVec()[iel];
-//            if (gel->HasSubElement()) {
-//                continue;
-//            }
-//            gel->Divide(sons);
-//        }
-//    }
-    
-//    geomesh->BuildConnectivity();
-//    InsertLowerDimMaterial(geomesh);
-//    SetOriginalMesh(geomesh);
     
     TPZCheckGeom check(geomesh);
     check.CheckUniqueId();
@@ -2874,7 +2729,7 @@ void NavierStokesTest::ChangeExternalOrderConnects(TPZCompMesh *mesh, int addToO
 }
 
 
-TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space)
+TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh)
 {
     //BDM test papapaapapap
     //Criando malha computacional:
@@ -2887,18 +2742,13 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space)
     // 1 - Material volumétrico 2D
     TPZVecL2 *material = new TPZVecL2(fmatID);
     cmesh->InsertMaterialObject(material);
-    
-    if (Space==1) {
-        cmesh->SetAllCreateFunctionsHDiv(); //Criando funções HDIV:
-        //cmesh->ApproxSpace().CreateDisconnectedElements(true); //HDIV-Full:
-        //Dimensões do material (para HDiv):
-        //TPZFMatrix<STATE> xkin(1,1,0.), xcin(1,1,0.), xfin(1,1,0.);
-        //material->SetMaterial(xkin, xcin, xfin);
+
+    cmesh->SetAllCreateFunctionsHDiv(); //Criando funções HDIV:
+    //cmesh->ApproxSpace().CreateDisconnectedElements(true); //HDIV-Full:
+    //Dimensões do material (para HDiv):
+    //TPZFMatrix<STATE> xkin(1,1,0.), xcin(1,1,0.), xfin(1,1,0.);
+    //material->SetMaterial(xkin, xcin, xfin);
         
-    }else{
-        DebugStop();
-    }
-    
 
     // 1 - Condições de contorno
     TPZFMatrix<STATE> val1(1,1,0.), val2(2,1,0.);
@@ -2916,7 +2766,7 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space)
         cmesh->InsertMaterialObject(BCond3);
     }
     
-    if (f_Holemesh){
+    if (f_domaintype==TStokesAnalytic::EObstacles){
         TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCondHole);
     }
@@ -2953,7 +2803,7 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh, int Space)
 }
 
 
-TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space)
+TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
 {
     
     //Criando malha computacional:
@@ -2998,7 +2848,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space)
     //matLambdaBC_right->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambdaBC_right);
     
-    if (f_Holemesh){
+    if (f_domaintype==TStokesAnalytic::EObstacles){
         TPZVecL2 *matLambdaBC_hole = new TPZVecL2(fmatLambdaBC_hole);
         cmesh->InsertMaterialObject(matLambdaBC_hole);
     }
@@ -3059,7 +2909,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh, int Space)
     materialids.insert(fmatLambdaBC_top);
     materialids.insert(fmatLambdaBC_left);
     materialids.insert(fmatLambdaBC_right);
-    if (f_Holemesh){
+    if (f_domaintype==TStokesAnalytic::EObstacles){
         materialids.insert(fmatLambdaBC_hole);
     }
     
@@ -3276,7 +3126,7 @@ TPZCompMesh *NavierStokesTest::CMesh_gM_0(TPZGeoMesh *gmesh, int pOrder)
 }
 
 
-TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco)
+TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder)
 {
     
     //Criando malha computacional:
@@ -3288,8 +3138,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
     // Criando material:
     // 1 - Material volumétrico 2D
-    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
-    material->SetProblemType(f_problemtype);
+    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim);
+    material->SetSimulationData(f_sim_data);
     int fexact_order = 12;
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
@@ -3297,7 +3147,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     if(f_domaintype==TStokesAnalytic::EOneCurve){
         solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
         material->SetForcingFunctionExact(solp);
-    }else if(!f_Holemesh){
+    }else if(f_domaintype!=TStokesAnalytic::EObstacles){
         material->SetForcingFunction(fp); //Caso simples sem termo fonte
         material->SetForcingFunctionExact(solp);
     }
@@ -3409,11 +3259,13 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     cmesh->InsertMaterialObject(matLambda);
     
     // 2.2 - Material for interfaces (Interior)
-    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(fmatInterfaceLeft,fdim,Space,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(fmatInterfaceLeft,fdim);
+    matInterfaceLeft->SetSimulationData(f_sim_data);
     matInterfaceLeft->SetMultiplier(1.);
     cmesh->InsertMaterialObject(matInterfaceLeft);
     
-    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(fmatInterfaceRight,fdim,Space,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(fmatInterfaceRight,fdim);
+    matInterfaceRight->SetSimulationData(f_sim_data);
     matInterfaceRight->SetMultiplier(-1.);
     cmesh->InsertMaterialObject(matInterfaceRight);
     
@@ -3525,7 +3377,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int Space,
     
 }
 
-TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco)
+TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int pOrder)
 {
 
     //Criando malha computacional:
@@ -3537,8 +3389,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
 
     // Criando material:
     // 1 - Material volumétrico 2D
-    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim,Space,visco,0,0);
-    material->SetProblemType(f_problemtype);
+    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim);
+    material->SetSimulationData(f_sim_data);
     int fexact_order = 12;
 
     cmesh->InsertMaterialObject(material);
@@ -3571,11 +3423,13 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
     cmesh->InsertMaterialObject(matLambda);
 
     // 2.2 - Material for interfaces (Interior)
-    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(fmatInterfaceLeft,fdim,Space,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(fmatInterfaceLeft,fdim);
+    matInterfaceLeft->SetSimulationData(f_sim_data);
     matInterfaceLeft->SetMultiplier(1.);
     cmesh->InsertMaterialObject(matInterfaceLeft);
 
-    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(fmatInterfaceRight,fdim,Space,visco,0,0);
+    TPZMHMNavierStokesMaterial *matInterfaceRight = new TPZMHMNavierStokesMaterial(fmatInterfaceRight,fdim);
+    matInterfaceRight->SetSimulationData(f_sim_data);
     matInterfaceRight->SetMultiplier(-1.);
     cmesh->InsertMaterialObject(matInterfaceRight);
 

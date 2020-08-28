@@ -64,8 +64,10 @@ private:
     /// Correction variation
     STATE m_dU_norm;
 
-    
-    
+    /** @brief Mass Residual of step n */
+
+    TPZFMatrix<STATE> m_LastStepRhs;
+
 public:
     
     /// Default constructor
@@ -95,10 +97,14 @@ public:
     
     /// Post-processing the variables for a single time step
     void PostProcessTimeStep(std::string & res_file);
-    
+
+    /// Execute the steady-state system
+    void SolveSystem();
+
     /// Execute the transient evolution using Fixed Stress Split Iteration
-    void ExecuteTimeEvolution();
-    
+    void SolveSystemTransient();
+
+
     // Set initial parameters
     void SetInitialParameters();
     
@@ -119,7 +125,16 @@ public:
     
     /// Load the last state for the hdiv and 2 meshes
     void LoadLastState();
-    
+
+    /// Set current state
+    void SetCurrentState();
+
+    /// Set last state
+    void SetLastState();
+
+    /// Set last state
+    void AssembleLastStep();
+
     /// Update solution state x = x_n
     void UpdateState(){
         m_U_Plus = m_U_n;
@@ -130,7 +145,7 @@ public:
     {
         m_res_error = error;
     }
-    
+
     /** @brief Get Residue error */
     STATE Get_error()
     {

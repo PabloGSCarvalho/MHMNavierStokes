@@ -16,6 +16,7 @@
 #include "TPZMaterial.h"
 #include "pztrnsform.h"
 #include "TPZAnalyticSolution.h"
+#include "TPZSimulationData.h"
 
 #ifndef TPZNavierStokesMATERIAL
 #define TPZNavierStokesMATERIAL
@@ -44,8 +45,18 @@ protected:
     STATE fSigma;
     
     TStokesAnalytic::MProblemType f_problemtype;
-    
-    
+
+    /** @brief Simulation time step */
+    REAL fDeltaT;
+
+    /** @brief State: one ou one+1 */
+    enum EState { ELastState = 0, ECurrentState = 1 };
+
+    EState fState;
+
+    /** Data for simulation */
+    TPZSimulationData *f_sim_data;
+
 public:
     
     bool NeedsNormalVecFad = true;
@@ -57,7 +68,7 @@ public:
     /** Creates a material object and inserts it in the vector of
      *  material pointers of the mesh.
      */
-    TPZNavierStokesMaterial(int matid, int dimension, int space, STATE viscosity, STATE theta, STATE Sigma);
+    TPZNavierStokesMaterial(int matid, int dimension);
     
     
     /** Creates a material object based on the referred object and
@@ -99,7 +110,17 @@ public:
 //        f_T = Transf;
 //        f_InvT = InvTransf;
 //    }
-    
+
+    void SetSimulationData(TPZSimulationData *simdata);
+
+    void SetLastState(){ fState = ELastState; }
+
+    void SetCurrentState(){ fState = ECurrentState; }
+
+    void SetTimeStep(REAL timeStep) {
+        fDeltaT = timeStep;
+    }
+
     void SetPermeability(REAL perm) {
         fk = perm;
     }
@@ -222,7 +243,7 @@ public:
      */
    
     virtual void Contribute(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ef);
-    
+
     /**
      * It computes a contribution to the stiffness matrix and load vector at one BC integration point.
      * @param data[in] stores all input data

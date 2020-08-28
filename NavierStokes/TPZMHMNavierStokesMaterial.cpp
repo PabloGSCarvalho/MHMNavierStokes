@@ -27,6 +27,11 @@ void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &
 void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef){
  
     //2 = 1 Vel space + 1 Press space for datavecleft
+
+    if(fState==ELastState){
+        return;
+    }
+
     int nrefleft =  datavecleft.size();
     if (nrefleft != 4 ) {
     //    std::cout << " Erro. The size of the datavec is different from 2 \n";
@@ -143,7 +148,10 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 
 
 void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
-    
+
+    if(fState==ELastState){
+        return;
+    }
     int nshapeV , nshapeLambda;
     
     nshapeV = datavec[0].phi.Rows();

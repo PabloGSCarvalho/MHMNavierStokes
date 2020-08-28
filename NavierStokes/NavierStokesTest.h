@@ -169,9 +169,7 @@ private:
     TPZStack<TPZGeoElSide> f_skellNeighs;
     
     bool f_3Dmesh = false;
-    
-    bool f_Holemesh = false;
-    
+
     bool f_StokesTest = false;
     
     bool f_OseenTest = false;
@@ -197,7 +195,7 @@ public:
         return *this;
     }
 
-    void Run(int Space, int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s, STATE visco);
+    void Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s);
     
     /*  Malhas geometricas */
     
@@ -239,8 +237,8 @@ public:
     
     TPZCompEl *CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh, int64_t &index);
     
-    TPZCompMesh *CMesh_v(TPZGeoMesh *gmesh, int Space);
-    TPZCompMesh *CMesh_p(TPZGeoMesh *gmesh, int Space);
+    TPZCompMesh *CMesh_v(TPZGeoMesh *gmesh);
+    TPZCompMesh *CMesh_p(TPZGeoMesh *gmesh);
     
     TPZCompMesh *CMesh_pM(TPZGeoMesh *gmesh, int pOrder);
     TPZCompMesh *CMesh_gM(TPZGeoMesh *gmesh, int pOrder);
@@ -250,9 +248,9 @@ public:
     
     
     //TPZCompMesh *CMesh_St(TPZGeoMesh *gmesh, int Space, int pOrder);
-    TPZMultiphysicsCompMesh *CMesh_m(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco);
+    TPZMultiphysicsCompMesh *CMesh_m(TPZGeoMesh *gmesh, int pOrder);
 
-    TPZMultiphysicsCompMesh *CMesh_m_cavity(TPZGeoMesh *gmesh, int Space, int pOrder, STATE visco);
+    TPZMultiphysicsCompMesh *CMesh_m_cavity(TPZGeoMesh *gmesh, int pOrder);
 
     void SetOriginalMesh(TPZGeoMesh *gmesh){
         f_mesh0 = gmesh;
@@ -298,10 +296,7 @@ public:
     };
 
     void SetDomainType(TStokesAnalytic::EExactSol type){
-        if(type==TStokesAnalytic::EObstacles){
-            f_Holemesh = true;
-        }
-        f_domaintype = type;
+
         f_ExactSol.fExactSol = type;
     };
     

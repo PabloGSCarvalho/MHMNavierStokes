@@ -44,7 +44,7 @@ public:
     /** Creates a material object and inserts it in the vector of
      *  material pointers of the mesh.
      */
-    TPZMHMNavierStokesMaterial(int matid, int dimension, int space, STATE viscosity, STATE theta, STATE Sigma) : TPZNavierStokesMaterial(matid,dimension,space,viscosity,theta,Sigma), fMultiplier(1.)
+    TPZMHMNavierStokesMaterial(int matid, int dimension) : TPZNavierStokesMaterial(matid,dimension), fMultiplier(1.)
     {
 
     }
