@@ -17,10 +17,11 @@
 using namespace std;
 
 
-TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >(){
+TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(){
     //fDim = 1;
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
-    this->SetDefaultMem(Vl);
+    TPZNSMemory defaultmemory;
+    this->SetDefaultMem(defaultmemory);
     fk=1;
     f_problemtype = TStokesAnalytic::ENavierStokes;
     fState = ECurrentState;
@@ -30,13 +31,14 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZFMatrix<ST
 
 ////////////////////////////////////////////////////////////////////
 
-TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >(matid),fDimension(dimension),fSpace(1),fViscosity(1.),fTheta(0),fSigma(0)
+TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(matid),fDimension(dimension),fSpace(1),fViscosity(1.),fTheta(0),fSigma(0)
 {
     // symmetric version
     //fTheta = -1;
 
     TPZFNMatrix<3,STATE> Vl(1,1,0.);
-    this->SetDefaultMem(Vl);
+    TPZNSMemory defaultmemory;
+    this->SetDefaultMem(defaultmemory);
     fk=1.;
     f_problemtype = TStokesAnalytic::ENavierStokes;
     fState = ECurrentState;
@@ -46,7 +48,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZ
 
 ////////////////////////////////////////////////////////////////////
 
-TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity), fTheta(mat.fTheta), fSigma(mat.fSigma)
+TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity), fTheta(mat.fTheta), fSigma(mat.fSigma)
 {
     fk= mat.fk;
     f_problemtype = mat.f_problemtype;

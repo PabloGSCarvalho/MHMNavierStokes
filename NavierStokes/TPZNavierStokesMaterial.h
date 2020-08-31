@@ -17,13 +17,14 @@
 #include "pztrnsform.h"
 #include "TPZAnalyticSolution.h"
 #include "TPZSimulationData.h"
+#include "TPZNSMemory.h"
 
 #ifndef TPZNavierStokesMATERIAL
 #define TPZNavierStokesMATERIAL
 
 //enum NSProblemType {ENavierStokes,EOseen,EStokes,EBrinkman};
 
-class TPZNavierStokesMaterial : public TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >  {
+class TPZNavierStokesMaterial : public TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >  {
     
 protected:
     
@@ -83,7 +84,7 @@ public:
     
     TPZNavierStokesMaterial &operator=(const TPZNavierStokesMaterial &copy)
     {
-        TPZMatWithMem<TPZFMatrix<STATE>, TPZDiscontinuousGalerkin >::operator=(copy);
+        TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >::operator=(copy);
         DebugStop();
         return *this;
     }

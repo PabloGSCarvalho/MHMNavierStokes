@@ -16,6 +16,7 @@
 #include "TPZMaterial.h"
 #include "TPZNavierStokesMaterial.h"
 #include "pztrnsform.h"
+#include "TPZNSMemory.h"
 
 #ifndef TPZMHMNavierStokesMATERIAL
 #define TPZMHMNavierStokesMATERIAL
