@@ -663,12 +663,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     STATE p_n                  = datavec[pindex].sol[0][0];
 
     fDeltaT = f_sim_data->GetTimeStep();
-//p_n = 0.;
-//    dsolVec.Zero();
-//    u_n[0]=0.;
-//    u_n[1]=0.;
-    //std::cout<<datavec[vindex].axes<<std::endl;
-
 
     TPZFNMatrix<10,STATE> gradUn(dsolVec.Rows(),dsolVec.Cols()), grad_axes;
     grad_axes = datavec[vindex].axes;
@@ -682,7 +676,16 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         datavec[0].ComputeFunctionDivergence();
     }
 
-    if(fState==ELastState){
+    int64_t global_point_index = datavec[0].intGlobPtIndex;
+    if(f_sim_data->IsTransientQ()){
+
+        // Get the pressure at the integrations points
+        TPZManVector<STATE,3> u_last;
+        TPZNSMemory &lastStep_mem = GetMemory()->operator[](global_point_index);
+        u_last    = lastStep_mem.u_last();
+        // std::cout << u_last << std::endl;
+        // std::cout << u_n<< std::endl;
+
         for(int i = 0; i < nshapeV; i++ ) {
             int iphi = datavec[vindex].fVecShapeIndex[i].second;
             int ivec = datavec[vindex].fVecShapeIndex[i].first;
@@ -691,12 +694,15 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
             STATE phi_dot_Ulast = 0.0; // phi * u_{n-1} / Dt
             for (int e=0; e<3; e++) {
-                phi_dot_Ulast += phiVi(e)*u_n[e];
+                phi_dot_Ulast += phiVi(e)*u_last[e];
             }
             ef(i) += weight * phi_dot_Ulast /fDeltaT;
         }
-        return;
+        //return;
+
     }
+
+    this->GetMemory()->operator[](global_point_index).Set_u(u_n);
 
     for(int i = 0; i < nshapeV; i++ )
     {

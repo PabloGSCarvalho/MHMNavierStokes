@@ -33,7 +33,7 @@
 #include "TPZMultiphysicsInterfaceEl.h"
 #include "pzelementgroup.h"
 #include "pzcondensedcompel.h"
-
+#include "pzcompelwithmem.h"
 #include "TPZVTKGeoMesh.h"
 #include "TPZNullMaterial.h"
 
@@ -837,8 +837,27 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
     TPZCompMesh * MixedFluxPressureCmesh = fCMesh.operator->();
     MixedFluxPressureCmesh->SetDimModel(dim);
     MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElem();
+    MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElemWithMem();
+    gSinglePointMemory = true;
     
     BuildMultiPhysicsMesh();
+
+    {
+        int dim = MixedFluxPressureCmesh->Dimension();
+        int64_t nelem = MixedFluxPressureCmesh->NElements();
+        for(int64_t el=0; el<nelem; el++)
+        {
+            TPZCompEl *cel = MixedFluxPressureCmesh->Element(el);
+            if(!cel) DebugStop();
+            TPZGeoEl *gel = cel->Reference();
+            if(!gel) DebugStop();
+//            if(gel->Dimension() == dim)
+//            {
+                cel->PrepareIntPtIndices();
+//            }
+        }
+    }
+
     TPZManVector<TPZCompMesh * ,6> meshvector;
     
     if(0)
@@ -1490,6 +1509,8 @@ void TPZMHMNavierStokesMeshControl::BuildMultiPhysicsMesh()
         DebugStop();
     }
     fCMesh->SetAllCreateFunctionsMultiphysicElem();
+    fCMesh->SetAllCreateFunctionsMultiphysicElemWithMem();
+
     TPZMultiphysicsCompMesh *mphysics = dynamic_cast<TPZMultiphysicsCompMesh *>(fCMesh.operator->());
 
     TPZManVector<TPZCompMesh *,6 > cmeshes(4);
@@ -1626,6 +1647,8 @@ void TPZMHMNavierStokesMeshControl::BuildMultiPhysicsMesh()
 
 //    int dimension = fGMesh->Dimension();
     //mphysics->SetDimModel(dimension);
-    mphysics->BuildMultiphysicsSpace(cmeshes);
+    //mphysics->BuildMultiphysicsSpace(cmeshes);
+    TPZManVector<int> active(cmeshes.size(),1);
+    mphysics->BuildMultiphysicsSpaceWithMemory(active,cmeshes);
 
 }

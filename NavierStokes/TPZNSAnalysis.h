@@ -20,6 +20,7 @@
 #include "pzstepsolver.h"
 #include "pzbuildmultiphysicsmesh.h"
 #include "TPZMHMNavierStokesMaterial.h"
+#include "TPZNSMemory.h"
 
 
 class TPZNSAnalysis : public TPZAnalysis {
@@ -40,8 +41,7 @@ private:
     
     /// Residue error
     STATE m_res_error;
-    
-    
+
     /// number of Newton iterations
     int m_k_iterations;
     
@@ -67,6 +67,7 @@ private:
     /** @brief Mass Residual of step n */
 
     TPZFMatrix<STATE> m_LastStepRhs;
+
 
 public:
     
@@ -188,6 +189,8 @@ public:
         return m_vec_var_names;
     }
 
+    /** @brief Update memory using the Transfer object at REAL n */
+    void UpdateMemory_LastStep();
 };
 
 #endif /* TPZNSAnalysis.h */

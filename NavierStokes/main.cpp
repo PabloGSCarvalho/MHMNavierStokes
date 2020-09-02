@@ -115,10 +115,10 @@ int main(int argc, char *argv[])
             //simdata.SetShapeTest(); // Test for shape functions
 
             sim_data->SetOptimizeBandwidthQ(true);
-            sim_data->SetStaticCondensation(false);
+            //sim_data->SetStaticCondensation(false);
             sim_data->Set_n_iterations(40);
-            sim_data->Set_epsilon_cor(0.000001);
-            sim_data->Set_epsilon_res(0.0002);
+            sim_data->Set_epsilon_cor(0.0000001);
+            sim_data->Set_epsilon_res(0.00002);
             sim_data->SetPardisoSolver();
             //if(h_level==64&&pOrder==3){
             sim_data->ActivatePostProcessing();
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
             //    sim_data->SetPardisoSolver();
             }
 
-            sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
+            sim_data->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:

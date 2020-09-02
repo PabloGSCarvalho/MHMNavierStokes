@@ -1055,7 +1055,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
         h_el[0]=h_s[0]/n_div[0];
         h_el[1]=h_s[1]/n_div[1];
 
-        int nreft = 1;
+        int nreft = 2;
         TPZVec<TPZGeoEl *> sons1;
         //for (int iref = 0; iref < nreft; iref++) {
         int nel = gmesh->NElements();

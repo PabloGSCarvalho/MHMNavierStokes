@@ -247,10 +247,10 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         }
 
         norm_res = Norm(Rhs());
-        if(m_simulation_data->IsTransientQ()){
-            m_R_Plus += m_LastStepRhs;
-            norm_res = Norm(m_R_Plus);
-        }
+//        if(m_simulation_data->IsTransientQ()){
+//            m_R_Plus += m_LastStepRhs;
+//            norm_res = Norm(m_R_Plus);
+//        }
 
         std::cout << "Correction norm 1 = " << norm_dU << std::endl;
         std::cout<< "residual norm 1 = " << norm_res <<std::endl;
@@ -294,7 +294,7 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     //cmesh->LoadSolutionFromMeshes();
 
     const int dim = this->Mesh()->Dimension();
-    int div = 2;
+    int div = 1;
     TPZStack<std::string> scalnames, vecnames;
 //    if (fSimulationData->IsInitialStateQ()) {
 //        plotfile =  "DualSegregatedDarcyOnBox_I.vtk";
@@ -432,9 +432,23 @@ void TPZNSAnalysis::SolveSystemTransient(){
         TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
         mphys->LoadSolutionFromMultiPhysics();
     }
+
+    // Transfer object
+//    TPZNSBuildTransfers * Transfer = new TPZNSBuildTransfers;
+//    Transfer->SetSimulationData(m_simulation_data);
+//    //Transfer->Fill_u_To_Mixed(this->Mesh(),0);
+//    Transfer->BuildTransferData(this->Mesh());
+//    SetTransfer(Transfer);
+
     m_simulation_data->SetTransientQ(false);
+  //  this->ExecuteOneTimeStep();
+  //  AssembleLastStep();
+  //  m_simulation_data->SetTransientQ(true);
+
+    //SetLastState();
     this->ExecuteOneTimeStep();
-    AssembleLastStep();
+    UpdateMemory_LastStep();
+
     m_simulation_data->SetTransientQ(true);
 
     //std::cout<<this->Rhs()<<std::endl;
@@ -443,6 +457,8 @@ void TPZNSAnalysis::SolveSystemTransient(){
 
             SetCurrentState();
             this->ExecuteOneTimeStep();
+            UpdateMemory_LastStep();
+
 
             REAL rhsnomr = this->Get_error();
             REAL dunorm = this->Get_dU_norm();
@@ -468,7 +484,8 @@ void TPZNSAnalysis::SolveSystemTransient(){
 //            }
         }
         m_simulation_data->UpdateTime();
-        AssembleLastStep();
+        //UpdateMemory_LastStep();
+        //AssembleLastStep();
 
     }
 
@@ -514,10 +531,10 @@ void TPZNSAnalysis::ExecuteNewtonIteration(){
         fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
     }
 
-    if(m_simulation_data->IsTransientQ()){
-        m_LastStepRhs.Resize(Rhs().Rows(),Rhs().Cols());
-        this->Rhs()+=m_LastStepRhs;
-    }
+//    if(m_simulation_data->IsTransientQ()){
+//        m_LastStepRhs.Resize(Rhs().Rows(),Rhs().Cols());
+//        this->Rhs()+=m_LastStepRhs;
+//    }
 
     this->Rhs() *= 1.0;
     {
@@ -604,3 +621,33 @@ void TPZNSAnalysis::AcceptTimeStepSolution(){
 }
 
 
+
+/** @brief Update memory using the Transfer object at state n */
+void TPZNSAnalysis::UpdateMemory_LastStep(){
+
+    int matid = m_simulation_data->Get_volumetric_material_id()[0];
+
+    TPZMaterial * material = this->Mesh()->FindMaterial(matid);
+    TPZMatWithMem<TPZNSMemory,TPZDiscontinuousGalerkin> * associated_material = dynamic_cast<TPZMatWithMem<TPZNSMemory,TPZDiscontinuousGalerkin> *>(material);
+
+    if (!associated_material) {
+        DebugStop();
+    }
+
+    long N_ipoints = associated_material->GetMemory().get()->NElements();
+    for (int ip_index = 0 ; ip_index < N_ipoints; ip_index++) {
+        TPZNSMemory & memory = associated_material->GetMemory().get()->operator[](ip_index);
+        TPZManVector<REAL,3> u_last(3,0.);
+        u_last = memory.u();
+        memory.Set_u_last(u_last);
+    }
+
+//    fTransfer->TransferFromMultiphysics();
+//    Mesh()->LoadSolution(Mesh()->Solution());
+//    TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
+//
+//    // Volumetric update
+//    fTransfer->u_To_Mixed_Memory(m_mesh_vec[0], Mesh());
+//    fTransfer->p_To_Mixed_Memory(m_mesh_vec[1], Mesh());
+
+}
