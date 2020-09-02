@@ -838,7 +838,7 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
     MixedFluxPressureCmesh->SetDimModel(dim);
     MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElem();
     MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElemWithMem();
-    gSinglePointMemory = true;
+    //gSinglePointMemory = true;
     
     BuildMultiPhysicsMesh();
 

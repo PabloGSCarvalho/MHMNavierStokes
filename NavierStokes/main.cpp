@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(0.1);
+            sim_data->SetViscosity(0.005);
             sim_data->SetNthreads(4);
             //simdata.SetShapeTest(); // Test for shape functions
 
@@ -127,11 +127,11 @@ int main(int argc, char *argv[])
             //    sim_data->SetPardisoSolver();
             }
 
-            sim_data->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+            sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
-            sim_data->SetTimeTotal(1);
+            sim_data->SetTimeTotal(3);
             sim_data->SetTimeStep(0.1);
 
             Test2->SetSimulationData(sim_data);

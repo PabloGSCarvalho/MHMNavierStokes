@@ -677,7 +677,28 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     }
 
     int64_t global_point_index = datavec[0].intGlobPtIndex;
-    if(f_sim_data->IsTransientQ()){
+
+    if(fState==ELastState){
+
+//        for(int i = 0; i < nshapeV; i++ ) {
+//            int iphi = datavec[vindex].fVecShapeIndex[i].second;
+//            int ivec = datavec[vindex].fVecShapeIndex[i].first;
+//            for (int e = 0; e < 3; e++) {
+//                phiVi(e, 0) = phiV(iphi, 0) * Normalvec(e, ivec);
+//            }
+//            STATE phi_dot_Ulast = 0.0; // phi * u_{n-1} / Dt
+//            for (int e=0; e<3; e++) {
+//                phi_dot_Ulast += phiVi(e)*u_n[e];
+//            }
+//            ef(i) += weight * phi_dot_Ulast /fDeltaT;
+//        }
+
+        GetMemory()->operator[](global_point_index).Set_u_last(u_n);
+        return;
+
+    }
+
+    if(fState==ECurrentState){
 
         // Get the pressure at the integrations points
         TPZManVector<STATE,3> u_last;
@@ -698,11 +719,10 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
             ef(i) += weight * phi_dot_Ulast /fDeltaT;
         }
-        //return;
 
     }
 
-    this->GetMemory()->operator[](global_point_index).Set_u(u_n);
+
 
     for(int i = 0; i < nshapeV; i++ )
     {

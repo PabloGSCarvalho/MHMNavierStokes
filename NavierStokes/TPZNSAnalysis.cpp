@@ -440,16 +440,14 @@ void TPZNSAnalysis::SolveSystemTransient(){
 //    Transfer->BuildTransferData(this->Mesh());
 //    SetTransfer(Transfer);
 
-    m_simulation_data->SetTransientQ(false);
-  //  this->ExecuteOneTimeStep();
-  //  AssembleLastStep();
-  //  m_simulation_data->SetTransientQ(true);
+    //m_simulation_data->SetTransientQ(false);
+    this->ExecuteOneTimeStep();
+    AssembleLastStep();
+    //m_simulation_data->SetTransientQ(true);
 
     //SetLastState();
-    this->ExecuteOneTimeStep();
-    UpdateMemory_LastStep();
-
-    m_simulation_data->SetTransientQ(true);
+//    this->ExecuteOneTimeStep();
+//    UpdateMemory_LastStep();
 
     //std::cout<<this->Rhs()<<std::endl;
     for (int it = 0; it < n_time_steps; it++) {
@@ -457,7 +455,7 @@ void TPZNSAnalysis::SolveSystemTransient(){
 
             SetCurrentState();
             this->ExecuteOneTimeStep();
-            UpdateMemory_LastStep();
+            //UpdateMemory_LastStep();
 
 
             REAL rhsnomr = this->Get_error();
@@ -485,7 +483,7 @@ void TPZNSAnalysis::SolveSystemTransient(){
         }
         m_simulation_data->UpdateTime();
         //UpdateMemory_LastStep();
-        //AssembleLastStep();
+        AssembleLastStep();
 
     }
 
@@ -641,13 +639,5 @@ void TPZNSAnalysis::UpdateMemory_LastStep(){
         u_last = memory.u();
         memory.Set_u_last(u_last);
     }
-
-//    fTransfer->TransferFromMultiphysics();
-//    Mesh()->LoadSolution(Mesh()->Solution());
-//    TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(m_mesh_vec, Mesh());
-//
-//    // Volumetric update
-//    fTransfer->u_To_Mixed_Memory(m_mesh_vec[0], Mesh());
-//    fTransfer->p_To_Mixed_Memory(m_mesh_vec[1], Mesh());
 
 }
