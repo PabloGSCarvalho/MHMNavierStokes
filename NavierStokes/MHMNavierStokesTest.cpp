@@ -1262,7 +1262,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
             gmesh->NodeVec().Resize(nnodes+1);
             nodeindex = nnodes;
             gmesh->SetNodeIdUsed(nodeindex);
-            REAL radius = h_s[0]/(4*n_div[0]);
+            REAL radius = h_s[0]/(8*n_div[0]);
 
             //Find hole central coord
             int nsides = gel->NSides();
@@ -1395,7 +1395,7 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs
     int n_cir_nds = 16 * pow(2, nrefs);
     int nodes = n_ext_nds+n_cir_nds*(1+nrefs_c);
 
-    REAL radius = h_el[0]/4.;
+    REAL radius = h_el[0]/8.;
     geomesh.SetMaxNodeId(nodes-1);
     geomesh.NodeVec().Resize(nodes);
     //TPZManVector<TPZGeoNode,7> Node(nodes);
