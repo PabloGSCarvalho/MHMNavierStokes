@@ -1055,7 +1055,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
         h_el[0]=h_s[0]/n_div[0];
         h_el[1]=h_s[1]/n_div[1];
 
-        int nreft = 1;
+        int nreft = 3;
         TPZVec<TPZGeoEl *> sons1;
         //for (int iref = 0; iref < nreft; iref++) {
         int nel = gmesh->NElements();
@@ -1388,7 +1388,7 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs
     TPZGeoMesh geomesh;
     geomesh.SetDimension(2);
 
-    int nrefs_c = 8;
+    int nrefs_c = 12;
 
     int nquadnods=pow(2.,1+nrefs)+1;
     int n_ext_nds = 8*pow(2,nrefs);
@@ -2535,7 +2535,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 1.0;
+            val2(0, 0) = 4.0;
             TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_left);
 
