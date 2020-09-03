@@ -1262,7 +1262,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVe
             gmesh->NodeVec().Resize(nnodes+1);
             nodeindex = nnodes;
             gmesh->SetNodeIdUsed(nodeindex);
-            REAL radius = h_s[0]/(8*n_div[0]);
+            REAL radius = h_s[0]/(4.*n_div[0]);
 
             //Find hole central coord
             int nsides = gel->NSides();
@@ -1388,14 +1388,14 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs
     TPZGeoMesh geomesh;
     geomesh.SetDimension(2);
 
-    int nrefs_c = 12;
+    int nrefs_c = 16;
 
     int nquadnods=pow(2.,1+nrefs)+1;
     int n_ext_nds = 8*pow(2,nrefs);
     int n_cir_nds = 16 * pow(2, nrefs);
     int nodes = n_ext_nds+n_cir_nds*(1+nrefs_c);
 
-    REAL radius = h_el[0]/8.;
+    REAL radius = h_el[0]/4.;
     geomesh.SetMaxNodeId(nodes-1);
     geomesh.NodeVec().Resize(nodes);
     //TPZManVector<TPZGeoNode,7> Node(nodes);
@@ -1450,14 +1450,50 @@ TPZAutoPointer<TPZRefPattern> MHMNavierStokesTest::CreateGMeshObstacle(int nrefs
     //Circunference coordinates
     REAL refradius = 0.;
     REAL circle_pos = hx/2.;
-
-    nrefs = 6;
+    REAL hipotenusa =0.;
+    REAL theta_c = 0.,aux_theta =0.;
+    //nrefs = 6;
 
     for (int iref = 0; iref <= nrefs_c; iref++) {
         for (int inode = 0; inode < n_cir_nds ; inode++) {
             // i node
             refradius = radius+iref*((circle_pos-radius)/(1+nrefs_c));
-            coord = ParametricCircle(refradius, inode *2.*M_PI/n_cir_nds);
+            theta_c = inode *2.*M_PI/n_cir_nds;
+            if(iref>0) {
+                aux_theta = theta_c;
+                if(theta_c>M_PI/4.&&theta_c<=M_PI/2.) {
+                    aux_theta = M_PI / 2. - theta_c;
+                }
+                if(theta_c>M_PI/2&&theta_c<=3.*M_PI/4.) {
+                    aux_theta = theta_c - M_PI / 2.;
+                }
+                if(theta_c>3.*M_PI/4.&&theta_c<=M_PI) {
+                    aux_theta = M_PI - theta_c;
+                }
+                if(theta_c>M_PI&&theta_c<=5.*M_PI/4.) {
+                    aux_theta = theta_c - M_PI ;
+                }
+                if(theta_c>5.*M_PI/4.&&theta_c<=3.*M_PI/2.) {
+                    aux_theta = 3.*M_PI/2.-theta_c;
+                }
+                if(theta_c>3.*M_PI/2.&&theta_c<=7.*M_PI/4) {
+                    aux_theta = theta_c - 3.*M_PI/2;
+                }
+                if(theta_c>7.*M_PI/4&&theta_c<=2.*M_PI) {
+                    aux_theta = 2.*M_PI-theta_c;
+                }
+
+                REAL ratio1 = (REAL)iref/nrefs_c;
+                REAL ratio2 = (REAL)(nrefs_c-iref)/nrefs_c;
+
+                hipotenusa = (refradius/cos(aux_theta))*ratio1+refradius*ratio2;
+
+            }else{
+
+                hipotenusa = refradius;
+            }
+
+            coord = ParametricCircle(hipotenusa, theta_c);
             coord[0] += circle_pos;
             coord[1] += circle_pos;
             geomesh.NodeVec()[nodeindex].SetCoord(coord);
@@ -2535,7 +2571,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 4.0;
+            val2(0, 0) = 1.0;
             TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_left);
 
@@ -2650,7 +2686,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_hole);
 
         }
