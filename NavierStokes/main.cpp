@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
             sim_data->SetViscosity(0.01);
-            sim_data->SetNthreads(8);
+            sim_data->SetNthreads(24);
             //simdata.SetShapeTest(); // Test for shape functions
 
             sim_data->SetOptimizeBandwidthQ(true);
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
-            sim_data->SetTimeTotal(5);
+            sim_data->SetTimeTotal(5.1);
             sim_data->SetTimeStep(0.1);
 
             Test2->SetSimulationData(sim_data);
