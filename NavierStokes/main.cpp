@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
-            sim_data->SetTimeTotal(5.1);
+            sim_data->SetTimeTotal(11.);
             sim_data->SetTimeStep(0.1);
 
             Test2->SetSimulationData(sim_data);
