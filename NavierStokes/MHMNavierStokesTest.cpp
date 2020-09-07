@@ -2590,7 +2590,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 4.0;
+            val2(0, 0) = 1.0;
             TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
             BC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BC_left);
