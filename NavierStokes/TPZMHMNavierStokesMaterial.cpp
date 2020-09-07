@@ -196,8 +196,8 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 
         REAL time = f_sim_data->GetTime();
 
-        v_Dirichlet[0] = v_Dirichlet[0]*sin(M_PI*(time+0.1-0.5))*0.5+0.5;
-        v_Dirichlet[1] = v_Dirichlet[1]*sin(M_PI*(time+0.1-0.5))*0.5+0.5;
+        v_Dirichlet[0] = v_Dirichlet[0]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
+        v_Dirichlet[1] = v_Dirichlet[1]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
 
 
         // Calculo do vetor (Du)n :
