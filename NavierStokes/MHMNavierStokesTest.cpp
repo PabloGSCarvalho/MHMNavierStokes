@@ -2691,11 +2691,11 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EObstacles: {
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
             val2(0,0) = 0.0;
@@ -2706,7 +2706,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_hole);
 
         }
