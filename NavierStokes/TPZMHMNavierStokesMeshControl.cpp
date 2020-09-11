@@ -1382,6 +1382,8 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
         }else{
             subcmesh->SetAnalysisNonSymSparse(numthreads);
         }
+
+        //subcmesh->SetAnalysisFStruct(numthreads);
 //        subcmesh->SetAnalysisFStruct(numthreads);
         //subcmesh->SetAnalysisFStruct(numthreads);
 //        subcmesh->SetAnalysisNonSymSparse(numthreads);

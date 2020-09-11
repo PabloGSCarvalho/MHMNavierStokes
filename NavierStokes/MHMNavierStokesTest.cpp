@@ -262,9 +262,9 @@ void MHMNavierStokesTest::Run()
     std::stringstream MHMStokesPref;
     MHMStokesPref << "MHMStokes";
 
-    //SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
 
-    SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    //SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
     std::cout << "FINISHED!" << std::endl;
     
 }
@@ -278,15 +278,19 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     //calculo solution
     bool shouldrenumber = true;
     TPZAnalysis an(cmesh,shouldrenumber);
-#ifdef USING_MKL
-    TPZSymetricSpStructMatrix strmat(cmesh.operator->());
-    strmat.SetNumThreads(f_sim_data->GetNthreads());
-#else
-    TPZSkylineStructMatrix strmat(cmesh.operator->());
-    strmat.SetNumThreads(fsimData.GetNthreads());
-#endif
 
-    an.SetStructuralMatrix(strmat);
+    if(f_sim_data->IsPardisoSolverQ()){
+        TPZSymetricSpStructMatrix strmat(cmesh.operator->());
+        strmat.SetNumThreads(f_sim_data->GetNthreads());
+        an.SetStructuralMatrix(strmat);
+    }else{
+//        TPZSkylineStructMatrix strmat(cmesh.operator->());
+//        strmat.SetNumThreads(fsimData.GetNthreads());
+        TPZFStructMatrix strmat(cmesh.operator->());
+        strmat.SetNumThreads(f_sim_data->GetNthreads());
+        an.SetStructuralMatrix(strmat);
+    }
+
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt);
     an.SetSolver(step);
@@ -317,7 +321,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     
 
 #ifdef PZDEBUG
-    if(1)
+    if(0)
     {
         std::string filename = prefix;
         filename += "_Global.nb";
@@ -332,64 +336,69 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     an.LoadSolution(); // compute internal dofs
     
     TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(compmeshes, cmesh);
-    
-#ifdef PZDEBUG
-    {
-        std::ofstream out(prefix+"_MeshWithSol.txt");
-        cmesh->Print(out);
+
+    if(f_sim_data->IsPostProcessingActivatedQ()){
+
+        {
+            std::ofstream out(prefix+"_MeshWithSol.txt");
+            cmesh->Print(out);
+        }
+
+
+        std::cout << "Post Processing " << std::endl;
+        std::string plotfile;
+        std::stringstream sout_geo;
+        std::stringstream sout;
+        {
+            sout << prefix << "Approx_";
+            ConfigPrint(sout);
+            plotfile = sout.str() + "_dim2.vtk";
+        }
+        plotfile = "StokesMHMPlot.vtk";
+
+        {
+            sout_geo << prefix << "Geo_";
+            ConfigPrint(sout_geo) << "_dim2.vtk";
+        }
+
+        std::ofstream plotfile3(sout_geo.str());
+        TPZVTKGeoMesh::PrintGMeshVTK(cmesh.operator->()->Reference(), plotfile3, true);
+
+
+        std::cout << "plotfiles " << " " << plotfile.c_str() << std::endl;
+        TPZStack<std::string> scalnames,vecnames;
+        TPZMaterial *mat = cmesh->FindMaterial(1);
+        if (!mat) {
+            DebugStop();
+        }
+        else if(mat->NStateVariables() == 1)
+        {
+            scalnames.Push("P");
+            vecnames.Push("V");
+            vecnames.Push("f");
+            vecnames.Push("V_exact");
+            scalnames.Push("P_exact");
+            scalnames.Push("Div");
+        }
+
+        an.DefineGraphMesh(cmesh->Dimension(), scalnames, vecnames, plotfile);
+        int resolution = 0;
+        an.PostProcess(resolution,cmesh->Dimension());
+
     }
-    
-    std::cout << "Post Processing " << std::endl;
-    std::string plotfile;
-    std::stringstream sout_geo;
-    std::stringstream sout;
-    {
-        sout << prefix << "Approx_";
-        ConfigPrint(sout);
-        plotfile = sout.str() + "_dim2.vtk";
-    }
-    plotfile = "StokesMHMPlot.vtk";
-    
-    {
-        sout_geo << prefix << "Geo_";
-        ConfigPrint(sout_geo) << "_dim2.vtk";
-    }
-    
-    std::ofstream plotfile3(sout_geo.str());
-    TPZVTKGeoMesh::PrintGMeshVTK(cmesh.operator->()->Reference(), plotfile3, true);
-    
-    
-    std::cout << "plotfiles " << " " << plotfile.c_str() << std::endl;
-    TPZStack<std::string> scalnames,vecnames;
-    TPZMaterial *mat = cmesh->FindMaterial(1);
-    if (!mat) {
-        DebugStop();
-    }
-    else if(mat->NStateVariables() == 1)
-    {
-        scalnames.Push("P");
-        vecnames.Push("V");
-        vecnames.Push("f");
-        vecnames.Push("V_exact");
-        scalnames.Push("P_exact");
-        scalnames.Push("Div");
-    }
-    
-    an.DefineGraphMesh(cmesh->Dimension(), scalnames, vecnames, plotfile);
-    int resolution = 0;
-    an.PostProcess(resolution,cmesh->Dimension());
-    
-    
-#endif
-    
+
     //Calculo do erro
-    std::cout << "Comuting Error (need to check for MHM?) " << std::endl;
+    std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_Results_Linear.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
     an.SetThreadsForError(4);
+//    an.PostProcessError(Errors,false);
+
+    auto old_buffer = std::cout.rdbuf(nullptr);
     an.PostProcessError(Errors,false);
-    
+    std::cout.rdbuf(old_buffer);
+
     ConfigPrint(ErroOut);
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
@@ -447,7 +456,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->SetExact(f_ExactSol.ExactSolution());
 
-    NS_analysis->SetThreadsForError(3);
+    NS_analysis->SetThreadsForError(4);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
     NS_analysis->PostProcessError(Errors,false);
@@ -2622,10 +2631,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             BCondD3->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD3);
 
-            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fdirichlet_v, val1, val2);
             BCondD4->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD4);
-
+//qwqwqwqw
             if (f_3Dmesh) {
                 TPZBndCond * BCondD5 = mat1->CreateBC(mat1, fmatBCtop_z, fdirichlet_v, val1, val2);
                 BCondD5->SetBCForcingFunction(0, solp);
@@ -2725,16 +2734,16 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             matLambdaBC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
             matLambdaBC_right->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_right);
-
+//qwqwqwqw
             if (f_3Dmesh) {
-                TPZBndCond *matLambdaBC_top_z = mat1->CreateBC(mat1, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
+                TPZBndCond *matLambdaBC_top_z = mat1->CreateBC(mat1, fmatLambdaBC_top_z, fneumann_sigma, val1, val2);
                 matLambdaBC_top_z->SetBCForcingFunction(0, solp);
                 cmesh.InsertMaterialObject(matLambdaBC_top_z);
 
-                TPZBndCond *matLambdaBC_bott_z = mat1->CreateBC(mat1, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
+                TPZBndCond *matLambdaBC_bott_z = mat1->CreateBC(mat1, fmatLambdaBC_bott_z, fneumann_sigma, val1, val2);
                 matLambdaBC_bott_z->SetBCForcingFunction(0, solp);
                 cmesh.InsertMaterialObject(matLambdaBC_bott_z);
             }
