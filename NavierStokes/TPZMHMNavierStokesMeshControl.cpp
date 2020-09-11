@@ -1376,12 +1376,14 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
         TPZAutoPointer<TPZGuiInterface> guiInterface;
 
         int ninter_materials = subcmesh->MaterialVec().size();
-
+//
         if(ninter_materials>3){
             subcmesh->SetAnalysisFStruct(numthreads);
         }else{
             subcmesh->SetAnalysisNonSymSparse(numthreads);
         }
+//        subcmesh->SetAnalysisFStruct(numthreads);
+        //subcmesh->SetAnalysisFStruct(numthreads);
 //        subcmesh->SetAnalysisNonSymSparse(numthreads);
         //subcmesh->SetAnalysisFrontal(numthreads, guiInterface);
         //subcmesh->SetAnalysisNonSymSparse(numthreads);

@@ -678,7 +678,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     int64_t global_point_index = datavec[0].intGlobPtIndex;
 
-    if(fState==ELastState){
+    if(fState==ELastState&&fDeltaT>0){
 
 //        for(int i = 0; i < nshapeV; i++ ) {
 //            int iphi = datavec[vindex].fVecShapeIndex[i].second;
@@ -698,7 +698,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     }
 
-    if(fState==ECurrentState){
+    if(fState==ECurrentState&&fDeltaT>0){
 
         // Get the pressure at the integrations points
         TPZManVector<STATE,3> u_last;

@@ -241,6 +241,7 @@ public:
     void Set3Dmesh(){
         f_3Dmesh = true;
         fdim = 3;
+        f_ExactSol.fDimension = 3;
     };
     
     void SetHdivPlus(){
@@ -262,9 +263,6 @@ public:
     };
 
     void SetDomainType(TStokesAnalytic::EExactSol type){
-        if(type==TStokesAnalytic::EObstacles){
-            f_Holemesh = true;
-        }
         f_domaintype = type;
         f_ExactSol.fExactSol = type;
     };

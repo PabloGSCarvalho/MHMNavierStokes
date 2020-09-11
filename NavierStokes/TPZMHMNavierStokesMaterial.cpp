@@ -194,16 +194,6 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         v_Dirichlet[2] = vbc[2];
         p_D = vbc[3];
 
-        REAL time = f_sim_data->GetTime();
-
-//        v_Dirichlet[0] = v_Dirichlet[0]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
-//        v_Dirichlet[1] = v_Dirichlet[1]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
-        
-        if(time<0.9){
-            v_Dirichlet[0] = v_Dirichlet[0]*(time+0.1);
-            v_Dirichlet[1] = v_Dirichlet[1]*(time+0.1);
-        }
-
         // Calculo do vetor (Du)n :
         if (nshapeV!=0) {
             gradu.Resize(3,3);

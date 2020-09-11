@@ -136,8 +136,9 @@ void MHMNavierStokesTest::Run()
     TPZVec<int> n_s = f_sim_data->GetCoarseDivisions();
     TPZVec<REAL> h_s = f_sim_data->GetDomainSize();
     int nrefs = f_sim_data->GetNInterRefs();
-    f_problemtype = f_sim_data->GetProblemType();
-    f_domaintype = f_sim_data->GetDomainType();
+    SetProblemType(f_sim_data->GetProblemType());
+    SetDomainType(f_sim_data->GetDomainType());
+    f_ExactSol.fvisco = f_sim_data->GetViscosity();
 
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
@@ -146,7 +147,6 @@ void MHMNavierStokesTest::Run()
     TPZGeoMesh *gmesh;
     
     if (f_3Dmesh) {
-        //DebugStop();
         gmesh = CreateGMesh3D(n_s, h_s);
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
         //    gmesh = CreateGMeshCurve();
@@ -285,7 +285,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZSkylineStructMatrix strmat(cmesh.operator->());
     strmat.SetNumThreads(fsimData.GetNthreads());
 #endif
-    
+
     an.SetStructuralMatrix(strmat);
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt);
@@ -670,7 +670,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     
     gmesh->BuildConnectivity();
 
-        if(0){
+        if(1){
             std::ofstream Dummyfile("GeometricMesh2d.vtk");
             TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
         }
@@ -687,9 +687,11 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> 
     x0[0] = 0., x0[1] = -1.;
     x1[0] = 2., x1[1] = 1.;
     
-    x0[2] = 0.;
-    x1[2] = 2.;
-    
+//    x0[2] = 0.;
+//    x1[2] = 2.;
+    x0[2] = -1.;
+    x1[2] = 1.;
+
     TPZGenGrid2D grid(n_div,x0,x1);
     
     
@@ -2544,9 +2546,6 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         mat1->SetForcingFunction(NULL);
         mat1->SetForcingFunctionExact(NULL);
     }
-
-    solp = new TPZDummyFunction<STATE> (Sol_exact, 12);
-    mat1->SetForcingFunctionExact(solp);
 
     //TPZMaterial * mat1(material);
     cmesh.InsertMaterialObject(mat1);
