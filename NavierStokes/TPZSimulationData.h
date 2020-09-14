@@ -53,6 +53,9 @@ protected:
     /** Viscosity coeficient */
     REAL m_visco;
 
+    /** Brinkman coeficient */
+    REAL m_cBrinkman;
+
     /** Density of the fluid */
     REAL m_density;
 
@@ -202,6 +205,17 @@ public:
     REAL GetViscosity(){
         return m_visco;
     }
+
+    /** Set the Brinkman coeficient */
+    void SetBrinkmanCoef(REAL coefB){
+        m_cBrinkman = coefB;
+    }
+
+    /** Get the viscosity coeficient */
+    REAL GetBrinkmanCoef(){
+        return m_cBrinkman;
+    }
+
 
     /** Set the density coeficient */
     void SetDensity(REAL density){

@@ -139,6 +139,7 @@ void MHMNavierStokesTest::Run()
     SetProblemType(f_sim_data->GetProblemType());
     SetDomainType(f_sim_data->GetDomainType());
     f_ExactSol.fvisco = f_sim_data->GetViscosity();
+    f_ExactSol.fcBrinkman = f_sim_data->GetBrinkmanCoef();
 
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
@@ -640,7 +641,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
         x1[0] = 1., x1[1] = 1.;
     }
 
-    if(f_domaintype==TStokesAnalytic::ESinCos){
+    if(f_domaintype==TStokesAnalytic::ESinCos||f_domaintype==TStokesAnalytic::ESinCosBDS){
         x0[0] = 0., x0[1] = -1.;
         x1[0] = 2., x1[1] = 1.;
     }
@@ -2631,7 +2632,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             BCondD3->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD3);
 
-            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fdirichlet_v, val1, val2);
+            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
             BCondD4->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD4);
 //qwqwqwqw
@@ -2734,7 +2735,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             matLambdaBC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
             matLambdaBC_right->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 //qwqwqwqw

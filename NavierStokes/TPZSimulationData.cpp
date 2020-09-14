@@ -17,6 +17,7 @@ TPZSimulationData::TPZSimulationData()
     m_dimesion = 0;
     m_n_threads = 0;
     m_visco = 0;
+    m_cBrinkman = 0.;
     m_density = 0.;
     m_Sym_coef = 0;
     m_space = 1;
@@ -57,6 +58,7 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_dimesion                         = other.m_dimesion;
     m_n_threads                        = other.m_n_threads;
     m_visco                            = other.m_visco;
+    m_cBrinkman                        = other.m_cBrinkman;
     m_density                          = other.m_density;
     m_Sym_coef                         = other.m_Sym_coef;
     m_space                            = other.m_space;
@@ -93,6 +95,7 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_dimesion                         = other.m_dimesion;
         m_n_threads                        = other.m_n_threads;
         m_visco                            = other.m_visco;
+        m_cBrinkman                        = other.m_cBrinkman;
         m_density                          = other.m_density;
         m_Sym_coef                         = other.m_Sym_coef;
         m_space                            = other.m_space;
@@ -144,6 +147,7 @@ void TPZSimulationData::Print()
     std::cout << " m_dimesion = " << m_dimesion << std::endl;
     std::cout << " m_n_threads = " << m_n_threads << std::endl;
     std::cout << " m_visco = " << m_visco << std::endl;
+    std::cout << " m_cBrinkman = " << m_cBrinkman << std::endl;
     std::cout << " m_density = " << m_density << std::endl;
     std::cout << " m_n_intrefs = " << m_n_intrefs << std::endl;
     std::cout << " m_testshape = " << m_testshape << std::endl;

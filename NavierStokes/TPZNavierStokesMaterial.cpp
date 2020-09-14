@@ -253,6 +253,9 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
         case 2: //f
         {
             TPZVec<STATE> f(3,0.0);
+            if(f_problemtype==TStokesAnalytic::EBrinkman){
+                f.resize(4);
+            }
             if(this->HasForcingFunction()){
                 TPZVec<STATE> x(3,0.);
                 x=datavec[vindex].x;
@@ -652,7 +655,10 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     }
 
     TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
-    
+    if(f_problemtype==TStokesAnalytic::EBrinkman){
+        Force.resize(4);
+    }
+
     TPZFMatrix<STATE> phiVi(3,1,0.0),phiVj(3,1,0.0);
 
     TPZFNMatrix<100,STATE> divphi;
@@ -678,20 +684,14 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     int64_t global_point_index = datavec[0].intGlobPtIndex;
 
-    if(fState==ELastState&&fDeltaT>0){
+    if(this->HasForcingFunction()){
+        TPZFMatrix<STATE> gradu;
+        TPZVec<STATE> x(3,0.),xrot(3,0.);
+        x=datavec[vindex].x;
+        this->ForcingFunction()->Execute(x, Force, gradu);
+    }
 
-//        for(int i = 0; i < nshapeV; i++ ) {
-//            int iphi = datavec[vindex].fVecShapeIndex[i].second;
-//            int ivec = datavec[vindex].fVecShapeIndex[i].first;
-//            for (int e = 0; e < 3; e++) {
-//                phiVi(e, 0) = phiV(iphi, 0) * Normalvec(e, ivec);
-//            }
-//            STATE phi_dot_Ulast = 0.0; // phi * u_{n-1} / Dt
-//            for (int e=0; e<3; e++) {
-//                phi_dot_Ulast += phiVi(e)*u_n[e];
-//            }
-//            ef(i) += weight * phi_dot_Ulast /fDeltaT;
-//        }
+    if(fState==ELastState&&fDeltaT>0){
 
         GetMemory()->operator[](global_point_index).Set_u_last(u_n);
         return;
@@ -722,8 +722,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     }
 
-
-
     for(int i = 0; i < nshapeV; i++ )
     {
         int iphi = datavec[vindex].fVecShapeIndex[i].second;
@@ -750,16 +748,21 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             ef(i) += - weight * phi_dot_Un /fDeltaT;
         }
 
+        if (f_problemtype==TStokesAnalytic::EBrinkman){
+        REAL coefB = f_sim_data->GetBrinkmanCoef();
+
+            STATE B_phi_dot_Un = 0.0; // - coefB * phi * u_{n}
+            for (int e=0; e<3; e++) {
+                B_phi_dot_Un += phiVi(e)*u_n[e];
+            }
+            ef(i) += - weight *coefB * B_phi_dot_Un;
+        }
+
         STATE divui = 0.;
         divui = Tr( GradVi ); //datavec[0].divphi(i);
         //divui = datavec[0].divphi(i);
 
-        if(this->HasForcingFunction()){
-            TPZFMatrix<STATE> gradu;
-            TPZVec<STATE> x(3,0.),xrot(3,0.);
-            x=datavec[vindex].x;
-            this->ForcingFunction()->Execute(x, Force, gradu);
-        }
+
 
         STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
         for (int e=0; e<3; e++) {
@@ -886,6 +889,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             if(fDeltaT>0){
                 STATE Transient_term = InnerVec(phiVi, phiVj);
                 ek(i,j) += weight * Transient_term / fDeltaT;  //phiV * phiU / Dt
+            }
+
+            if (f_problemtype==TStokesAnalytic::EBrinkman){
+                STATE Brinkman_term = f_sim_data->GetBrinkmanCoef() * InnerVec(phiVi, phiVj); // - coefB * phiU * phiV
+                ek(i,j) += weight  * Brinkman_term;
             }
 
             TPZFNMatrix<9,STATE> GradVj(3,3,0.),GradVjt(3,3,0.),Duj(3,3,0.);
@@ -1022,6 +1030,12 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         B_term_f = - phiP(i,0)*Tr(gradUn);
         ef(i+nshapeV) += weight * (-B_term_f);
 
+        if (f_problemtype==TStokesAnalytic::EBrinkman) {
+            STATE Brinkman_source = 0.; // B - Mixed term
+            Brinkman_source = phiP(i,0)*Force[3];
+            ef(i+nshapeV) += -weight*Brinkman_source;
+        }
+        //std::cout<<Force[3]<<std::endl;
     }
 
 
