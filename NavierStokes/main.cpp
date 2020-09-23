@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     {
 
         int pOrder = 1;
-        for (pOrder=2; pOrder<=3; pOrder++){
+        for (pOrder=1; pOrder<=3; pOrder++){
             for (int it=1; it<=4; it++) {
                 h_level = pow(2., it);
 
