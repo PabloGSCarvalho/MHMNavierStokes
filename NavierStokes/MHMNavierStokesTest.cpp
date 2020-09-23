@@ -697,10 +697,10 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> 
     x0[0] = 0., x0[1] = -1.;
     x1[0] = 2., x1[1] = 1.;
     
-//    x0[2] = 0.;
-//    x1[2] = 2.;
-    x0[2] = -1.;
-    x1[2] = 1.;
+    x0[2] = 0.;
+    x1[2] = 2.;
+//    x0[2] = -1.;
+//    x1[2] = 1.;
 
     TPZGenGrid2D grid(n_div,x0,x1);
     
@@ -2632,7 +2632,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             BCondD3->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD3);
 
-            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fdirichlet_v, val1, val2);
             BCondD4->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD4);
 //qwqwqwqw
@@ -2658,7 +2658,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     // 2.1 - Material para tração tangencial 1D (Interior)
     TPZNullMaterial *matLambda = new TPZNullMaterial(fmatLambda);
     matLambda->SetDimension(fdim-1);
-    matLambda->SetNStateVariables(1);
+    matLambda->SetNStateVariables(fdim-1);
     control->CMesh()->InsertMaterialObject(matLambda);
 
     
@@ -2735,7 +2735,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             matLambdaBC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
             matLambdaBC_right->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 //qwqwqwqw

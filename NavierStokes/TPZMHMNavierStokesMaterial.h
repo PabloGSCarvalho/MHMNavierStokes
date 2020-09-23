@@ -83,6 +83,8 @@ public:
     }
     
     TPZFMatrix<STATE> Transpose(TPZFMatrix<STATE> &GradU );
+
+    TPZFNMatrix<9,REAL> Tangential(TPZManVector<REAL,3> normal);
     
     /**
      * It computes a contribution to the stiffness matrix and load vector at one BC integration point.
@@ -120,8 +122,8 @@ public:
     void ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight,TPZFMatrix<STATE> &ef){
         DebugStop();
     }
-    
-    
+
+
     TPZManVector<REAL,3> ComputeNormal(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright);
     
 };

@@ -20,6 +20,7 @@ void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &
     //TPZMaterial::FillDataRequirementsInterface(data, datavec_left, datavec_right);
     int nref_left = datavec_left.size();
     datavec_left[0].fNeedsNormal = true;
+    datavec_right[1].fNeedsNormal = true;
     datavec_left[0].fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
     
 }
@@ -51,10 +52,15 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     if (datavecleft[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavecleft[vindex]);
     }
+
+    if (datavecleft[pindex].fVecShapeIndex.size() == 0) {
+        FillVecShapeIndex(datavecleft[pindex]);
+    }
     
     // Setting the phis
     // V - left
     TPZFNMatrix<9,REAL>  &tan = datavecright[pindex].axes;
+
     TPZManVector<STATE,3> u_n = datavecleft[vindex].sol[0];
     
     STATE sLambda_n = datavecright[pindex].sol[0][0];
@@ -62,11 +68,15 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     TPZManVector<STATE,3> Lambda_n = datavecright[pindex].sol[0];
 
     
-    int nshapeV , nshapeP , nshapeLambda;
+    int nshapeV , nshapeP , nshapeLambda, nstateVariablesL;
     nshapeV = datavecleft[vindex].fVecShapeIndex.NElements();
     nshapeP = datavecleft[pindex].phi.Rows();
     nshapeLambda = datavecright[pindex].phi.Rows();
-    
+    nstateVariablesL = tan.Rows();
+    if(nstateVariablesL!=2){DebugStop();}
+//    if(nstateVariablesL>1){
+//        tan = Tangential(datavecright[pindex].normal);
+//    }
     
     int normvecRows = datavecleft[vindex].fDeformedDirections.Rows();
     int normvecCols = datavecleft[vindex].fDeformedDirections.Cols();
@@ -85,7 +95,7 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     }else{
         Normalvec=datavecleft[vindex].fDeformedDirections;
     }
-    
+    //qwqw
     for(int i1 = 0; i1 < nshapeV; i1++)
     {
         int iphi1 = datavecleft[vindex].fVecShapeIndex[i1].second;
@@ -95,11 +105,15 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         for (int e=0; e< 3 ; e++) {
             phiVi(e,0)=Normalvec(e,ivec1)*datavecleft[vindex].phi(iphi1,0);
         }
-        
+
         STATE Lambda_dot_phiV = 0.; //rhs term
         for (int e=0; e< 3 ; e++) {
-            lambda_n(e,0) = sLambda_n*tan(0,e);
+            for(int f =0; f< tan.Rows() ; f++){
+                lambda_n(e,0) += sLambda_n*tan(f,e);
+            }
         }
+
+
         Lambda_dot_phiV = InnerVec(lambda_n, phiVi);
         ef(i1) += -fMultiplier * weight*Lambda_dot_phiV;
         
@@ -109,18 +123,21 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
             // Var. Sigma, Sn :
             TPZFNMatrix<9, STATE> lambda_j(3,1,0.);
             TPZFNMatrix<9, STATE> phiLamb = datavecright[pindex].phi;
-            
-            // Tangencial comp. vector (t x t)Sn :
-            for (int e=0; e< 3 ; e++) {
-                lambda_j(e,0) = phiLamb(j1,0)*tan(0,e);
-            }
-            STATE fact = fMultiplier * weight * InnerVec(phiVi,lambda_j);
-            ek(i1,j1+nshapeV) += fact;
-            ek(j1+nshapeV,i1) += fact;
-        }
-        
-    }
 
+            for(int f =0; f< nstateVariablesL ; f++){
+                lambda_j.Zero();
+                for (int e=0; e< 3 ; e++) {
+                    lambda_j(e, 0) += phiLamb(j1, 0) * tan(f, e);
+                }
+
+                STATE fact = fMultiplier * weight * InnerVec(phiVi,lambda_j);
+                ek(i1,j1*nstateVariablesL+f+nshapeV) += fact;
+                ek(j1*nstateVariablesL+f+nshapeV,i1) += fact;
+
+            }
+
+        }
+    }
 
     for(int i1 = 0; i1 < nshapeLambda; i1++)
     {
@@ -130,12 +147,14 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         
         // Tangencial comp. vector (t x t)Sn :
         for (int e=0; e< 3 ; e++) {
-            lambda_i(e,0) = phiLamb(i1,0)*tan(0,e);
+            for(int f =0; f< tan.Rows() ; f++) {
+                lambda_i(e, 0) += phiLamb(i1, 0) * tan(f, e);
+            }
         }
 
         STATE phiLambda_dot_U = 0.; //rhs term
         for (int e=0; e< 3 ; e++) {
-            phiLambda_dot_U += lambda_i(e,0)*u_n[e];
+                phiLambda_dot_U += lambda_i(e, 0) * u_n[e];
         }
         ef(i1+nshapeV) += -fMultiplier * weight*phiLambda_dot_U;
     }
@@ -156,9 +175,17 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     
     nshapeV = datavec[0].phi.Rows();
     nshapeLambda = datavec[1].phi.Rows();
-    
-    TPZManVector<REAL,3> u_n  = datavec[0].sol[0];
+    int nstateBC = 1;
 
+    TPZManVector<REAL,3> &normal = datavec[0].normal;
+    if(nshapeLambda){
+        nstateBC = ek.Rows()/nshapeLambda;
+        normal = datavec[1].normal;
+    }
+
+    TPZFNMatrix<9,REAL>  &tan = datavec[1].axes;
+
+    TPZManVector<REAL,3> u_n  = datavec[0].sol[0];
     TPZManVector<REAL,3> l_n  = datavec[1].sol[0];
 
 
@@ -188,7 +215,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     {
         
         bc.BCForcingFunction()->Execute(x,vbc,gradu);
-        
+        //std::cout<<gradu<<std::endl;
         v_Dirichlet[0] = vbc[0];
         v_Dirichlet[1] = vbc[1];
         v_Dirichlet[2] = vbc[2];
@@ -197,44 +224,31 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         // Calculo do vetor (Du)n :
         if (nshapeV!=0) {
             gradu.Resize(3,3);
+            //std::cout<<gradu<<std::endl;
             STATE visco = GetViscosity();
             for (int i = 0; i<3; i++) {
                 for (int j = 0; j<3; j++) {
                     Du(i,j)=  visco * (gradu(i,j) + gradu(j, i));
                 }
             }
-        
+
+            //std::cout<<Du<<std::endl;
             for (int i = 0; i<3; i++) {
                 for (int j = 0; j<3; j++) {
                     Dun(i,0) +=  Du(i,j) * datavec[0].normal[j];
                 }
             }
+            //std::cout<<datavec[0].normal<<std::endl;
+            //std::cout<<Dun<<std::endl;
 
-            
-            //Oseen term:
-            for (int i = 0; i<3; i++) {
-                for (int j = 0; j<3; j++) {
-                    u_x_beta(i,j) +=  v_Dirichlet[i] * v_Dirichlet[j];
-                }
-            }
-            
-            
-            for (int i = 0; i<3; i++) {
-                for (int j = 0; j<3; j++) {
-                    u_x_beta_n(i,0) +=  u_x_beta(i,j) * datavec[0].normal[j];
-                }
-            }
-            
-            
-            
             // Neumann vector
 
             for (int i = 0; i<3; i++) {
-                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i] + 0.0*u_x_beta_n(i,0);
+                v_Neumann[i] = Dun(i,0) - p_D * datavec[0].normal[i];
             }
             
         }
-        
+        //qwqw
         
     }else{
 
@@ -245,12 +259,10 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 
         for (int i = 0; i<3; i++) {
             for (int j = 0; j<3; j++) {
-       //         v_Neumann[i] +=  bc.Val1()(i,j) * datavec[0].normal[j];
+                v_Neumann[i] +=  bc.Val1()(i,j) * normal[j];
             }
         }
 
-
-        //std::cout<<"!!!!!!!!! falta esta condição de contorno aqui !!!!!!!!!!!!!"<<std::endl;
     }
     
     // Calculo do vetor (Du)n :
@@ -262,46 +274,30 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
                 Du(i,j)=  visco * (gradu(i,j) + gradu(j, i));
             }
         }
-        
+        Dun.Zero();
         for (int i = 0; i<3; i++) {
             for (int j = 0; j<3; j++) {
                 Dun(i,0) +=  Du(i,j) * datavec[1].normal[j];
             }
         }
 
-
-        //Oseen term:
-        for (int i = 0; i<3; i++) {
-            for (int j = 0; j<3; j++) {
-                u_x_beta(i,j) +=  v_Dirichlet[i] * v_Dirichlet[j];
-            }
-        }
-        
-
-        for (int i = 0; i<3; i++) {
-            for (int j = 0; j<3; j++) {
-                u_x_beta_n(i,0) +=  u_x_beta(i,j) * datavec[1].normal[j];
-            }
-        }
-        
         // Neumann vector
         
         for (int i = 0; i<3; i++) {
-            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i] + 0.0*u_x_beta_n(i,0);
+            v_Neumann[i] = Dun(i,0) - p_D * datavec[1].normal[i] ;
         }
-//        std::cout<<datavec[1].normal<<std::endl;
-//        std::cout<<v_Neumann<<std::endl;
   
     }
-    
-    
-    STATE value = 0.;
+
+    //STATE value = 0.;
+    TPZVec<STATE> v_value(nstateBC,0.);
+
     if(nshapeV!=0){
         
         if (bc.Type()==0) {
 
             for (int i = 0; i<3; i++) {
-                value += v_Dirichlet[i]*datavec[0].normal[i];
+                v_value[0] += v_Dirichlet[i]*datavec[0].normal[i];
             }
             
 //            std::cout << "v_d = "<< v_Dirichlet << std::endl;
@@ -309,7 +305,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 //            std::cout << "normal = "<< datavec[0].normal << std::endl;
 //            std::cout << "val 1 = "<< value << std::endl;
 //
-            value = value - u_n[0];
+            v_value[0] = v_value[0] - u_n[0];
 
 //            std::cout << "val 2 = "<< value << std::endl;
 //            std::cout << "________" << std::endl;
@@ -318,7 +314,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         }else if (bc.Type()==1){
             
             for (int j = 0; j<3; j++) {
-                value += v_Neumann[j] * datavec[0].normal[j];
+                v_value[0] += v_Neumann[j] * datavec[0].normal[j];
             }
             
             
@@ -327,28 +323,34 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         phi = &datavec[0].phi;
         
     }else if (nshapeLambda!=0&&(bc.Type()!=5)){
-        
+
         if(bc.Type()==0){
-            
-            for (int i = 0; i<3; i++) {
-                value += v_Neumann[i]*datavec[1].axes(0,i);
+            for(int f =0; f< nstateBC ; f++) {
+                for (int i = 0; i<3; i++) {
+                    v_value[f] += v_Neumann[i] * tan(f, i);
+                }
             }
                 //                        std::cout << "v_n = "<< v_Neumann << std::endl;
                 //                        std::cout << "l_n = "<< l_n << std::endl;
                 //                        std::cout << "normal = "<< datavec[1].axes << std::endl;
                 //                        std::cout << "val 1 = "<< value << std::endl;
                 //
-                value = value - l_n[0];
+            //value = value - l_n[0];
+            for(int f =0; f< nstateBC ; f++) {
+                v_value[f] = v_value[f] - l_n[f];
+            }
+
 
                 //                        std::cout << "val 2 = "<< value << std::endl;
                 //                        std::cout << "________" << std::endl;
 
         }else if(bc.Type()==1){
-            
-            for (int i = 0; i<3; i++) {
-                value += v_Dirichlet[i]*datavec[1].axes(0,i);
+
+            for(int f =0; f< nstateBC ; f++) {
+                for (int i = 0; i<3; i++) {
+                    v_value[f] += v_Dirichlet[i] * tan(f, i);
+                }
             }
-            
         }
 
 
@@ -365,18 +367,16 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     switch (bc.Type()) {
         case 0: //Dirichlet for continuous formulation
         {
-            
-            for(int j1 = 0; j1 < phi->Rows(); j1++)
-            {
+            for(int istate = 0; istate < nstateBC; istate++) {
+                for (int j1 = 0; j1 < phi->Rows(); j1++) {
+                    ef(j1*nstateBC+istate, 0) += gBigNumber * v_value[istate] * (*phi)(j1, 0) * weight;
 
-                ef(j1,0) += gBigNumber*value*(*phi)(j1,0)*weight;
-
-                for(int i1 = 0; i1 < phi->Rows(); i1++)
-                {
-                    ek(i1,j1) += gBigNumber*weight*(*phi)(j1,0)*(*phi)(i1,0);
+                    for (int i1 = 0; i1 < phi->Rows(); i1++) {
+                        ek(i1*nstateBC+istate, j1*nstateBC+istate) += gBigNumber * weight * (*phi)(j1, 0) * (*phi)(i1, 0);
+                    }
                 }
             }
-            
+
         }
             break;
             
@@ -385,9 +385,10 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         {
             for(int j1 = 0; j1 < phi->Rows(); j1++)
             {
-                ef(j1,0) += value*(*phi)(j1,0)*weight;
+                for(int istate = 0; istate < nstateBC; istate++) {
+                    ef(j1*nstateBC+istate, 0) += v_value[istate] * (*phi)(j1, 0) * weight;
+                }
             }
-
         }
             break;
             
@@ -412,7 +413,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             
         }
             break;
-            
+
         default:
         {
             std::cout << "Boundary not implemented " << std::endl;
@@ -1177,4 +1178,20 @@ TPZFMatrix<STATE> TPZMHMNavierStokesMaterial::Transpose(TPZFMatrix<STATE> &Matri
     
     return MatrixUt;
     
+}
+
+TPZFNMatrix<9,REAL> TPZMHMNavierStokesMaterial::Tangential(TPZManVector<REAL,3> normal){
+
+    TPZFNMatrix<9,REAL>  MatrixTan(3,3);
+
+    for (int i = 0; i < 3; i++ ) {
+        for (int j = 0; j < 3; j++ ) {
+            MatrixTan(i,j) = normal[i]*normal[j];
+            if(i==j){
+                MatrixTan(i,j)=1-MatrixTan(i,j);
+            }
+        }
+    }
+
+    return MatrixTan;
 }

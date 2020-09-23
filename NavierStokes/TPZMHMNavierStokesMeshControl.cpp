@@ -136,7 +136,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     }
 #endif
     
-    if(1){
+    if(0){
         std::ofstream fileg1("MalhaGeo_test.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk1("MalhaGeo_test.vtk"); //Impressão da malha geométrica (formato vtk)
         fGMesh->Print(fileg1);
@@ -226,6 +226,11 @@ void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
     cmeshTraction->SetName("PressureAndTractionMesh");
     cmeshTraction->SetDimModel(gmesh->Dimension()-1);
     cmeshTraction->SetAllCreateFunctionsDiscontinuous();
+    //cmeshTraction->SetAllCreateFunctionsHDiv();
+
+//    cmeshTraction->SetAllCreateFunctionsContinuous();
+//    cmeshTraction->ApproxSpace().CreateDisconnectedElements(true);
+
     cmeshTraction->SetDefaultOrder(porder-1);
     int meshdim = cmeshTraction->Dimension();
     
@@ -234,7 +239,7 @@ void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
     if (mat && mat->Dimension() == meshdim) {
         matids.insert(fTractionMatId);
     }
-    
+
     for (auto it:fMaterialBCIds) {
         int dsmatid = fBCTractionMatIds[it];
         TPZMaterial *mat = cmeshTraction->FindMaterial(fBCTractionMatIds[it]);
@@ -242,11 +247,9 @@ void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
             matids.insert(fBCTractionMatIds[it]);
         }
     }
-    
+
     cmeshTraction->AutoBuild(matids);
     fPressureFineMesh->ExpandSolution();
-
-    
 
 #ifdef PZDEBUG
     {
@@ -409,7 +412,15 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
     // Material for interior traction:
     
     TPZVecL2 *matTraction = new TPZVecL2(fTractionMatId);
+    int mesh_dim = fGMesh->Dimension();
+    int nstate_traction = 1, nstate_bctraction = 1;
+    if(mesh_dim==3){
+        nstate_traction = 2;
+        nstate_bctraction =2;
+    }
+
     matTraction->SetDimension(fGMesh->Dimension()-1);
+    matTraction->SetNStateVariables(nstate_traction);
     cmeshPressure->InsertMaterialObject(matTraction);
 
     for (auto it:fMaterialBCIds)
@@ -423,6 +434,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
         {
             TPZVecL2 *matBCTraction = new TPZVecL2(matid);
             matBCTraction->SetDimension(fGMesh->Dimension()-1);
+            matBCTraction->SetNStateVariables(nstate_bctraction);
             cmeshPressure->InsertMaterialObject(matBCTraction);
         }
         
