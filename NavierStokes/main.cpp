@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     {
 
         int pOrder = 1;
-        for (pOrder=1; pOrder<=3; pOrder++){
+        for (pOrder=2; pOrder<=3; pOrder++){
             for (int it=1; it<=4; it++) {
                 h_level = pow(2., it);
 
@@ -110,8 +110,8 @@ int main(int argc, char *argv[])
                 sim_data->SetCoarseDivisions(n_s);
                 sim_data->SetDomainSize(h_s);
                 sim_data->SetNInterRefs(0);
-                sim_data->SetViscosity(1.);
-                sim_data->SetBrinkmanCoef(0.); //For Brinkman
+                sim_data->SetViscosity(0.);
+                sim_data->SetBrinkmanCoef(1.); //For Brinkman
                 sim_data->SetNthreads(24);
                 //simdata.SetShapeTest(); // Test for shape functions
 

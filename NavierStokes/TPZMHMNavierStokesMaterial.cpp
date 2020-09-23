@@ -72,8 +72,8 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     nshapeV = datavecleft[vindex].fVecShapeIndex.NElements();
     nshapeP = datavecleft[pindex].phi.Rows();
     nshapeLambda = datavecright[pindex].phi.Rows();
-    nstateVariablesL = tan.Rows();
-    if(nstateVariablesL!=2){DebugStop();}
+    int dim = this->Dimension();
+    nstateVariablesL = dim-1;
 //    if(nstateVariablesL>1){
 //        tan = Tangential(datavecright[pindex].normal);
 //    }

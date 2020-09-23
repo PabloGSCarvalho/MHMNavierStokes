@@ -222,39 +222,35 @@ void MHMNavierStokesTest::Run()
 
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
-    
+    if(0){
 #ifdef PZDEBUG
     std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
     std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
     StokesControl->GMesh()->Print(fileg1);
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
-#endif
+
+    std::ofstream filecm("MalhaC_MHM.txt");
+    StokesControl->CMesh()->Print(filecm);
 
 
-#ifdef PZDEBUG
-    {
-        std::ofstream filecm("MalhaC_MHM.txt");
-        StokesControl->CMesh()->Print(filecm);
-    }
-    if(0){
         
-        TPZCompMesh *cmeshP = StokesControl->GetMeshes()[1].operator->();
-        std::ofstream outp("Malha_P_MHM.vtk");
-        cmeshP->LoadReferences();
-        TPZVTKGeoMesh::PrintCMeshVTK(cmeshP, outp, false);
+    TPZCompMesh *cmeshP = StokesControl->GetMeshes()[1].operator->();
+    std::ofstream outp("Malha_P_MHM.vtk");
+    cmeshP->LoadReferences();
+    TPZVTKGeoMesh::PrintCMeshVTK(cmeshP, outp, false);
         
-        TPZCompMesh *cmeshV = StokesControl->GetMeshes()[0].operator->();
-        std::ofstream outv("MalhaC_V_MHM.vtk");
-        cmeshV->LoadReferences();
-        TPZVTKGeoMesh::PrintCMeshVTK(cmeshV, outv, false);
+    TPZCompMesh *cmeshV = StokesControl->GetMeshes()[0].operator->();
+    std::ofstream outv("MalhaC_V_MHM.vtk");
+    cmeshV->LoadReferences();
+    TPZVTKGeoMesh::PrintCMeshVTK(cmeshV, outv, false);
         
-        TPZCompMesh *cmeshM = StokesControl->CMesh().operator->();
-        std::ofstream out("MalhaC_MHM.vtk");
-        cmeshM->LoadReferences();
-        TPZVTKGeoMesh::PrintCMeshVTK(cmeshM, out, false);
-        
-    }
+    TPZCompMesh *cmeshM = StokesControl->CMesh().operator->();
+    std::ofstream out("MalhaC_MHM.vtk");
+    cmeshM->LoadReferences();
+    TPZVTKGeoMesh::PrintCMeshVTK(cmeshM, out, false);
 #endif
+    }
+
 
     std::cout << "MHM Hdiv Computational meshes created\n";
     std::cout << "Number of equations MHMStokes " << StokesControl->CMesh()->NEquations() << std::endl;
@@ -281,7 +277,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
-        TPZSymetricSpStructMatrix strmat(cmesh.operator->());
+        TPZSpStructMatrix strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }else{
@@ -293,7 +289,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELDLt);
+    step.SetDirect(ELU);
     an.SetSolver(step);
     std::cout << "Assembling\n";
     an.Assemble();
@@ -393,7 +389,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_Results_Linear.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
-    an.SetThreadsForError(4);
+    an.SetThreadsForError(24);
 //    an.PostProcessError(Errors,false);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
@@ -984,7 +980,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> 
     gmesh->BuildConnectivity();
     
     
-    {
+    if(0){
         std::ofstream Dummyfile("GeometricMesh3D.vtk");
         TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
     }
