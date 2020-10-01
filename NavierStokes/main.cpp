@@ -149,14 +149,15 @@ int main(int argc, char *argv[])
         {
 
             int pOrder = 1;
-            for (pOrder=1; pOrder<=3; pOrder++){
-                for (int it=2; it<=6; it++) {
+            for (pOrder=2; pOrder<=2; pOrder++){
+                for (int it=6; it<=6; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
                     TPZVec<int> n_s(3,0.);
                     n_s[0]=h_level,n_s[1]=h_level;
                     MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
+                    //Test2->SetElType(ETriangle);
 
                     TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                     Test2->SetTransform(Transf, InvTransf);
@@ -176,7 +177,7 @@ int main(int argc, char *argv[])
                     sim_data->Set_n_iterations(40);
                     sim_data->Set_epsilon_cor(0.0000001);
                     sim_data->Set_epsilon_res(0.0000001);
-                    sim_data->SetPardisoSolver();
+                    //sim_data->SetPardisoSolver();
                     if(h_level==16){
                         sim_data->ActivatePostProcessing();
                     }

@@ -241,7 +241,7 @@ void MHMNavierStokesTest::Run()
 
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
-    if(1){
+    if(0){
 #ifdef PZDEBUG
     std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
     std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
@@ -300,8 +300,8 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }else{
-//        TPZSkylineStructMatrix strmat(cmesh.operator->());
-//        strmat.SetNumThreads(fsimData.GetNthreads());
+        //TPZSkylineStructMatrix strmat(cmesh.operator->());
+        //strmat.SetNumThreads(f_sim_data->GetNthreads());
         TPZFStructMatrix strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
@@ -701,7 +701,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     
     gmesh->BuildConnectivity();
 
-        if(1){
+        if(0){
             std::ofstream Dummyfile("GeometricMesh2d.vtk");
             TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
         }
@@ -783,7 +783,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshCoupling(TPZVec<int> &n_div, TPZVec<
 
     gmesh->BuildConnectivity();
 
-    if(1){
+    if(0){
         std::ofstream Dummyfile("GeometricMesh2d.vtk");
         TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
     }
@@ -2742,7 +2742,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::ECouplingNSD:
         {
 
-            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
             BC_bott->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BC_bott);
 

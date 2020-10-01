@@ -115,7 +115,22 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 
         Lambda_dot_phiV = InnerVec(lambda_n, phiVi);
         ef(i1) += -fMultiplier * weight*Lambda_dot_phiV;
-        
+//        TPZManVector<REAL,3>  normal = datavecleft[vindex].normal;
+//        TPZManVector<REAL,3>  cood = data.x;
+//        if(normal[1]=-1&&cood[1]==0.){
+//            for(int j1 = 0; j1 < nshapeV; j1++) {
+//                int jphi1 = datavecleft[vindex].fVecShapeIndex[j1].second;
+//                int jvec1 = datavecleft[vindex].fVecShapeIndex[j1].first;
+//
+//                TPZFNMatrix<9, STATE> phiVj(3,1);
+//                for (int e=0; e< 3 ; e++) {
+//                    phiVj(e,0)=Normalvec(e,jvec1)*datavecleft[vindex].phi(jphi1,0);
+//                }
+//                STATE fact = fMultiplier * weight * InnerVec(phiVi,phiVj);
+//                ek(i1,j1) += fact;
+//            }
+//        }
+
         // K12 e K21 - (test V left) * (trial Lambda right)
         for(int j1 = 0; j1 < nshapeLambda; j1++)
         {
