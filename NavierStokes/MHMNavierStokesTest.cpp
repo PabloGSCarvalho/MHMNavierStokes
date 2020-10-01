@@ -56,7 +56,10 @@ MHMNavierStokesTest::MHMNavierStokesTest()
     fmatBCbott_z=-6; //3D normal negativa
 
     fmatBChole=-7;
-    
+
+    fmatBCleft_2=-23;
+    fmatBCright_2=-24;
+
     //Material do elemento de interface
     fmatLambda=3; // Multiplier material
 //    fmatLambdaBC=3;
@@ -70,6 +73,8 @@ MHMNavierStokesTest::MHMNavierStokesTest()
 
     fmatLambdaBC_hole=-17;
 
+    fmatLambdaBC_left_2=-33;
+    fmatLambdaBC_right_2=-34;
     
     fmatInterfaceLeft=5;
     fmatInterfaceRight=6;
@@ -117,6 +122,8 @@ MHMNavierStokesTest::MHMNavierStokesTest()
 
     f_ExactSol.fProblemType = f_problemtype;
 
+    f_ExactSol_2.fProblemType = TStokesAnalytic::EBrinkman;
+
     f_mesh_vector.resize(4);
     
     f_T = TPZTransform<>(3,3);
@@ -152,8 +159,9 @@ void MHMNavierStokesTest::Run()
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
         //    gmesh = CreateGMeshCurve();
         gmesh = CreateGMeshRefPattern(n_s,h_s);
-    } else {
-
+    }else if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        gmesh = CreateGMeshCoupling(n_s, h_s);
+    }else {
         gmesh = CreateGMesh(n_s, h_s);
     }
     
@@ -182,6 +190,9 @@ void MHMNavierStokesTest::Run()
     StokesControl->DefinePartitionbyCoarseIndices(coarseindex); //Define the MHM partition by the coarse element indices
     std::set<int> matids;
     matids.insert(fmatID);
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        matids.insert(2);
+    }
     StokesControl->fMaterialIds = matids;
     matids.clear();
     matids.insert(fmatBCtop);
@@ -195,6 +206,10 @@ void MHMNavierStokesTest::Run()
     if(f_domaintype==TStokesAnalytic::EObstacles){
         matids.insert(fmatBChole);
     }
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        matids.insert(fmatBCleft_2);
+        matids.insert(fmatBCright_2);
+    }
     
     StokesControl->fMaterialBCIds = matids;
     StokesControl->fBCTractionMatIds[fmatBCtop]=fmatLambdaBC_top;
@@ -207,6 +222,10 @@ void MHMNavierStokesTest::Run()
     }
     if(f_domaintype==TStokesAnalytic::EObstacles){
         StokesControl->fBCTractionMatIds[fmatBChole]=fmatLambdaBC_hole;
+    }
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        StokesControl->fBCTractionMatIds[fmatBCleft_2]=fmatLambdaBC_left_2;
+        StokesControl->fBCTractionMatIds[fmatBCright_2]=fmatLambdaBC_right_2;
     }
     
     InsertMaterialObjects(StokesControl);
@@ -222,7 +241,7 @@ void MHMNavierStokesTest::Run()
 
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
-    if(0){
+    if(1){
 #ifdef PZDEBUG
     std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
     std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
@@ -277,7 +296,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
-        TPZSpStructMatrix strmat(cmesh.operator->());
+        TPZSymetricSpStructMatrix strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }else{
@@ -289,7 +308,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELU);
+    step.SetDirect(ELDLt);
     an.SetSolver(step);
     std::cout << "Assembling\n";
     an.Assemble();
@@ -389,7 +408,8 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_Results_Linear.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
-    an.SetThreadsForError(24);
+    int n_threads_sim =f_sim_data->GetNthreads();
+    an.SetThreadsForError(4);
 //    an.PostProcessError(Errors,false);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
@@ -399,9 +419,14 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     ConfigPrint(ErroOut);
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
-    ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
-    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
-    ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
+    ErroOut <<"Norma L2 - V = "<< Errors[0] << std::endl;
+    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[1] << std::endl;
+    ErroOut <<"Norma L2 - P = "<< Errors[2] << std::endl;
+    ErroOut <<"-------------" << std::endl;
+    ErroOut <<"Mat2:" << std::endl;
+    ErroOut <<"Darcy - Norma L2 - V = "<< Errors[3] << std::endl;
+    ErroOut <<"Darcy - Semi-norma H1/Hdiv - V = "<< Errors[4] << std::endl;
+    ErroOut <<"Darcy - Norma L2 - P = "<< Errors[5] << std::endl;
     ErroOut <<"-------------" << std::endl;
     ErroOut.flush();
     
@@ -452,8 +477,8 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     cmesh_m->SolutionN();
 
     NS_analysis->SetExact(f_ExactSol.ExactSolution());
-
-    NS_analysis->SetThreadsForError(4);
+    int n_threads_sim =f_sim_data->GetNthreads();
+    NS_analysis->SetThreadsForError(n_threads_sim);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
     NS_analysis->PostProcessError(Errors,false);
@@ -462,9 +487,9 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 #ifdef PZDEBUG
     std::cout <<"-------------" << std::endl;
     std::cout <<"Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
-    std::cout <<"L2-norm - V = "<< Errors[1] << std::endl;
-    std::cout  <<"H1/Hdiv semi-norm - V = "<< Errors[2] << std::endl;
-    std::cout <<"L2-norm - P = "<< Errors[4] << std::endl;
+    std::cout <<"L2-norm - V = "<< Errors[0] << std::endl;
+    std::cout  <<"H1/Hdiv semi-norm - V = "<< Errors[1] << std::endl;
+    std::cout <<"L2-norm - P = "<< Errors[2] << std::endl;
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
         std::cout <<"L2-norm - P - CDG formulation = "<< Errors[5] << std::endl;
     }
@@ -474,9 +499,9 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     ErroOut <<"  //  Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
-    ErroOut <<"L2-norm - V = "<< Errors[1] << std::endl;
-    ErroOut <<"H1/Hdiv semi-norm - V = "<< Errors[2] << std::endl;
-    ErroOut <<"L2-norm - P = "<< Errors[4] << std::endl;
+    ErroOut <<"L2-norm - V = "<< Errors[0] << std::endl;
+    ErroOut <<"H1/Hdiv semi-norm - V = "<< Errors[1] << std::endl;
+    ErroOut <<"L2-norm - P = "<< Errors[2] << std::endl;
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
         ErroOut <<"L2-norm - P - CDG formulation = "<< Errors[5] << std::endl;
     }
@@ -683,6 +708,88 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     
     return gmesh;
     
+}
+
+TPZGeoMesh *MHMNavierStokesTest::CreateGMeshCoupling(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
+{
+
+    int dimmodel = 2;
+    TPZManVector<REAL,3> x0(3,0.),x1(3,0.);
+    x0[0] = 0., x0[1] = -1.;
+    x1[0] = Pi, x1[1] = 1.;
+
+    int y_interface =0;
+    if(f_domaintype==TStokesAnalytic::ECouplingNSD){
+        x0[0] = 0., x0[1] = 0.;
+        x1[0] = 1., x1[1] = 2.;
+        y_interface = 1.;
+    }
+
+    TPZGenGrid2D grid(n_div,x0,x1);
+
+    //grid.SetDistortion(0.5);
+    grid.SetRefpatternElements(true);
+    if (feltype==ETriangle) {
+        grid.SetElementType(MMeshType::ETriangular);
+    }
+    TPZGeoMesh *gmesh = new TPZGeoMesh;
+    grid.Read(gmesh,1);
+    TPZGeoMesh *gmesh2 = new TPZGeoMesh;
+    grid.ReadAndMergeGeoMesh(gmesh,gmesh2,2);
+
+    grid.SetBC(gmesh, 4, fmatBCbott);
+    grid.SetBC(gmesh, 5, fmatBCright);
+    grid.SetBC(gmesh, 6, fmatBCtop);
+    grid.SetBC(gmesh, 7, fmatBCleft);
+
+    //Save the original mesh
+
+    //SetAllRefine();
+
+    TPZVec<REAL> centerCo(2,0.);
+    centerCo[0]=1.;
+    centerCo[1]=0.;
+    // UniformRefine(1, gmesh, centerCo, true);
+
+    //UniformRefine2(1, gmesh, n_div);
+//    InsertLowerDimMaterial(gmesh);
+    SetOriginalMesh(gmesh);
+//    UniformRefine2(1, gmesh, n_div);
+//    InsertLowerDimMaterial(gmesh);
+
+    TPZCheckGeom check(gmesh);
+    check.CheckUniqueId();
+    int nel = gmesh->NElements();
+    TPZVec<REAL> center_coord(3,0.);
+    for (int iel = 0; iel < nel; iel++) {
+        TPZGeoEl *gel = gmesh->ElementVec()[iel];
+        int nsides = gel->NSides();
+        if(gel->MaterialId()==fmatBCright||gel->MaterialId()==fmatBCleft){
+            TPZGeoElSide gelside_bc(gel,nsides-1);
+            gelside_bc.CenterX(center_coord);
+            if(center_coord[1]<y_interface){
+                gel->SetMaterialId(gel->MaterialId()-20);
+            }
+        }
+        if(gel->Dimension()!=2){
+            continue;
+        }
+        TPZGeoElSide gelside(gel,nsides-1);
+        gelside.CenterX(center_coord);
+        if(center_coord[1]<y_interface){
+            gel->SetMaterialId(2);
+        }
+    }
+
+    gmesh->BuildConnectivity();
+
+    if(1){
+        std::ofstream Dummyfile("GeometricMesh2d.vtk");
+        TPZVTKGeoMesh::PrintGMeshVTK(gmesh,Dummyfile, true);
+    }
+
+    return gmesh;
+
 }
 
 TPZGeoMesh *MHMNavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
@@ -2541,6 +2648,15 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     TPZMHMNavierStokesMaterial *mat1 = new TPZMHMNavierStokesMaterial(fmatID,fdim);
     mat1->SetSimulationData(f_sim_data);
 
+    TPZMHMNavierStokesMaterial *mat2 = NULL;
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        //Insert a Darcy material domain;
+        mat2 = new TPZMHMNavierStokesMaterial(2,fdim);
+        mat2->SetSimulationData(f_sim_data);
+        mat2->SetViscosity(0.);
+        mat2->SetBrinkman(f_sim_data->GetPermeability());
+    }
+
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
     if(f_domaintype!=TStokesAnalytic::ECavity&&f_domaintype!=TStokesAnalytic::EObstacles) {
@@ -2555,7 +2671,18 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     //TPZMaterial * mat1(material);
     cmesh.InsertMaterialObject(mat1);
-    
+
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+        TPZAutoPointer<TPZFunction<STATE> > fp2 = f_ExactSol_2.ForcingFunction();
+        f_ExactSol_2.fcBrinkman=1.;
+        f_ExactSol_2.fvisco=0.;
+        f_ExactSol_2.fExactSol = f_domaintype;
+        mat2->SetProblemType(f_ExactSol_2.fProblemType); //Material 2 -> always EBrinkman (Darcy equation)
+        mat2->SetForcingFunction(fp2);
+        mat2->SetForcingFunctionExact(solp);
+        cmesh.InsertMaterialObject(mat2);
+    }
+
     int matSkeleton = 4;
 
     control->SwitchLagrangeMultiplierSign(false);
@@ -2611,6 +2738,36 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         }
             break;
 
+        case TStokesAnalytic::ECouplingSD:
+        case TStokesAnalytic::ECouplingNSD:
+        {
+
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
+            BC_bott->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_bott);
+
+            TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fneumann_v, val1, val2);
+            BC_top->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_top);
+
+            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fneumann_v, val1, val2);
+            BC_left->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_left);
+
+            TPZBndCond *BC_left_2 = mat2->CreateBC(mat2, fmatBCleft_2, fneumann_v, val1, val2);
+            BC_left_2->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_left_2);
+
+            TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            BC_right->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_right);
+
+            TPZBndCond *BC_right_2 = mat2->CreateBC(mat2, fmatBCright_2, fneumann_v, val1, val2);
+            BC_right_2->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_right_2);
+        }
+            break;
+
         default: {
 
             TPZBndCond * BCondD1 = mat1->CreateBC(mat1, fmatBCbott, fneumann_v, val1, val2);
@@ -2628,7 +2785,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             BCondD3->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD3);
 
-            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fdirichlet_v, val1, val2);
+            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
             BCondD4->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BCondD4);
 //qwqwqwqw
@@ -2717,6 +2874,38 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         }
             break;
 
+        case TStokesAnalytic::ECouplingSD:
+        case TStokesAnalytic::ECouplingNSD:
+        {
+
+            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+            matLambdaBC_bott->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_bott);
+
+            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            matLambdaBC_top->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_top);
+
+            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            matLambdaBC_left->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_left);
+
+            TPZBndCond *matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
+            matLambdaBC_left_2->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_left_2);
+
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            matLambdaBC_right->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_right);
+
+            TPZBndCond *matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
+            matLambdaBC_right_2->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_right_2);
+
+
+        }
+            break;
+
         default: {
 
             TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
@@ -2731,7 +2920,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             matLambdaBC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
             matLambdaBC_right->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 //qwqwqwqw

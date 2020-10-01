@@ -36,6 +36,9 @@ protected:
     
     /// viscosidade
     STATE fViscosity;
+
+    /// Brinkman coef
+    STATE fcBrinkman;
     
     /** @brief Medium permeability. Coeficient which multiplies the gradient operator*/
     STATE fk;
@@ -146,7 +149,15 @@ public:
     void SetViscosity(STATE visco){
         fViscosity = visco;
     }
-    
+
+    STATE GetBrinkman() const{
+        return fcBrinkman;
+    }
+
+    void SetBrinkman(STATE cBrinkman){
+        fcBrinkman = cBrinkman;
+    }
+
     /** returns the integrable dimension of the material */
     int Dimension() const {
         return fDimension;

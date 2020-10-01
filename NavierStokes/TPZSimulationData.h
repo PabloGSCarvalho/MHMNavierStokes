@@ -53,6 +53,9 @@ protected:
     /** Viscosity coeficient */
     REAL m_visco;
 
+    /** Permeability coeficient */
+    REAL m_permeability;
+
     /** Brinkman coeficient */
     REAL m_cBrinkman;
 
@@ -204,6 +207,16 @@ public:
     /** Get the viscosity coeficient */
     REAL GetViscosity(){
         return m_visco;
+    }
+
+    /** Set the permeability coeficient */
+    void SetPermeability(REAL perm){
+        m_permeability = perm;
+    }
+
+    /** Get the permeability coeficient */
+    REAL GetPermeability(){
+        return m_permeability;
     }
 
     /** Set the Brinkman coeficient */

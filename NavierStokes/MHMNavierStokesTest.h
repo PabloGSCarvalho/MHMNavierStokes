@@ -69,6 +69,9 @@ private:
     int fmatBCleft;
     int fmatBCright;
 
+    int fmatBCleft_2;
+    int fmatBCright_2;
+
     int fmatBChole;
 
     int fmatBCtop_z;
@@ -87,6 +90,9 @@ private:
     
     int fmatLambdaBC_top_z;
     int fmatLambdaBC_bott_z;
+
+    int fmatLambdaBC_left_2;
+    int fmatLambdaBC_right_2;
     
     int fmatInterfaceLeft;
     int fmatInterfaceRight;
@@ -137,6 +143,8 @@ private:
 
     TStokesAnalytic f_ExactSol;
 
+    TStokesAnalytic f_ExactSol_2;
+
     bool f_Holemesh = false;
     
     TPZVec<TPZCompMesh * > f_mesh_vector;
@@ -185,7 +193,9 @@ public:
     TPZGeoMesh *CreateGMesh(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
 
     TPZGeoMesh *CreateGMesh3D(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
-    
+
+    TPZGeoMesh *CreateGMeshCoupling(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
+
     TPZGeoMesh *CreateGMeshCurve();
 
     TPZGeoMesh *CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<REAL> &h_s);

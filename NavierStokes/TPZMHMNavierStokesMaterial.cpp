@@ -113,7 +113,6 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
             }
         }
 
-
         Lambda_dot_phiV = InnerVec(lambda_n, phiVi);
         ef(i1) += -fMultiplier * weight*Lambda_dot_phiV;
         

@@ -23,6 +23,8 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZNSMemory, 
     TPZNSMemory defaultmemory;
     this->SetDefaultMem(defaultmemory);
     fk=1;
+    fViscosity=1.;
+    fcBrinkman=0.;
     f_problemtype = TStokesAnalytic::ENavierStokes;
     fState = ECurrentState;
     fDeltaT = 0.;
@@ -31,7 +33,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial() : TPZMatWithMem<TPZNSMemory, 
 
 ////////////////////////////////////////////////////////////////////
 
-TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(matid),fDimension(dimension),fSpace(1),fViscosity(1.),fTheta(0),fSigma(0)
+TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(matid),fDimension(dimension),fSpace(1),fViscosity(1.),fcBrinkman(0.),fTheta(0),fSigma(0)
 {
     // symmetric version
     //fTheta = -1;
@@ -48,7 +50,7 @@ TPZNavierStokesMaterial::TPZNavierStokesMaterial(int matid, int dimension) : TPZ
 
 ////////////////////////////////////////////////////////////////////
 
-TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity), fTheta(mat.fTheta), fSigma(mat.fSigma)
+TPZNavierStokesMaterial::TPZNavierStokesMaterial(const TPZNavierStokesMaterial &mat) : TPZMatWithMem<TPZNSMemory, TPZDiscontinuousGalerkin >(mat),fDimension(mat.fDimension),fSpace(mat.fSpace), fViscosity(mat.fViscosity),fcBrinkman(mat.fcBrinkman), fTheta(mat.fTheta), fSigma(mat.fSigma)
 {
     fk= mat.fk;
     f_problemtype = mat.f_problemtype;
@@ -71,6 +73,7 @@ void TPZNavierStokesMaterial::SetSimulationData(TPZSimulationData *simdata){
     //Set parameters and constants:
     f_problemtype = f_sim_data->GetProblemType();
     fViscosity = f_sim_data->GetViscosity();
+    fcBrinkman = f_sim_data->GetBrinkmanCoef();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -749,13 +752,12 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         }
 
         if (f_problemtype==TStokesAnalytic::EBrinkman){
-        REAL coefB = f_sim_data->GetBrinkmanCoef();
 
             STATE B_phi_dot_Un = 0.0; // - coefB * phi * u_{n}
             for (int e=0; e<3; e++) {
                 B_phi_dot_Un += phiVi(e)*u_n[e];
             }
-            ef(i) += - weight *coefB * B_phi_dot_Un;
+            ef(i) += - weight *fcBrinkman * B_phi_dot_Un;
         }
 
         STATE divui = 0.;
@@ -892,7 +894,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             }
 
             if (f_problemtype==TStokesAnalytic::EBrinkman){
-                STATE Brinkman_term = f_sim_data->GetBrinkmanCoef() * InnerVec(phiVi, phiVj); // - coefB * phiU * phiV
+                STATE Brinkman_term = fcBrinkman * InnerVec(phiVi, phiVj); // - coefB * phiU * phiV
                 ek(i,j) += weight  * Brinkman_term;
             }
 
@@ -1739,10 +1741,10 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
     errors.Resize(NEvalErrors());
     errors.Fill(0.0);
     TPZManVector<STATE> Velocity(3,0.), Pressure(3,0.);
-    
+
     this->Solution(data,VariableIndex("V"), Velocity);
     this->Solution(data,VariableIndex("P"), Pressure);
-    
+
     int vindex = this->VIndex();
     int pindex = this->PIndex();
     
@@ -1762,126 +1764,49 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
    // TPZAxesTools<STATE>::Axes2XYZ(dsolp, dsolxyp, data[pindex].axes);
     
     dsolxyp = dsolp;
-    
+
 //    std::cout<<Velocity<<std::endl;
 //    std::cout<<sol_exact<<std::endl;
     
     int shift = 3;
-    // velocity
-    
-    //values[2] : erro norma L2
+    // velocity - erro norma L2
     STATE diff, diffp;
-    errors[1] = 0.;
+    errors[0] = 0.;
     for(int i=0; i<3; i++) {
         diff = Velocity[i] - sol_exact[i];
-        errors[1]  += diff*diff;
+        errors[0]  += diff*diff;
     }
 
-    ////////////////////////////////////////////////// H1 / GD
-    
-    if(fSpace==2){
-        
-//        //values[2] : erro em semi norma H1
-//        errors[2] = 0.;
-//        TPZFMatrix<STATE> S(Dimension(),Dimension(),0.0);
-//        for(int i=0; i<Dimension(); i++) {
-//            for(int j=0; j<Dimension(); j++) {
-//                S(i,j) = dsolxy(i,j) - du_exact(i,j);
-//            }
-//        }
-//
-//        diff = Inner(S, S);
-//        errors[2]  += diff;
-//
-//        //values[0] : erro em norma H1 <=> norma Energia
-//        errors[0]  = errors[1]+errors[2];
+    // velocity - erro divergence
 
-        /// erro norma HDiv
-        
-        STATE Div_exact=0., Div=0.;
-        for(int i=0; i<3; i++) {
-            Div_exact+=dsol_exact(i,i);
-            Div+=dsolxy(i,i);
-        }
-        
-        diff = Div-Div_exact;
-        
-        errors[2]  = diff*diff;
-        
-        // errors[0]  = errors[1]+errors[2];
-        
+    STATE Div_exact=0., Div=0.;
+    for(int i=0; i<3; i++) {
+        Div_exact+=dsol_exact(i,i);
+        Div+=dsolxy(i,i);
     }
-    
-    if(fSpace==3){
-        
-//        //values[2] : erro em semi norma H1
-//        errors[2] = 0.;
-//        TPZFMatrix<STATE> S(Dimension(),Dimension(),0.0);
-//        for(int i=0; i<Dimension(); i++) {
-//            for(int j=0; j<Dimension(); j++) {
-//                S(i,j) = dsolxy(i,j) - du_exact(i,j);
-//            }
-//        }
-//
-//        diff = Inner(S, S);
-//        errors[2]  += diff;
-//
-//        //values[0] : erro em norma H1 <=> norma Energia
-//        errors[0]  = errors[1]+errors[2];
 
-        /// erro norma HDiv
-        
-        STATE Div_exact=0., Div=0.;
-        for(int i=0; i<3; i++) {
-            Div_exact+=dsol_exact(i,i);
-            Div+=dsolxy(i,i);
-        }
-        
-        diff = Div-Div_exact;
-        
-        errors[2]  = diff*diff;
-        
-   //     errors[0]  = errors[1]+errors[2];
-        
-    }
-    
-    
-    ////////////////////////////////////////////////// H1 / GD
-    
-    // pressure
-    
-    /// values[1] : eror em norma L2
+    diff = Div-Div_exact;
+    errors[1]  = diff*diff;
+
+    // pressure - eror em norma L2
     diffp = Pressure[0] - sol_exact[3];
-    errors[shift+1]  = diffp*diffp;
-    
+    errors[2]  = diffp*diffp;
+
+
+    //For couplings:
+    if(f_problemtype==TStokesAnalytic::EBrinkman){
+        for (int i = 0; i < 3; ++i) {
+            errors[3+i]=errors[i];
+            errors[i]=0.;
+        }
+    }
+
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
         STATE diffp_CDG = 0.;
         diffp = (Pressure[0]-(Velocity[0]*Velocity[0]+Velocity[1]*Velocity[1]+Velocity[2]*Velocity[2])*0.5) - (sol_exact[3]-(sol_exact[0]*sol_exact[0]+sol_exact[1]*sol_exact[1]+sol_exact[2]*sol_exact[2])*0.5);
         errors[shift+2]  = diffp*diffp;
     }
 
-
-    
-    ////////////////////////////////////////////////// HDIV
-    
-    if(fSpace==1){
-        /// erro norma HDiv
-        
-        STATE Div_exact=0., Div=0.;
-        for(int i=0; i<3; i++) {
-            Div_exact+=dsol_exact(i,i);
-            Div+=dsolxy(i,i);
-        }
-        
-        diff = Div-Div_exact;
-        
-        errors[2]  = diff*diff;
-        
-    //    errors[0]  = errors[1]+errors[2];
-        
-    }
-    
-    ////////////////////////////////////////////////// HDIV
     
 }
 

@@ -332,9 +332,9 @@ void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
     ErroOut <<"  //  Ordem = "<< pOrder << "  //  Tamanho da malha = "<< n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << std::endl;
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
-    ErroOut <<"Norma L2 - V = "<< Errors[1] << std::endl;
-    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[2] << std::endl;
-    ErroOut <<"Norma L2 - P = "<< Errors[4] << std::endl;
+    ErroOut <<"Norma L2 - V = "<< Errors[0] << std::endl;
+    ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[1] << std::endl;
+    ErroOut <<"Norma L2 - P = "<< Errors[2] << std::endl;
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
         ErroOut <<"Norma L2 - P - CDG formulation = "<< Errors[5] << std::endl;
     }
