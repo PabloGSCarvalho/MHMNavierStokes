@@ -192,9 +192,9 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
 
 //        if(i==1){
-//            mat->SetProblemType(TStokesAnalytic::EOseenCDG);
+//            mat->SetProblemType(TStokesAnalytic::EOseen);
 //        }else{
-//            mat->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+//            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
 //        }
 
         this->ExecuteNewtonIteration();

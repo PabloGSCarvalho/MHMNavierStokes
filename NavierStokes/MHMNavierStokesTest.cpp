@@ -278,9 +278,9 @@ void MHMNavierStokesTest::Run()
     std::stringstream MHMStokesPref;
     MHMStokesPref << "MHMStokes";
 
-    SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    //SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
 
-    //SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
     std::cout << "FINISHED!" << std::endl;
     
 }

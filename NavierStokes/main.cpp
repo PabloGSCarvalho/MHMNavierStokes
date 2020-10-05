@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     
     TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = Coupling;
+    Simulation_case sim_case = MHMProblem;
 #ifdef LOG4CXX
     InitializePZLOG();
 #endif
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
         {
             int pOrder = 1;
             for (pOrder=1; pOrder<=3; pOrder++){
-                for (int it=1; it<=4; it++) {
+                for (int it=4; it<=4; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
                     MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                     //Test2->Set3Dmesh();
                     //Test2->SetHdivPlus();
-                    Test2->SetElType(ECube);
+                    //Test2->SetElType(ECube);
 
                     TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                     Test2->SetTransform(Transf, InvTransf);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
                     sim_data->SetDomainSize(h_s);
                     sim_data->SetNInterRefs(0);
                     sim_data->SetViscosity(1.);
-                    sim_data->SetBrinkmanCoef(1.); //For Brinkman
+                    sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(8);
                     //simdata.SetShapeTest(); // Test for shape functions
 
@@ -130,8 +130,8 @@ int main(int argc, char *argv[])
                         //    sim_data->SetPardisoSolver();
                     }
 
-                    sim_data->SetProblemType(TStokesAnalytic::EBrinkman);
-                    sim_data->SetDomainType(TStokesAnalytic::ESinCos3D);
+                    sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
+                    sim_data->SetDomainType(TStokesAnalytic::EKovasznay);
 
                     //Transient parameters:
                     //sim_data->SetTimeTotal(11.);
