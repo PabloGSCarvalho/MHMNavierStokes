@@ -59,9 +59,9 @@ enum Simulation_case {MHMProblem, HybridProblem, Coupling};
 int main(int argc, char *argv[])
 {
     
-    TPZMaterial::gBigNumber = 1.e12;
+    TPZMaterial::gBigNumber = 1.e10;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = MHMProblem;
+    Simulation_case sim_case = Coupling;
 #ifdef LOG4CXX
     InitializePZLOG();
 #endif
@@ -149,8 +149,8 @@ int main(int argc, char *argv[])
         {
 
             int pOrder = 1;
-            for (pOrder=2; pOrder<=2; pOrder++){
-                for (int it=6; it<=6; it++) {
+            for (pOrder=1; pOrder<=3; pOrder++){
+                for (int it=2; it<=6; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -170,19 +170,19 @@ int main(int argc, char *argv[])
                     sim_data->SetViscosity(1.);  //
                     sim_data->SetBrinkmanCoef(0.); //Material 1 => Stokes
                     sim_data->SetPermeability(1.); //Material 2 => Darcy
-                    sim_data->SetNthreads(8);
+                    sim_data->SetNthreads(24);
 
                     sim_data->SetOptimizeBandwidthQ(true);
                     //sim_data->SetStaticCondensation(false);
                     sim_data->Set_n_iterations(40);
                     sim_data->Set_epsilon_cor(0.0000001);
-                    sim_data->Set_epsilon_res(0.0000001);
-                    //sim_data->SetPardisoSolver();
+                    sim_data->Set_epsilon_res(0.00001);
+                    sim_data->SetPardisoSolver();
                     if(h_level==16){
                         sim_data->ActivatePostProcessing();
                     }
 
-                    sim_data->SetProblemType(TStokesAnalytic::EStokes);
+                    sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
                     sim_data->SetDomainType(TStokesAnalytic::ECouplingSD);
 
                     //Transient parameters:

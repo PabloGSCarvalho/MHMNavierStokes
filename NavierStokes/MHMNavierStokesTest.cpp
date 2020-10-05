@@ -496,6 +496,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     std::cout <<"-------------" << std::endl;
 #endif
 
+    ConfigPrint(ErroOut);
     ErroOut <<"  //  Order = "<< f_sim_data->GetInternalOrder() << "  //  N internal refs = " << f_sim_data->GetNInterRefs() << "  //  Coarse divisions = " << f_sim_data->GetCoarseDivisions()[0] << " x " << f_sim_data->GetCoarseDivisions()[1]  << std::endl;
     ErroOut <<" " << std::endl;
     //ErroOut <<"Norma H1/HDiv - V = "<< Errors[0] << std::endl;
@@ -505,6 +506,11 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     if(f_problemtype==TStokesAnalytic::ENavierStokesCDG||f_problemtype==TStokesAnalytic::EOseenCDG){
         ErroOut <<"L2-norm - P - CDG formulation = "<< Errors[5] << std::endl;
     }
+    ErroOut <<"-------------" << std::endl;
+    ErroOut <<"Mat2:" << std::endl;
+    ErroOut <<"Darcy - Norma L2 - V = "<< Errors[3] << std::endl;
+    ErroOut <<"Darcy - Semi-norma H1/Hdiv - V = "<< Errors[4] << std::endl;
+    ErroOut <<"Darcy - Norma L2 - P = "<< Errors[5] << std::endl;
     ErroOut <<"-------------" << std::endl;
     ErroOut.flush();
 
@@ -2742,7 +2748,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::ECouplingNSD:
         {
 
-            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
             BC_bott->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BC_bott);
 
