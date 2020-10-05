@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         case MHMProblem: //Pressure
         {
             int pOrder = 1;
-            for (pOrder=1; pOrder<=3; pOrder++){
+            for (pOrder=2; pOrder<=2; pOrder++){
                 for (int it=4; it<=4; it++) {
                     h_level = pow(2., it);
 

@@ -26,7 +26,7 @@ void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &
 }
 
 void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef){
- 
+
     //2 = 1 Vel space + 1 Press space for datavecleft
 
     if(fState==ELastState){
@@ -38,17 +38,17 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     //    std::cout << " Erro. The size of the datavec is different from 2 \n";
     //    DebugStop();
     }
-    
+
     //2 = 1 Vel space + 1 Press space for datavecright
     int nrefright =  datavecright.size();
     if (nrefright != 4 ) {
    //     std::cout << " Erro. The size of the datavec is different from 2 \n";
    //     DebugStop();
     }
-    
+
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
-    
+
     if (datavecleft[vindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavecleft[vindex]);
     }
@@ -56,18 +56,18 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     if (datavecleft[pindex].fVecShapeIndex.size() == 0) {
         FillVecShapeIndex(datavecleft[pindex]);
     }
-    
+
     // Setting the phis
     // V - left
     TPZFNMatrix<9,REAL>  &tan = datavecright[pindex].axes;
 
     TPZManVector<STATE,3> u_n = datavecleft[vindex].sol[0];
-    
+
     STATE sLambda_n = datavecright[pindex].sol[0][0];
-    
+
     TPZManVector<STATE,3> Lambda_n = datavecright[pindex].sol[0];
 
-    
+
     int nshapeV , nshapeP , nshapeLambda, nstateVariablesL;
     nshapeV = datavecleft[vindex].fVecShapeIndex.NElements();
     nshapeP = datavecleft[pindex].phi.Rows();
@@ -77,11 +77,11 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 //    if(nstateVariablesL>1){
 //        tan = Tangential(datavecright[pindex].normal);
 //    }
-    
+
     int normvecRows = datavecleft[vindex].fDeformedDirections.Rows();
     int normvecCols = datavecleft[vindex].fDeformedDirections.Cols();
     TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
-    
+
     if(datavecleft[vindex].fNeedsDeformedDirectionsFad){
 #ifdef _AUTODIFF
         for (int e = 0; e < normvecRows; e++) {
@@ -100,15 +100,15 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
     {
         int iphi1 = datavecleft[vindex].fVecShapeIndex[i1].second;
         int ivec1 = datavecleft[vindex].fVecShapeIndex[i1].first;
-        
-        TPZFNMatrix<9, STATE> phiVi(3,1),lambda_n(3,1);
+
+        TPZFNMatrix<9, STATE> phiVi(3,1,0.),lambda_n(3,1,0.);
         for (int e=0; e< 3 ; e++) {
             phiVi(e,0)=Normalvec(e,ivec1)*datavecleft[vindex].phi(iphi1,0);
         }
 
         STATE Lambda_dot_phiV = 0.; //rhs term
-        for (int e=0; e< 3 ; e++) {
-            for(int f =0; f< tan.Rows() ; f++){
+        for(int f =0; f< nstateVariablesL ; f++){
+            for (int e=0; e< 3 ; e++) {
                 lambda_n(e,0) += sLambda_n*tan(f,e);
             }
         }
@@ -158,10 +158,11 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
         // Var. Sigma, Sn :
         TPZFNMatrix<9, STATE> lambda_i(3,1,0.);
         TPZFNMatrix<9, STATE> phiLamb = datavecright[pindex].phi;
-        
+
         // Tangencial comp. vector (t x t)Sn :
-        for (int e=0; e< 3 ; e++) {
-            for(int f =0; f< tan.Rows() ; f++) {
+        for(int f =0; f< nstateVariablesL ; f++) {
+            lambda_i.Zero();
+            for (int e=0; e< 3 ; e++) {
                 lambda_i(e, 0) += phiLamb(i1, 0) * tan(f, e);
             }
         }
