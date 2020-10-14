@@ -507,7 +507,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
 
     NS_analysis->SetExact(f_ExactSol.ExactSolution());
     int n_threads_sim =f_sim_data->GetNthreads();
-    NS_analysis->SetThreadsForError(n_threads_sim);
+    NS_analysis->SetThreadsForError(8);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
     NS_analysis->PostProcessError(Errors,false);
@@ -3649,7 +3649,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::ECouplingNSD:
         {
 
-            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
             BC_bott->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BC_bott);
 

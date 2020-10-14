@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
                     //sim_data->SetStaticCondensation(false);
                     sim_data->Set_n_iterations(40);
                     sim_data->Set_epsilon_cor(0.0000001);
-                    sim_data->Set_epsilon_res(0.00001);
+                    sim_data->Set_epsilon_res(0.0001);
                     sim_data->SetPardisoSolver();
                     if(h_level==16){
                         sim_data->ActivatePostProcessing();
