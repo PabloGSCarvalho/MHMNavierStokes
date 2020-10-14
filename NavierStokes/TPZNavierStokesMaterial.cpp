@@ -660,7 +660,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     TPZVec<STATE> Force(3,0.), Force_rot(3,0.);
     if(f_problemtype==TStokesAnalytic::EBrinkman){
         Force.resize(4);
+        Force[3] = 0.;
     }
+
 
     TPZFMatrix<STATE> phiVi(3,1,0.0),phiVj(3,1,0.0);
 
@@ -911,9 +913,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 }
             }
             STATE A_term = Inner(Dui, Duj);
-
+            STATE viscc = fViscosity;
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
-
 
             if (f_problemtype==TStokesAnalytic::ENavierStokes) {
 
@@ -1034,10 +1035,9 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
         if (f_problemtype==TStokesAnalytic::EBrinkman) {
             STATE Brinkman_source = 0.; // B - Mixed term
-            Brinkman_source = phiP(i,0)*Force[3];
+            Brinkman_source = phiP(i,0)*Force[3]; //gsource
             ef(i+nshapeV) += -weight*Brinkman_source;
         }
-        //std::cout<<Force[3]<<std::endl;
     }
 
 

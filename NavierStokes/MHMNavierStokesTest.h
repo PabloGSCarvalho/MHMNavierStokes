@@ -117,6 +117,8 @@ private:
     int fdirichlet_sigma;
     int fneumann_sigma;
 
+    int f_BJS_condition;
+
     int fpenetration;
     int fpointtype;
     int fdirichletvar;
@@ -156,7 +158,7 @@ private:
     bool f_allrefine = false;
     
     TPZGeoMesh *f_mesh0;
-    
+
     TPZStack<TPZGeoElSide> f_skellNeighs;
     
     bool f_3Dmesh = false;
@@ -201,6 +203,10 @@ public:
     TPZGeoMesh *CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<REAL> &h_s);
 
     TPZAutoPointer<TPZRefPattern> CreateGMeshObstacle(int nrefs, TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el);
+
+    TPZGeoMesh *CreateGMeshVugsRefPattern(TPZVec<int> &n_div, TPZVec<REAL> &h_s);
+
+    TPZAutoPointer<TPZRefPattern> CreateGMeshVugs(int nrefs, TPZManVector<REAL,6> &FirstCoord, TPZManVector<REAL,6> &h_el);
 
     TPZAutoPointer<TPZRefPattern> CreateGMeshQuadRef(int nrefs, TPZManVector<REAL,6> &h_el);
 
@@ -356,6 +362,8 @@ public:
     void GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m);
     
     void ComputeSkelNeighbours();
+
+    void InsertArcInterface(TPZAutoPointer<TPZGeoMesh> gmesh); //Insert arcs between Stokes and Darcy materials
     
     bool IsSkellNeighbour(TPZGeoElSide neigh);
 
