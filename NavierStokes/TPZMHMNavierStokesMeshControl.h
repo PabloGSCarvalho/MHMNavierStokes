@@ -37,6 +37,8 @@ protected:
 
     bool fsetStaticCondensation;
 
+    // Set Beavers-Joseph-Saffman interface conditions for Stokes-Darcy only
+    bool fsetBJSInterface;
 
 public:
     
@@ -59,7 +61,9 @@ public:
     
     /// Create all data structures for the computational mesh
     virtual void BuildComputationalMesh(bool usersubstructure);
-    
+
+    void InsertBJSInterfaceSkeleton();
+
     void InsertInternalSkeleton();
     
     void InsertBCSkeleton();
@@ -108,6 +112,11 @@ public:
     {
         fsetStaticCondensation = flag;
     }
+
+    void SetBJSInterface(bool flag)
+    {
+        fsetBJSInterface = flag;
+    }
     
 protected:
 
@@ -154,6 +163,8 @@ protected:
     /// Create the multiphysics BC interface elements between elements of BC traction material id
     void CreateMultiPhysicsBCInterfaceElements();
 
+    void CreateMultiPhysicsBJSInterfaceElements();
+
     void GroupandCondenseSubMeshes();
     
     void GroupAndCondense(TPZCompMesh *cmesh_m);
@@ -169,9 +180,11 @@ public:
     /// material id associated with the internal skeleton elements
     int64_t fTractionMatId = 3;
 
+    int64_t fBJSInterfaceMatId = -7;
+
     /// material ids associated with the BC skeleton elements
     std::map<int64_t,int64_t> fBCTractionMatIds;
-    
+
 };
 
 #endif /* TPZMHMixedMeshControl_hpp */

@@ -204,6 +204,7 @@ void MHMNavierStokesTest::Run()
     StokesControl->DefinePartitionbyCoarseIndices(coarseindex); //Define the MHM partition by the coarse element indices
 
     if(f_domaintype==TStokesAnalytic::EVugs2D){
+        StokesControl->SetBJSInterface(true);
     //    InsertArcInterface(StokesControl->GMesh());
     }
 
@@ -317,7 +318,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
 
     bool shapetest = f_sim_data->GetShapeTest();
     //calculo solution
-    bool shouldrenumber = true;
+    bool shouldrenumber = f_sim_data->GetOptimizeBandwidthQ();
     TPZAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
@@ -1654,24 +1655,9 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshVugsRefPattern(TPZVec<int> &n_div, T
         if (gel->HasSubElement()) {
             continue;
         }
+
+        // External boundary conditions
         if (gel->MaterialId()==2){
-
-            //Create Hole elements:
-            TPZGeoElSide gelside(gel,7);
-            TPZGeoElSide neighbour = gelside.Neighbour();
-
-            bool near_hole = true;
-            while (neighbour != gelside) {
-                if(neighbour.Element()->MaterialId()!=1){
-                    near_hole = false;
-                }
-                neighbour = neighbour.Neighbour();
-            }
-
-            if (near_hole) {
-             //   TPZGeoElBC(gelside, fmatBChole);
-            }
-
 
             TPZManVector<int64_t> TopolPlate(4);
 
@@ -1787,81 +1773,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshVugsRefPattern(TPZVec<int> &n_div, T
         }
     }
 
-    //Build Arcs in BC holes
-    int nnodes = 0;
-    TPZManVector<REAL,3> coord0(3,0.),coord1(3,0.),coordHole(3,0),coordNode(3,0);
-    for(int iel = 0; iel < nel; iel++) {
-        TPZGeoEl *gel = gmesh->ElementVec()[iel];
-        if(!gel){
-            continue;
-        }
-        if(gel->MaterialId()==matSkeleton){
 
-            TPZManVector<int64_t> nodeindices;
-            TPZManVector<int64_t,3> TopolArc(3);
-            gel->GetNodeIndices(nodeindices);
-            TopolArc[0]=nodeindices[0];
-            TopolArc[1]=nodeindices[1];
-
-
-            //Add new node:
-            nnodes = gmesh->NNodes();
-            gmesh->NodeVec().Resize(nnodes+1);
-            nodeindex = nnodes;
-            gmesh->SetNodeIdUsed(nodeindex);
-            REAL radius = h_s[0]/(4.*n_div[0]);
-
-            //Find hole central coord
-            int nsides = gel->NSides();
-
-            TPZGeoElSide gelside(gel,nsides-1);
-            TPZGeoElSide neighbour = gelside.Neighbour();
-
-            while (neighbour != gelside) {
-                if(neighbour.Element()->Dimension()==2){
-                    int index_neigh = neighbour.Element()->Index();
-                    coordHole = f_HoleCoord[index_neigh];
-                    f_ArcCentralNode[index_neigh] = nodeindex;
-                    break;
-                }
-                neighbour = neighbour.Neighbour();
-            }
-
-            gel->Node(0).GetCoordinates(coord0);
-            gel->Node(1).GetCoordinates(coord1);
-
-            REAL rel = (coord0[1]-coordHole[1])/radius;
-            REAL theta0H = asin(rel);
-            rel = (coord1[1]-coordHole[1])/radius;
-            REAL theta1H = asin(rel);
-            REAL theta = theta0H - (theta0H-theta1H)/2;
-
-            if (fabs(coord1[0]-coordHole[0])<1.e-6) {
-                coord1[0] = coordHole[0];
-            }
-            if (fabs(coord0[1]-coordHole[1])<1.e-6) {
-                coord0[1] = coordHole[1];
-            }
-
-            if(coord0[0]<coordHole[0]||coord1[0]<coordHole[0]){
-                theta = Pi - theta;
-            }
-
-            coordNode = ParametricCircle(radius, theta);
-            coordNode[0] +=coordHole[0];
-            coordNode[1] +=coordHole[1];
-            gmesh->NodeVec()[nodeindex].SetCoord(coordNode);
-            gmesh->NodeVec()[nodeindex].SetNodeId(nodeindex);
-
-            TopolArc[2]=nodeindex;
-
-            elementid = gel->Id();
-
-            delete gmesh->ElementVec()[elementid];
-            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZArc3D > (elementid,TopolArc, matSkeleton,*gmesh);
-           // gmesh->ElementVec()[elementid]->IncrementNumInterfaces();
-        }
-    }
 
     gmesh->ResetConnectivities();
 
@@ -3531,7 +3443,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         mat2 = new TPZMHMNavierStokesMaterial(2,fdim);
         mat2->SetSimulationData(f_sim_data);
         mat2->SetViscosity(0.);
-        mat2->SetBrinkman(f_sim_data->GetPermeability());
+        mat2->SetBrinkman(1./f_sim_data->GetPermeability());
     }
 
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
@@ -3601,20 +3513,23 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EVugs2D: //Pressure
         {
             val2(0, 0) = 0.0;
-            TPZBndCond *BC_bott = mat1->CreateBC(mat1, fmatBCbott, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_bott);
 
             val2(0, 0) = 0.0; // vx -> 1
-            TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_top = mat2->CreateBC(mat2, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
             val2(0, 0) = 1.0;
-            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_left = mat2->CreateBC(mat2, fmatBCleft, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_left);
 
             val2(0, 0) = 0.0;
-            TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            TPZBndCond *BC_right = mat2->CreateBC(mat2, fmatBCright, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_right);
+
+            TPZBndCond *BC_BJS = mat1->CreateBC(mat1, fmatBChole, f_BJS_condition, val1, val2);
+            cmesh.InsertMaterialObject(BC_BJS);
 
         }
             break;
@@ -3721,7 +3636,13 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     matLambda->SetNStateVariables(fdim-1);
     control->CMesh()->InsertMaterialObject(matLambda);
 
-    
+//    if(f_domaintype==TStokesAnalytic::EVugs2D){
+//        TPZNullMaterial *matBJS = new TPZNullMaterial(fmatBChole);
+//        matBJS->SetDimension(fdim-1);
+//        matBJS->SetNStateVariables(fdim-1);
+//        control->CMesh()->InsertMaterialObject(matBJS);
+//    }
+
     // 2.2 - Material for interfaces (Interior)
     TPZMHMNavierStokesMaterial *matInterfaceLeft = new TPZMHMNavierStokesMaterial(control->fLagrangeMatIdLeft,fdim);
     matInterfaceLeft->SetSimulationData(f_sim_data);
@@ -3761,18 +3682,18 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EVugs2D: {
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_top = mat2->CreateBC(mat2, fmatLambdaBC_top, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_left = mat2->CreateBC(mat2, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat2->CreateBC(mat2, fmatLambdaBC_right, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
         }

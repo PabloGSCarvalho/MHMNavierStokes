@@ -51,13 +51,13 @@ TPZMHMNavierStokesMeshControl::TPZMHMNavierStokesMeshControl(TPZAutoPointer<TPZG
     fCoarseDistrFluxMesh = new TPZCompMesh(fGMesh);
     fsetCoarseAverageMultipliers = false;
     fsetStaticCondensation = true;
-    
+    fsetBJSInterface = false;
+
     fBCTractionMatIds.clear();
     for(auto it = fMaterialBCIds.begin(); it != fMaterialBCIds.end(); it++)
     {
         fBCTractionMatIds[*it]=*it-10;
     }
-    
 }
 
 TPZMHMNavierStokesMeshControl::TPZMHMNavierStokesMeshControl(int dimension) : TPZMHMixedMeshControl(dimension), fBCTractionMatIds(){
@@ -68,6 +68,7 @@ TPZMHMNavierStokesMeshControl::TPZMHMNavierStokesMeshControl(int dimension) : TP
     fCoarseDistrFluxMesh = new TPZCompMesh(fGMesh);
     fsetCoarseAverageMultipliers = false;
     fsetStaticCondensation = true;
+    fsetBJSInterface = false;
     
     fBCTractionMatIds.clear();
     for(auto it = fMaterialBCIds.begin(); it != fMaterialBCIds.end(); it++)
@@ -84,6 +85,7 @@ TPZMHMNavierStokesMeshControl::TPZMHMNavierStokesMeshControl(TPZAutoPointer<TPZG
     fCoarseDistrFluxMesh = new TPZCompMesh(fGMesh);
     fsetCoarseAverageMultipliers = false;
     fsetStaticCondensation = true;
+    fsetBJSInterface = false;
 
     fBCTractionMatIds.clear();
     for(auto it = fMaterialBCIds.begin(); it != fMaterialBCIds.end(); it++)
@@ -107,6 +109,7 @@ TPZMHMNavierStokesMeshControl &TPZMHMNavierStokesMeshControl::operator=(const TP
     fBCTractionMatIds = cp.fBCTractionMatIds;
     fsetCoarseAverageMultipliers = cp.fsetCoarseAverageMultipliers;
     fsetStaticCondensation = cp.fsetStaticCondensation;
+    fsetBJSInterface = cp.fsetBJSInterface;
     return *this;
 }
 
@@ -129,6 +132,10 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     
     InsertBCSkeleton();
     InsertInternalSkeleton();
+
+    if(fsetBJSInterface){
+        InsertBJSInterfaceSkeleton();
+    }
 
 #ifdef PZDEBUG
     if (fFluxMesh->Dimension() != fGMesh->Dimension()) {
@@ -245,6 +252,14 @@ void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
         TPZMaterial *mat = cmeshTraction->FindMaterial(fBCTractionMatIds[it]);
         if (mat && mat->Dimension() == meshdim) {
             matids.insert(fBCTractionMatIds[it]);
+        }
+    }
+
+    if(fsetBJSInterface){
+        int matID_BJS = -7;
+        TPZMaterial *mat = cmeshTraction->FindMaterial(matID_BJS);
+        if (mat && mat->Dimension() == meshdim) {
+            matids.insert(matID_BJS);
         }
     }
 
@@ -439,7 +454,17 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
         }
         
     }
-    
+
+    if(fsetBJSInterface){
+        int matID_BJS = -7;
+        TPZVecL2 *matBC_BJS = new TPZVecL2(matID_BJS);
+        matBC_BJS->SetDimension(fGMesh->Dimension()-1);
+        matBC_BJS->SetNStateVariables(nstate_bctraction);
+        cmeshPressure->InsertMaterialObject(matBC_BJS);
+    }
+
+
+
 }
 
 void TPZMHMNavierStokesMeshControl::InsertPeriferalAveragePressMaterialObjects(){
@@ -900,6 +925,10 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
     CreateMultiPhysicsInterfaceElements();
     CreateMultiPhysicsBCInterfaceElements();
 
+    if(fsetBJSInterface){
+        CreateMultiPhysicsBJSInterfaceElements();
+    }
+
 //    std::map<int64_t,int64_t> submeshindices;
 //    TPZCompMeshTools::PutinSubmeshes(mixed_cmesh, ElementGroups, submeshindices, KeepOneLagrangian);
 
@@ -1114,7 +1143,7 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsInterfaceElements(){
         if (matid != fTractionMatId) {
             continue;
         }
-        
+
         if (gel->HasSubElement() == 1) {
             continue;
         }
@@ -1314,6 +1343,105 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBCInterfaceElements(){
     
     
 }
+
+void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBJSInterfaceElements(){
+
+    int matBCinterface = fLagrangeMatIdRight;
+
+    int matfrom = fBJSInterfaceMatId;
+    TPZCompMesh *cmesh = fCMesh.operator->();
+
+    int64_t nel = fGMesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
+        TPZGeoEl *gel = fGMesh->Element(el);
+        int meshdim = fGMesh->Dimension();
+        int matid = gel->MaterialId();
+
+        if (matid != matfrom) {
+            continue;
+        }
+
+        int nsides = gel->NSides();
+        TPZGeoElSide gelside(gel,nsides-1);
+        TPZCompElSide celside = gelside.Reference();
+
+        TPZStack<TPZGeoElSide> neighbourset;
+        gelside.AllNeighbours(neighbourset);
+
+        int nneighs = neighbourset.size();
+//            if(nneighs!=2){
+//                //    DebugStop();
+//            }
+
+        TPZManVector<int64_t,3> LeftElIndices(1,0.),RightElIndices(1,0.);
+        LeftElIndices[0]=0;
+        RightElIndices[0]=1;
+
+        for(int stack_i=0; stack_i <nneighs; stack_i++){
+            TPZGeoElSide neigh = neighbourset[stack_i];
+            if (neigh.Element()->Dimension()!=meshdim) {
+                continue;
+            }
+
+            TPZCompElSide celneigh = neigh.Reference();
+            if (!celside || !celneigh) {
+                //    DebugStop();
+            }
+            int64_t neigh_index = neigh.Element()->Index();
+            if (neigh.Element()->Dimension()!=meshdim){
+                continue;
+            }
+
+            if (neigh.Element()->HasSubElement()) {
+
+                TPZStack<TPZGeoElSide > subelside;
+                neigh.YoungestChildren(subelside);
+
+                for (int i_sub = 0; i_sub<subelside.size(); i_sub++) {
+
+                    TPZCompElSide cel_sub_neigh = subelside[i_sub].Reference();
+
+                    TPZGeoElBC gbc_sub(subelside[i_sub],matBCinterface);
+                    int64_t index;
+
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                    elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
+
+#ifdef PZDEBUG
+                    if(0){
+                        std::cout << "****Created an BC interface element between volumetric element " << subelside[i_sub].Element()->Index() <<
+                        " side " << subelside[i_sub].Side() <<
+                        " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                    }
+#endif
+
+                }
+
+            }else{
+
+                TPZGeoElBC gbc(gelside,matBCinterface);
+                int64_t index;
+
+                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
+
+#ifdef PZDEBUG
+                if(0){
+                    std::cout << "Created an BC interface element between volumetric element " << neigh.Element()->Index() <<
+                    " side " << neigh.Side() <<
+                    " and boundary 1D element " << gelside.Element()->Index() << std::endl;
+                }
+#endif
+            }
+
+        }
+    }
+
+
+
+
+}
+
 
 void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
 {
@@ -1667,4 +1795,34 @@ void TPZMHMNavierStokesMeshControl::BuildMultiPhysicsMesh()
     TPZManVector<int> active(cmeshes.size(),1);
     mphysics->BuildMultiphysicsSpaceWithMemory(active,cmeshes);
 
+}
+
+void TPZMHMNavierStokesMeshControl::InsertBJSInterfaceSkeleton()
+{
+    int nel = fGMesh->NElements();
+    for (int iel = 0; iel < nel; iel++) {
+        TPZGeoEl *gel = fGMesh->ElementVec()[iel];
+        if (gel->HasSubElement()) {
+            continue;
+        }
+        // BJS interface  element
+        if (gel->MaterialId() == 1) {
+
+            //Create Hole elements:
+            TPZGeoElSide gelside(gel, 5);
+            TPZGeoElSide neighbour = gelside.Neighbour();
+
+            bool near_hole = true;
+            while (neighbour != gelside) {
+                if (neighbour.Element()->Dimension()==fGMesh->Dimension()&&neighbour.Element()->MaterialId() != 2) {
+                    near_hole = false;
+                }
+                neighbour = neighbour.Neighbour();
+            }
+
+            if (near_hole) {
+                TPZGeoElBC(gelside, fBJSInterfaceMatId);
+            }
+        }
+    }
 }

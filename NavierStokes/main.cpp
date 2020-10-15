@@ -59,7 +59,7 @@ enum Simulation_case {MHMProblem, HybridProblem, Coupling, Vugs2D};
 int main(int argc, char *argv[])
 {
     
-    TPZMaterial::gBigNumber = 1.e10;
+    TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
     Simulation_case sim_case = Vugs2D;
 #ifdef LOG4CXX
@@ -164,9 +164,9 @@ int main(int argc, char *argv[])
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(1.);  //
+            sim_data->SetViscosity(.1);  //
             sim_data->SetBrinkmanCoef(0.); //Material 1 => Stokes
-            sim_data->SetPermeability(1.); //Material 2 => Darcy
+            sim_data->SetPermeability(.5); //Material 2 => Darcy
             sim_data->SetNthreads(8);
 
             sim_data->SetOptimizeBandwidthQ(true);
