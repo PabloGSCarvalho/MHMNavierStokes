@@ -1,7 +1,7 @@
 IsquadQ = 0;
  
-Mesh.ElementOrder = 2;
-Mesh.SecondOrderLinear = 2;
+Mesh.ElementOrder = 1;
+Mesh.SecondOrderLinear = 0;
 
 // Definição de parâmtros
 
@@ -132,8 +132,8 @@ Curve Loop(5) = {17};
  h01 = 0.2; h02 = 0.2;    //dimensions
  Point(29) = {co01-h01/2.,co02,0,lc};
  Point(30) = {co01+h01/2,co02,0,lc};
- Point(31) = {co01,co02+h02/2.,0,lc};
- Point(32) = {co01,co02-h02/2,0,lc};
+ Point(31) = {co01,co02+h02/1.2,0,lc};
+ Point(32) = {co01,co02-h02/1.2,0,lc};
  
  Spline(22) = {32,30,31,29,32};
  Curve Loop(7) = {22};
@@ -144,8 +144,8 @@ Curve Loop(5) = {17};
  h01 = 0.3; h02 = 0.3;    //dimensions
  Point(33) = {co01-h01/2.,co02,0,lc};
  Point(34) = {co01+h01/2,co02,0,lc};
- Point(35) = {co01,co02+h02/2.,0,lc};
- Point(36) = {co01,co02-h02/2,0,lc};
+ Point(35) = {co01,co02+h02/1.5,0,lc};
+ Point(36) = {co01,co02-h02/1.1,0,lc};
  
  Spline(23) = {36,34,35,33,36};
  Curve Loop(8) = {23};
@@ -158,7 +158,7 @@ Curve Loop(5) = {17};
  Point(40) = {2.7-0.4,0.14,0,lc};
  Point(41) = {2.2-0.4,0.23,0,lc}; 
  Point(42) = {1.9-0.4,0.13,0,lc};
- Point(43) = {1.8-0.4,0.32,0,lc};
+ Point(43) = {1.9-0.4,0.32,0,lc};
 
  Spline(24) = {37,38,39,40,41,42,43,37};
  Curve Loop(9) = {24};
