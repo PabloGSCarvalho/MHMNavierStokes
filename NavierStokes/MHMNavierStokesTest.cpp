@@ -166,7 +166,8 @@ void MHMNavierStokesTest::Run()
 
         case TStokesAnalytic::EVugs2D: //Pressure
         {
-            gmesh = CreateGMeshVugsRefPattern(n_s,h_s);
+            //mesh = CreateGMeshVugsRefPattern(n_s,h_s);
+            gmesh = CreateGmshMesh();
         }
             break;
 
@@ -424,7 +425,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
         }
 
         an.DefineGraphMesh(cmesh->Dimension(), scalnames, vecnames, plotfile);
-        int resolution = 0;
+        int resolution = 1;
         an.PostProcess(resolution,cmesh->Dimension());
 
     }
@@ -745,6 +746,97 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     return gmesh;
     
 }
+
+TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
+{
+    int64_t id, index;
+
+    //Criando malha geométrica, nós e elementos.
+    //Inserindo nós e elementos no objeto malha:
+
+    TPZGeoMesh *gmesh = new TPZGeoMesh();
+
+    //Aqui é implementado um método para malhas criadas no GMSH
+
+    //std::string dirname = PZSOURCEDIR;
+    std::string meshSource, gmshFolder;
+    meshSource = PZSOURCEDIR;
+    gmshFolder = "MHMNavierStokes/GmshRefs/MultiVugs.msh";
+    meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
+
+
+
+
+//    grid = "/Users/pablocarvalho/Documents/GitHub/geomec_bench/Fase_1/Benchmark1a/gmsh/GeometryBenchP21Original00.msh";
+
+    TPZGmshReader Geometry;
+    REAL s = 1.0;
+    Geometry.SetCharacteristiclength(s);
+    Geometry.GetDimNamePhysical()[1]["bottom"] = fmatBCbott;
+    Geometry.GetDimNamePhysical()[1]["right"] = fmatBCright;
+    Geometry.GetDimNamePhysical()[1]["top"] = fmatBCtop;
+    Geometry.GetDimNamePhysical()[1]["left"] = fmatBCleft;
+
+    Geometry.GetDimNamePhysical()[2]["Omega"] = fmatID; // Stokes Vug
+    Geometry.GetDimNamePhysical()[2]["Omega2"] = 2; //Porous Media
+    Geometry.SetFormatVersion("4.1");
+    gmesh = Geometry.GeometricGmshMesh(meshSource);
+
+    TPZCheckGeom check(gmesh);
+    check.CheckUniqueId();
+
+    gmesh->BuildConnectivity();
+
+    //    int n_div = 0;
+    //    UniformRefine(gmesh,n_div);
+    gmesh->ResetConnectivities();
+
+    //Seting Blend quadrilateral elements:
+
+    int64_t elementid = 0;
+    int nel = gmesh->NElements();
+    for (int iel = 0; iel < nel; iel++) {
+        TPZGeoEl *gel = gmesh->ElementVec()[iel];
+        if(!gel){
+            delete gmesh->ElementVec()[iel];
+            continue;
+        }
+        TPZManVector<int64_t> nodeindices;
+        MElementType elType = gel->Type();
+        int matID = gel->MaterialId();
+        if(elType==ETriangle){
+            if (gel->HasSubElement()) {
+                DebugStop();
+            }
+            gel->GetNodeIndices(nodeindices);
+            elementid = gel->Id();
+            gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
+            delete gmesh->ElementVec()[elementid];
+            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle >> (elementid, nodeindices, matID,*gmesh);
+
+        }else if(elType==EQuadrilateral){
+            if (gel->HasSubElement()) {
+                DebugStop();
+            }
+            gel->GetNodeIndices(nodeindices);
+            elementid = gel->Id();
+            gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
+            delete gmesh->ElementVec()[elementid];
+            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >> (elementid, nodeindices, matID,*gmesh);
+
+        }
+    }
+
+
+    gmesh->BuildConnectivity();
+
+
+    ofstream bf("before.vtk");
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, bf);
+    return gmesh;
+
+}
+
 
 TPZGeoMesh *MHMNavierStokesTest::CreateGMeshCoupling(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
 {
@@ -1633,10 +1725,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMeshVugsRefPattern(TPZVec<int> &n_div, T
             if (gel->HasSubElement()) {
                 continue;
             }
-//                int nsubel = gel->NSubElements();
-//                for (int isub = 0; isub < nsubel; isub++) {
-                    //set center coord of father in subelements
-//            int sub_index = gel->SubElement(isub)->Index();
+
             TPZManVector<REAL> xcenter(3, 0.);
             TPZManVector<REAL, 3> xicenter(gel->Dimension(), 0.);
             gel->CenterPoint(gel->NSides() - 1, xicenter);

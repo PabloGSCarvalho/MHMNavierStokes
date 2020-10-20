@@ -192,7 +192,10 @@ public:
     std::ostream &ConfigPrint(std::ostream &out);
     
     /*  Malhas geometricas */
+
     TPZGeoMesh *CreateGMesh(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
+
+    TPZGeoMesh *CreateGmshMesh();
 
     TPZGeoMesh *CreateGMesh3D(TPZVec<int> &n_s, TPZVec<REAL> &h_s);
 

@@ -1808,21 +1808,29 @@ void TPZMHMNavierStokesMeshControl::InsertBJSInterfaceSkeleton()
         // BJS interface  element
         if (gel->MaterialId() == 1) {
 
-            //Create Hole elements:
-            TPZGeoElSide gelside(gel, 5);
-            TPZGeoElSide neighbour = gelside.Neighbour();
-
-            bool near_hole = true;
-            while (neighbour != gelside) {
-                if (neighbour.Element()->Dimension()==fGMesh->Dimension()&&neighbour.Element()->MaterialId() != 2) {
-                    near_hole = false;
+            int nsides = gel->NSides();
+            for (int side = 0; side < nsides; ++side) {
+                //Create Hole elements:
+                TPZGeoElSide gelside(gel, side);
+                if(gelside.Dimension()!=fGMesh->Dimension()-1){
+                    continue;
                 }
-                neighbour = neighbour.Neighbour();
+                TPZGeoElSide neighbour = gelside.Neighbour();
+
+                bool near_hole = true;
+                while (neighbour != gelside) {
+                    if (neighbour.Element()->Dimension()==fGMesh->Dimension()&&neighbour.Element()->MaterialId() != 2) {
+                        near_hole = false;
+                    }
+                    neighbour = neighbour.Neighbour();
+                }
+
+                if (near_hole) {
+                    TPZGeoElBC(gelside, fBJSInterfaceMatId);
+                }
             }
 
-            if (near_hole) {
-                TPZGeoElBC(gelside, fBJSInterfaceMatId);
-            }
+
         }
     }
 }
