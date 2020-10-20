@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
             sim_data->SetViscosity(.1);  //
             sim_data->SetBrinkmanCoef(0.); //Material 1 => Stokes
             sim_data->SetPermeability(.5); //Material 2 => Darcy
-            sim_data->SetNthreads(8);
+            sim_data->SetNthreads(24);
 
             sim_data->SetOptimizeBandwidthQ(true);
             //sim_data->SetStaticCondensation(false);

@@ -209,7 +209,7 @@ void MHMNavierStokesTest::Run()
     //    InsertArcInterface(StokesControl->GMesh());
     }
 
-    if(1){
+    if(0){
         std::ofstream fileg("MalhaGeo_0.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk("MalhaGeo_0.vtk"); //Impressão da malha geométrica (formato vtk)
         StokesControl->GMesh()->Print(fileg);
@@ -268,7 +268,8 @@ void MHMNavierStokesTest::Run()
 
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
-    if(1){
+
+    if(0){
 #ifdef PZDEBUG
     std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
     std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
@@ -761,7 +762,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     //std::string dirname = PZSOURCEDIR;
     std::string meshSource, gmshFolder;
     meshSource = PZSOURCEDIR;
-    gmshFolder = "MHMNavierStokes/GmshRefs/MultiVugs.msh";
+    gmshFolder = "MHMNavierStokes/GmshRefs/MultiVugs02.msh";
     meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
 
 
