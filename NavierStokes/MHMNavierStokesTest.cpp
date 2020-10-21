@@ -269,18 +269,19 @@ void MHMNavierStokesTest::Run()
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
 
+    if(1){
+        std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
+        std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
+        StokesControl->GMesh()->Print(fileg1);
+        TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
+    }
+
+
     if(0){
 #ifdef PZDEBUG
-    std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
-    std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
-    StokesControl->GMesh()->Print(fileg1);
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, filegvtk1,true);
-
     std::ofstream filecm("MalhaC_MHM.txt");
     StokesControl->CMesh()->Print(filecm);
 
-
-        
     TPZCompMesh *cmeshP = StokesControl->GetMeshes()[1].operator->();
     std::ofstream outp("Malha_P_MHM.vtk");
     cmeshP->LoadReferences();
@@ -762,24 +763,31 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     //std::string dirname = PZSOURCEDIR;
     std::string meshSource, gmshFolder;
     meshSource = PZSOURCEDIR;
-    gmshFolder = "MHMNavierStokes/GmshRefs/MultiVugs02.msh";
+    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
     meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
 
 
-
-
+    int dim = 2;
+    if(f_3Dmesh) {
+        dim = 3;
+    }
 //    grid = "/Users/pablocarvalho/Documents/GitHub/geomec_bench/Fase_1/Benchmark1a/gmsh/GeometryBenchP21Original00.msh";
 
     TPZGmshReader Geometry;
     REAL s = 1.0;
     Geometry.SetCharacteristiclength(s);
-    Geometry.GetDimNamePhysical()[1]["bottom"] = fmatBCbott;
-    Geometry.GetDimNamePhysical()[1]["right"] = fmatBCright;
-    Geometry.GetDimNamePhysical()[1]["top"] = fmatBCtop;
-    Geometry.GetDimNamePhysical()[1]["left"] = fmatBCleft;
+    Geometry.GetDimNamePhysical()[dim-1]["bottom"] = fmatBCbott;
+    Geometry.GetDimNamePhysical()[dim-1]["right"] = fmatBCright;
+    Geometry.GetDimNamePhysical()[dim-1]["top"] = fmatBCtop;
+    Geometry.GetDimNamePhysical()[dim-1]["left"] = fmatBCleft;
 
-    Geometry.GetDimNamePhysical()[2]["Omega"] = fmatID; // Stokes Vug
-    Geometry.GetDimNamePhysical()[2]["Omega2"] = 2; //Porous Media
+    if(f_3Dmesh){
+        Geometry.GetDimNamePhysical()[dim-1]["top_z"] = fmatBCtop_z;
+        Geometry.GetDimNamePhysical()[dim-1]["bottom_z"] = fmatBCbott_z;
+    }
+
+    Geometry.GetDimNamePhysical()[dim]["Omega"] = fmatID; // Stokes Vug
+    Geometry.GetDimNamePhysical()[dim]["Omega2"] = 2; //Porous Media
     Geometry.SetFormatVersion("4.1");
     gmesh = Geometry.GeometricGmshMesh(meshSource);
 
@@ -3621,6 +3629,14 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             TPZBndCond *BC_BJS = mat1->CreateBC(mat1, fmatBChole, f_BJS_condition, val1, val2);
             cmesh.InsertMaterialObject(BC_BJS);
 
+            if (f_3Dmesh) {
+                TPZBndCond * BCondD5 = mat2->CreateBC(mat2, fmatBCtop_z, fdirichlet_v, val1, val2);
+                cmesh.InsertMaterialObject(BCondD5);
+
+                TPZBndCond * BCondD6 = mat2->CreateBC(mat2, fmatBCbott_z, fdirichlet_v, val1, val2);
+                cmesh.InsertMaterialObject(BCondD6);
+            }
+
         }
             break;
 
@@ -3785,6 +3801,15 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
             TPZBndCond *matLambdaBC_right = mat2->CreateBC(mat2, fmatLambdaBC_right, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right);
+
+            if (f_3Dmesh) {
+                TPZBndCond *matLambdaBC_top_z = mat2->CreateBC(mat2, fmatLambdaBC_top_z, fneumann_sigma, val1, val2);
+                cmesh.InsertMaterialObject(matLambdaBC_top_z);
+
+                TPZBndCond *matLambdaBC_bott_z = mat2->CreateBC(mat2, fmatLambdaBC_bott_z, fneumann_sigma, val1, val2);
+                cmesh.InsertMaterialObject(matLambdaBC_bott_z);
+            }
+
 
         }
             break;

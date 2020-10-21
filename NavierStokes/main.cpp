@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
             sim_data->SetProblemType(TStokesAnalytic::EStokes);
             sim_data->SetDomainType(TStokesAnalytic::EVugs2D);
 
+            Test2->Set3Dmesh();
             //Transient parameters:
             //sim_data->SetTimeTotal(11.);
             //sim_data->SetTimeStep(0.1);
