@@ -1,7 +1,7 @@
 l = 1;
 r1 = 0.5;
 r2 = 1;
-n = 10;
+n = 8;
 
 // interior cube
 Point(1) = {0,0,0,l};

@@ -168,6 +168,7 @@ void MHMNavierStokesTest::Run()
         {
             //mesh = CreateGMeshVugsRefPattern(n_s,h_s);
             gmesh = CreateGmshMesh();
+            //gmesh = CreateGMesh3D(n_s, h_s);
         }
             break;
 
@@ -798,46 +799,59 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
 
     //    int n_div = 0;
     //    UniformRefine(gmesh,n_div);
-    gmesh->ResetConnectivities();
 
-    //Seting Blend quadrilateral elements:
+        gmesh->ResetConnectivities();
 
-    int64_t elementid = 0;
-    int nel = gmesh->NElements();
-    for (int iel = 0; iel < nel; iel++) {
-        TPZGeoEl *gel = gmesh->ElementVec()[iel];
-        if(!gel){
-            delete gmesh->ElementVec()[iel];
-            continue;
-        }
-        TPZManVector<int64_t> nodeindices;
-        MElementType elType = gel->Type();
-        int matID = gel->MaterialId();
-        if(elType==ETriangle){
-            if (gel->HasSubElement()) {
-                DebugStop();
+        //Seting Blend quadrilateral elements:
+
+        int64_t elementid = 0;
+        int nel = gmesh->NElements();
+        for (int iel = 0; iel < nel; iel++) {
+            TPZGeoEl *gel = gmesh->ElementVec()[iel];
+            if (!gel) {
+                delete gmesh->ElementVec()[iel];
+                continue;
             }
-            gel->GetNodeIndices(nodeindices);
-            elementid = gel->Id();
-            gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
-            delete gmesh->ElementVec()[elementid];
-            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle >> (elementid, nodeindices, matID,*gmesh);
+            TPZManVector<int64_t> nodeindices;
+            MElementType elType = gel->Type();
+            int matID = gel->MaterialId();
+            if (elType == ETriangle) {
+                if (gel->HasSubElement()) {
+                    DebugStop();
+                }
+                gel->GetNodeIndices(nodeindices);
+                elementid = gel->Id();
+                gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
+                delete gmesh->ElementVec()[elementid];
+                gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern<pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle >>(
+                        elementid, nodeindices, matID, *gmesh);
 
-        }else if(elType==EQuadrilateral){
-            if (gel->HasSubElement()) {
-                DebugStop();
+            } else if (elType == EQuadrilateral) {
+                if (gel->HasSubElement()) {
+                    DebugStop();
+                }
+                gel->GetNodeIndices(nodeindices);
+                elementid = gel->Id();
+                gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
+                delete gmesh->ElementVec()[elementid];
+                gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern<pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >>(
+                        elementid, nodeindices, matID, *gmesh);
+
+            } else if (elType == ECube) {
+                if (gel->HasSubElement()) {
+                    DebugStop();
+                }
+                gel->GetNodeIndices(nodeindices);
+                elementid = gel->Id();
+                gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
+                delete gmesh->ElementVec()[elementid];
+                gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern<pzgeom::TPZGeoBlend<pzgeom::TPZGeoCube >>(
+                        elementid, nodeindices, matID, *gmesh);
             }
-            gel->GetNodeIndices(nodeindices);
-            elementid = gel->Id();
-            gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
-            delete gmesh->ElementVec()[elementid];
-            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >> (elementid, nodeindices, matID,*gmesh);
 
         }
-    }
 
-
-    gmesh->BuildConnectivity();
+        gmesh->BuildConnectivity();
 
 
     ofstream bf("before.vtk");

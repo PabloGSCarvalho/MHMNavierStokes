@@ -152,9 +152,9 @@ int main(int argc, char *argv[])
             h_level = 1;
 
             TPZVec<int> n_s(3,0.);
-            n_s[0]=h_level,n_s[1]=h_level;
+            n_s[0]=h_level,n_s[1]=h_level, n_s[2]=h_level;;
             MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
-            //Test2->SetElType(ETriangle);
+            //Test2->SetElType(ECube);
 
             TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
             Test2->SetTransform(Transf, InvTransf);
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
             sim_data->SetViscosity(.1);  //
             sim_data->SetBrinkmanCoef(0.); //Material 1 => Stokes
             sim_data->SetPermeability(.5); //Material 2 => Darcy
-            sim_data->SetNthreads(24);
+            sim_data->SetNthreads(8);
 
             sim_data->SetOptimizeBandwidthQ(true);
             //sim_data->SetStaticCondensation(false);
