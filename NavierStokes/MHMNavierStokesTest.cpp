@@ -3386,12 +3386,16 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
 
         REAL x1 = x[0];
         REAL x2 = x[1];
+        REAL x3 = x[2];
 
-        STATE v_1 = 1.*(1.-4*((x2-1.)/2.)*((x2-1.)/2.));
+        STATE v_1 = 0.;
+        if(x2*x2+x3*x3<0.5*0.5){
+            v_1 = 10.;
+        }
         STATE v_2 = 0.;
 
         sol[0]=v_1;
-        sol[1]=v_2;
+        sol[1]=0.;
         sol[2]=0.;
         sol[3]=0.;
 
@@ -3560,6 +3564,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
+
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D) {
 
     }else{
@@ -3590,6 +3595,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         f_ExactSol_2.fvisco=0.;
         f_ExactSol_2.fExactSol = f_domaintype;
         mat2->SetProblemType(f_ExactSol_2.fProblemType); //Material 2 -> always EBrinkman (Darcy equation)
+
+        solp = new TPZDummyFunction<STATE> (Sol_exact, 7); //oioioio
+        mat2->SetForcingFunctionExact(solp); //oioioioi
+
         cmesh.InsertMaterialObject(mat2);
     }
 
@@ -3625,15 +3634,16 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EVugs2D: //Pressure
         {
             val2(0, 0) = 0.0;
-            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_bott);
 
             val2(0, 0) = 0.0; // vx -> 1
-            TPZBndCond *BC_top = mat2->CreateBC(mat2, fmatBCtop, fdirichlet_v, val1, val2);
+            TPZBndCond *BC_top = mat2->CreateBC(mat2, fmatBCtop, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
             val2(0, 0) = 1.0;
             TPZBndCond *BC_left = mat2->CreateBC(mat2, fmatBCleft, fdirichlet_v, val1, val2);
+            BC_left->SetBCForcingFunction(0, solp);
             cmesh.InsertMaterialObject(BC_left);
 
             val2(0, 0) = 0.0;
@@ -3644,10 +3654,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(BC_BJS);
 
             if (f_3Dmesh) {
-                TPZBndCond * BCondD5 = mat2->CreateBC(mat2, fmatBCtop_z, fdirichlet_v, val1, val2);
+                TPZBndCond * BCondD5 = mat2->CreateBC(mat2, fmatBCtop_z, fneumann_v, val1, val2);
                 cmesh.InsertMaterialObject(BCondD5);
 
-                TPZBndCond * BCondD6 = mat2->CreateBC(mat2, fmatBCbott_z, fdirichlet_v, val1, val2);
+                TPZBndCond * BCondD6 = mat2->CreateBC(mat2, fmatBCbott_z, fneumann_v, val1, val2);
                 cmesh.InsertMaterialObject(BCondD6);
             }
 
