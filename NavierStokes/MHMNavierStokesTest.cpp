@@ -764,7 +764,8 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     //std::string dirname = PZSOURCEDIR;
     std::string meshSource, gmshFolder;
     meshSource = PZSOURCEDIR;
-    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
+    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
+//    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
     meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
 
 
@@ -3389,8 +3390,8 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         REAL x3 = x[2];
 
         STATE v_1 = 0.;
-        if(x2*x2+x3*x3<=0.5*0.5){
-            v_1 = 20.*(1.-(x2*x2+x3*x3)/(0.5*0.5));
+        if(x2*x2+x3*x3<=1.0*1.0){
+            v_1 = 20.*(1.-(x2*x2+x3*x3)/(1.*1.));
         }
         STATE v_2 = 0.;
 
