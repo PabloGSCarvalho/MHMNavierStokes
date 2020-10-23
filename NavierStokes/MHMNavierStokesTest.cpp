@@ -764,8 +764,8 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     //std::string dirname = PZSOURCEDIR;
     std::string meshSource, gmshFolder;
     meshSource = PZSOURCEDIR;
-    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
-//    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
+//    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
+    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
     meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
 
 
@@ -3390,8 +3390,9 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         REAL x3 = x[2];
 
         STATE v_1 = 0.;
-        if(x2*x2+x3*x3<=1.0*1.0){
-            v_1 = 20.*(1.-(x2*x2+x3*x3)/(1.*1.));
+        REAL r_in = 0.5;
+        if(x2*x2+x3*x3<=r_in*r_in){
+            v_1 = 20.*(1.-(x2*x2+x3*x3)/(r_in*r_in));
         }
         STATE v_2 = 0.;
 
@@ -3813,25 +3814,25 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EVugs2D: {
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
             val2(0,0) = 0.0;
-            TPZBndCond *matLambdaBC_top = mat2->CreateBC(mat2, fmatLambdaBC_top, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_top = mat2->CreateBC(mat2, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
             val2(0,0) = 0.0;
             TPZBndCond *matLambdaBC_left = mat2->CreateBC(mat2, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat2->CreateBC(mat2, fmatLambdaBC_right, fneumann_sigma, val1, val2);
+            TPZBndCond *matLambdaBC_right = mat2->CreateBC(mat2, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             if (f_3Dmesh) {
-                TPZBndCond *matLambdaBC_top_z = mat2->CreateBC(mat2, fmatLambdaBC_top_z, fneumann_sigma, val1, val2);
+                TPZBndCond *matLambdaBC_top_z = mat2->CreateBC(mat2, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
                 cmesh.InsertMaterialObject(matLambdaBC_top_z);
 
-                TPZBndCond *matLambdaBC_bott_z = mat2->CreateBC(mat2, fmatLambdaBC_bott_z, fneumann_sigma, val1, val2);
+                TPZBndCond *matLambdaBC_bott_z = mat2->CreateBC(mat2, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
                 cmesh.InsertMaterialObject(matLambdaBC_bott_z);
             }
 
