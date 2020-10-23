@@ -3389,8 +3389,8 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         REAL x3 = x[2];
 
         STATE v_1 = 0.;
-        if(x2*x2+x3*x3<0.5*0.5){
-            v_1 = 10.;
+        if(x2*x2+x3*x3<=0.5*0.5){
+            v_1 = 20.*(1.-(x2*x2+x3*x3)/(0.5*0.5));
         }
         STATE v_2 = 0.;
 
