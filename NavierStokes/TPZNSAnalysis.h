@@ -8,6 +8,7 @@
 #define TPZNSAnalysis_h
 #include "TPZMultiphysicsCompMesh.h"
 
+#include <cmath>
 #include <stdio.h>
 #include "TPZMatWithMem.h"
 #include "pzanalysis.h"
@@ -191,6 +192,10 @@ public:
 
     /** @brief Update memory using the Transfer object at REAL n */
     void UpdateMemory_LastStep();
+
+    /** @brief Compute drag and lift coefficients n */
+    void ComputeDragAndLift();
+
 };
 
 #endif /* TPZNSAnalysis.h */

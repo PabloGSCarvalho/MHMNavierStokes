@@ -169,6 +169,7 @@ int TPZNavierStokesMaterial::VariableIndex(const std::string &name) {
     if (!strcmp("SymTensorNorm", name.c_str()))   return 6;
     if (!strcmp("P_CDG", name.c_str()))  return 7;
     if (!strcmp("P_exact_CDG", name.c_str()))  return 8;
+    if (!strcmp("Vorticity2D", name.c_str()))  return 9;
     //    if (!strcmp("V_exactBC", name.c_str()))   return 5;
     
     std::cout  << " Var index not implemented " << std::endl;
@@ -200,7 +201,9 @@ int TPZNavierStokesMaterial::NSolutionVariables(int var) {
             return 1; // Pressure for CDG Navier-Stokes formulation
         case 8:
             return 1; // Exact pressure for CDG Navier-Stokes formulation
-            
+        case 9:
+            return 1; // 2D - Vorticity (z-direction)
+
             //        case 5:
             //            return this->Dimension(); // V_exactBC, Vector
         default:
@@ -440,6 +443,12 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
 
         }
             break;
+
+        case 9: //Vorticity
+        {
+            Solout[0] = dsolxy(0,1)-dsolxy(1,0);
+        }
+        break;
 
         default:
         {

@@ -54,14 +54,14 @@ const REAL Pi=M_PI;
 const REAL visco=1., permeability=1., theta=-1.; //Coeficientes: viscosidade, permeabilidade, fator simetria
 //bool MHMProblem = true; //True for MHM problem, False for hybrid formulation problem
 //bool HybridProblem = false;
-enum Simulation_case {MHMProblem, HybridProblem, Coupling, Vugs2D};
+enum Simulation_case {MHMProblem, HybridProblem, Coupling, Vugs2D, ObstacleTime};
 
 int main(int argc, char *argv[])
 {
     
     TPZMaterial::gBigNumber = 1.e10;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = Vugs2D;
+    Simulation_case sim_case = ObstacleTime;
 #ifdef LOG4CXX
     InitializePZLOG();
 #endif
@@ -142,6 +142,55 @@ int main(int argc, char *argv[])
 
                 }
             }
+        }
+            break;
+
+        case ObstacleTime:
+        {
+            int pOrder = 2;
+            h_level = 1;
+
+            TPZVec<int> n_s(3,0.);
+            n_s[0]=h_level*4,n_s[1]=h_level;
+            n_s[2]=h_level; //Obs!!
+            h_s[0]=4*h_s[0];
+
+
+            MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
+            //Test2->Set3Dmesh();
+            //Test2->SetHdivPlus();
+            //Test2->SetElType(ETriangle);
+
+
+            TPZSimulationData *sim_data= new TPZSimulationData;
+            sim_data->SetInternalOrder(pOrder);
+            sim_data->SetSkeletonOrder(pOrder);
+            sim_data->SetCoarseDivisions(n_s);
+            sim_data->SetDomainSize(h_s);
+            sim_data->SetNInterRefs(0);
+            sim_data->SetViscosity(0.01);
+            sim_data->SetBrinkmanCoef(0.); //For Brinkman
+            sim_data->SetNthreads(8);
+            //simdata.SetShapeTest(); // Test for shape functions
+
+            sim_data->SetOptimizeBandwidthQ(true);
+            //sim_data->SetStaticCondensation(false);
+            sim_data->Set_n_iterations(40);
+            sim_data->Set_epsilon_cor(0.0000001);
+            sim_data->Set_epsilon_res(0.0001);
+            sim_data->SetPardisoSolver();
+            sim_data->ActivatePostProcessing();
+
+            sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
+            sim_data->SetDomainType(TStokesAnalytic::EObstacles);
+
+            //Transient parameters:
+            sim_data->SetTimeTotal(6.);
+            sim_data->SetTimeStep(0.5);
+            //
+            Test2->SetSimulationData(sim_data);
+            Test2->Run();
+
         }
             break;
 

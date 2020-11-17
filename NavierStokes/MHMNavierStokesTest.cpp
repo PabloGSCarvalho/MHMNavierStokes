@@ -160,6 +160,7 @@ void MHMNavierStokesTest::Run()
         case TStokesAnalytic::EObstacles: //Pressure
         {
             //    gmesh = CreateGMeshCurve();
+            //gmesh = CreateGmshMesh();
             gmesh = CreateGMeshRefPattern(n_s,h_s);
         }
             break;
@@ -308,9 +309,9 @@ void MHMNavierStokesTest::Run()
     std::stringstream MHMStokesPref;
     MHMStokesPref << "MHMStokes";
 
-    SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    //SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
 
-    //SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
     std::cout << "FINISHED!" << std::endl;
     
 }
@@ -764,8 +765,16 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     //std::string dirname = PZSOURCEDIR;
     std::string meshSource, gmshFolder;
     meshSource = PZSOURCEDIR;
+
+    if(f_domaintype==TStokesAnalytic::EVugs2D) {
 //    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
-    gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
+        gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
+    }else if(f_domaintype==TStokesAnalytic::EObstacles) {
+        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel.msh";
+    }else{
+        DebugStop();
+    }
+
     meshSource.replace( meshSource.end()-5, meshSource.end(), gmshFolder);
 
 
@@ -786,6 +795,10 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     if(f_3Dmesh){
         Geometry.GetDimNamePhysical()[dim-1]["top_z"] = fmatBCtop_z;
         Geometry.GetDimNamePhysical()[dim-1]["bottom_z"] = fmatBCbott_z;
+    }
+
+    if(f_domaintype==TStokesAnalytic::EObstacles) {
+        Geometry.GetDimNamePhysical()[dim-1]["obstacle"] = fmatBChole;
     }
 
     Geometry.GetDimNamePhysical()[dim]["Omega"] = fmatID; // Stokes Vug
@@ -3102,285 +3115,6 @@ TPZCompEl *MHMNavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mes
 }
 
 void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
-    
-//        dsol.Resize(3,3);
-//        sol.Resize(4);
-//
-//        REAL x1 = x[0];
-//        REAL x2 = x[1];
-//
-//        TPZVec<REAL> v_Dirichlet(3,0.);
-//
-////        v_Dirichlet[0] = -0.1*x2*x2+0.2*x2;
-//        v_Dirichlet[0] = -1.+x2;
-////        v_Dirichlet[0] = 1.;
-//        v_Dirichlet[1] = 0.;
-//        v_Dirichlet[2] = 0.;
-//
-////        STATE pressure = 1.-0.2*x1;
-//        STATE pressure = 0.;
-//
-//        sol[0]=v_Dirichlet[0];
-//        sol[1]=v_Dirichlet[1];
-//        sol[2]=v_Dirichlet[2];
-//        sol[3]=pressure;
-//
-//        // vx direction
-//        dsol(0,0)= 0.;
-////        dsol(0,1)= 0.2-0.2*x2;
-//        dsol(0,1)= 1.;
-//        //dsol(0,1)= 0.;
-//        dsol(0,2)= 0.;
-//
-//        // vy direction
-//        dsol(1,0)= 0.;
-//        dsol(1,1)= 0.;
-//        dsol(1,2)= 0.;
-//
-//        // vz direction
-//        dsol(2,0)= 0.;
-//        dsol(2,1)= 0.;
-//        dsol(2,2)= 0.;
-    
-    // General form : : Artigo Botti, Di Pietro, Droniou
-    
-    //    dsol.Resize(3,3);
-    //    sol.Resize(3);
-    //
-    //    REAL x1 = x[0];
-    //    REAL x2 = x[1];
-    //
-    //    REAL m_v= 1., m_u= 1.0;
-    //
-    //    REAL Cf=m_v/m_u;
-    //
-    //    STATE v_1 = -exp(-Cf)*sin(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*sin(x1)*sin(x2);
-    //    STATE v_2 = -exp(-Cf)*cos(x1)*cos(x2)-(1./m_v)*(1.-exp(-Cf))*cos(x1)*cos(x2);
-    //    STATE pressure= cos(x1)*sin(x2);
-    //
-    //    sol[0]=v_1;
-    //    sol[1]=v_2;
-    //    sol[2]=pressure;
-    //
-    //    // vx direction
-    //    dsol(0,0)= -exp(-Cf)*cos(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*cos(x1)*sin(x2);
-    //    dsol(0,1)= exp(-Cf)*cos(x2)*sin(x1)+(1./m_v)*(1.-exp(-Cf))*cos(x2)*sin(x1);
-    //
-    //    // vy direction
-    //    dsol(1,0)= -exp(-Cf)*cos(x2)*sin(x1)+(1./m_v)*(1.-exp(-Cf))*cos(x2)*sin(x1);
-    //    dsol(1,1)= exp(-Cf)*cos(x1)*sin(x2)+(1./m_v)*(1.-exp(-Cf))*cos(x1)*sin(x2);
-    //
-
-    
-    
-    // Brinkman : : Artigo Botti, Di Pietro, Droniou
-    
-    //    dsol.Resize(3,3);
-    //    sol.Resize(3);
-    //
-    //    REAL x1 = x[0];
-    //    REAL x2 = x[1];
-    //
-    //    REAL e = exp(1.);
-    //
-    //    STATE v_1 = (1.-2./e)*sin(x1)*sin(x2);
-    //    STATE v_2 = -1.*cos(x1)*cos(x2);
-    //    STATE pressure= cos(x1)*sin(x2);
-    //
-    //    sol[0]=v_1;
-    //    sol[1]=v_2;
-    //    sol[2]=pressure;
-    //
-    //    // vx direction
-    //    dsol(0,0)= (1.-2./e)*cos(x1)*sin(x2);
-    //    dsol(0,1)= cos(x2)*sin(x1);
-    //
-    //    // vy direction
-    //    dsol(1,0)= (1.-2./e)*cos(x2)*sin(x1);
-    //    dsol(1,1)= cos(x1)*sin(x2);
-    //
-
-    
-    // Stokes : : Artigo Botti, Di Pietro, Droniou
-    
-//    dsol.Resize(3,3);
-//    sol.Resize(4);
-//
-//
-//    //Applying rotation:
-//    TPZVec<REAL> x_in = x;
-//    TPZVec<REAL> x_rot(3,0.);
-//
-//    f_InvT.Apply(x_in,x_rot);
-//    x[0] = x_rot[0];
-//    x[1] = x_rot[1];
-//
-//    REAL x1 = x[0];
-//    REAL x2 = x[1];
-//
-//    REAL e = exp(1.);
-//
-//    TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//    v_Dirichlet[0] = -1.*sin(x1)*sin(x2);
-//    v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-//    STATE pressure= cos(x1)*sin(x2);
-//
-//    f_T.Apply(v_Dirichlet, vbc_rot);
-//    v_Dirichlet = vbc_rot;
-//
-//    sol[0]=v_Dirichlet[0];
-//    sol[1]=v_Dirichlet[1];
-//    sol[2]=v_Dirichlet[2];
-//    sol[3]=pressure;
-//
-//
-//    // GradU * Rt
-//    TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//    // vx direction
-//    GradU(0,0)= -1.*cos(x1)*sin(x2);
-//    GradU(0,1)= cos(x2)*sin(x1);
-//
-//    // vy direction
-//    GradU(1,0)= -1.*cos(x2)*sin(x1);
-//    GradU(1,1)= cos(x1)*sin(x2);
-//
-//    TPZFMatrix<STATE> R = f_T.Mult();
-//    TPZFMatrix<STATE> Rt(3,3,0.);
-//    R.Transpose(&Rt);
-//
-////    GradU.Print("GradU = ");
-////    R.Print("R = ");
-////    Rt.Print("Rt = ");
-//
-//    GradU.Multiply(Rt,GradURt);
-////    GradURt.Print("GradURt = ");
-//
-//    R.Multiply(GradURt,RGradURt);
-////    RGradURt.Print("RGradURt = ");
-//
-//    // vx direction
-//    dsol(0,0)= RGradURt(0,0);
-//    dsol(0,1)= RGradURt(0,1);
-//    dsol(0,2)= RGradURt(0,2);
-//
-//    // vy direction
-//    dsol(1,0)= RGradURt(1,0);
-//    dsol(1,1)= RGradURt(1,1);
-//    dsol(1,2)= RGradURt(1,2);
-//
-//    // vz direction
-//    dsol(2,0)= RGradURt(2,0);
-//    dsol(2,1)= RGradURt(2,1);
-//    dsol(2,2)= RGradURt(2,2);
-    
-    // Darcy : : Artigo Botti, Di Pietro, Droniou
-    
-    //        dsol.Resize(3,3);
-    //        sol.Resize(3);
-    //
-    //        REAL x1 = x[0];
-    //        REAL x2 = x[1];
-    //
-    //        STATE v_1 = sin(x1)*sin(x2);
-    //        STATE v_2 = -1.*cos(x1)*cos(x2);
-    //        STATE pressure= cos(x1)*sin(x2);
-    //
-    //        sol[0]=v_1;
-    //        sol[1]=v_2;
-    //        sol[2]=pressure;
-    //
-    //        // vx direction
-    //        dsol(0,0)= cos(x1)*sin(x2);
-    //        dsol(0,1)= cos(x2)*sin(x1);
-    //
-    //        // vy direction
-    //        dsol(1,0)= cos(x2)*sin(x1);
-    //        dsol(1,1)= cos(x1)*sin(x2);
-    
-
-    
-    // Stokes 3D : Artigo Botti, Di Pietro, Droniou
-    
-//        dsol.Resize(3,3);
-//        sol.Resize(4);
-//
-//        //Applying rotation:
-//        TPZVec<REAL> x_in = x;
-//        TPZVec<REAL> x_rot(3,0.);
-//
-//        f_InvT.Apply(x_in,x_rot);
-//        x[0] = x_rot[0];
-//        x[1] = x_rot[1];
-//
-//        REAL x1 = x[0];
-//        REAL x2 = x[1];
-//        REAL x3 = x[2];
-//
-//        TPZVec<REAL> v_Dirichlet(3,0.), vbc_rot(3,0.);
-//
-//        v_Dirichlet[0] = cos(x1)*cos(x3) -1.*sin(x1)*sin(x2);
-//        v_Dirichlet[1] = -1.*cos(x1)*cos(x2);
-//        v_Dirichlet[2] = sin(x1)*sin(x3);
-//        STATE pressure= cos(x1)*sin(x2)*cos(x3);
-//
-//        f_T.Apply(v_Dirichlet, vbc_rot);
-//        v_Dirichlet = vbc_rot;
-//
-//        sol[0]=v_Dirichlet[0];
-//        sol[1]=v_Dirichlet[1];
-//        sol[2]=v_Dirichlet[2];
-//        sol[3]=pressure;
-//
-//
-//        // GradU * Rt
-//        TPZFMatrix<STATE> GradU(3,3,0.), GradURt(3,3,0.), RGradURt(3,3,0.);
-//
-//        // vx direction
-//        GradU(0,0)= -cos(x3)*sin(x1)-1.*cos(x1)*sin(x2);
-//        GradU(0,1)= cos(x2)*sin(x1);
-//        GradU(0,2)= cos(x1)*sin(x3);
-//
-//        // vy direction
-//        GradU(1,0)= -1.*cos(x2)*sin(x1);
-//        GradU(1,1)= cos(x1)*sin(x2);
-//        GradU(1,2)= 0.;
-//
-//        // vz direction
-//        GradU(2,0)= -1.*cos(x1)*sin(x3);
-//        GradU(2,1)= 0.;
-//        GradU(2,2)= cos(x3)*sin(x1);
-//
-//
-//        TPZFMatrix<STATE> R = f_T.Mult();
-//        TPZFMatrix<STATE> Rt(3,3,0.);
-//        R.Transpose(&Rt);
-//
-//    //    GradU.Print("GradU = ");
-//    //    R.Print("R = ");
-//    //    Rt.Print("Rt = ");
-//
-//        GradU.Multiply(Rt,GradURt);
-//    //    GradURt.Print("GradURt = ");
-//
-//        R.Multiply(GradURt,RGradURt);
-//    //    RGradURt.Print("RGradURt = ");
-//
-//        // vx direction
-//        dsol(0,0)= RGradURt(0,0);
-//        dsol(0,1)= RGradURt(0,1);
-//        dsol(0,2)= RGradURt(0,2);
-//
-//        // vy direction
-//        dsol(1,0)= RGradURt(1,0);
-//        dsol(1,1)= RGradURt(1,1);
-//        dsol(1,2)= RGradURt(1,2);
-//
-//        // vz direction
-//        dsol(2,0)= RGradURt(2,0);
-//        dsol(2,1)= RGradURt(2,1);
-//        dsol(2,2)= RGradURt(2,2);
 
         dsol.Resize(3,3);
         sol.Resize(4);
@@ -3401,9 +3135,25 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         sol[2]=0.;
         sol[3]=0.;
 
+}
 
-    
-    
+void MHMNavierStokesTest::Sol_exact_Obstacle(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol) {
+
+        dsol.Resize(3, 3);
+        sol.Resize(4);
+
+        REAL x1 = x[0];
+        REAL x2 = x[1];
+
+        STATE v_1 = 1. * (1. - 4 * ((x2 - 1.) / 2.) * ((x2 - 1.) / 2.));
+        //STATE v_1 = 1. * (1. - 4 * ((x2 - 2.) / 4.) * ((x2 - 2.) / 4.));
+        STATE v_2 = 0.;
+
+        sol[0] = v_1;
+        sol[1] = v_2;
+        sol[2] = 0.;
+        sol[3] = 0.;
+
 }
 
 void MHMNavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZFMatrix<STATE>& gradu){
@@ -3571,6 +3321,11 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     }else{
         mat1->SetForcingFunction(fp); //Caso simples sem termo fonte
+        mat1->SetForcingFunctionExact(solp);
+    }
+
+    if(f_domaintype==TStokesAnalytic::EObstacles){
+        solp = new TPZDummyFunction<STATE> (Sol_exact_Obstacle, 12);
         mat1->SetForcingFunctionExact(solp);
     }
 
@@ -3858,8 +3613,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             val2(0,0) = 0.0;
+            val1(2,2) = -1;
             TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_hole);
+            val1(2,2) = 0.0;
 
         }
             break;

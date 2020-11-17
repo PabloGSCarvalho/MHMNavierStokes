@@ -191,11 +191,11 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
 
         TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
 
-        if(i==1){
-            mat->SetProblemType(TStokesAnalytic::EOseen);
-        }else{
-            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
-        }
+//        if(i==1){
+//            mat->SetProblemType(TStokesAnalytic::EOseen);
+//        }else{
+//            mat->SetProblemType(TStokesAnalytic::ENavierStokes);
+//        }
 
         this->ExecuteNewtonIteration();
 
@@ -308,10 +308,11 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
 
     scalnames.Push("P");
     vecnames.Push("V");
-    vecnames.Push("f");
-    vecnames.Push("V_exact");
-    scalnames.Push("P_exact");
+    //vecnames.Push("f");
+    //vecnames.Push("V_exact");
+    //scalnames.Push("P_exact");
     scalnames.Push("Div");
+    scalnames.Push("Vorticity2D");
 
     TPZMHMNavierStokesMaterial *mat = dynamic_cast<TPZMHMNavierStokesMaterial *>(fCompMesh->FindMaterial(1));
     if(mat->GetProblemType()==TStokesAnalytic::EOseenCDG||mat->GetProblemType()==TStokesAnalytic::ENavierStokesCDG){
@@ -325,8 +326,10 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     REAL time = m_simulation_data->GetTime();
     this->SetTime(time);
     this->PostProcess(div,dim);
-    
 
+    if(m_simulation_data->GetDomainType()==TStokesAnalytic::EObstacles){
+        ComputeDragAndLift();
+    }
 }
 
 void TPZNSAnalysis::SolveSystem(){
@@ -639,5 +642,92 @@ void TPZNSAnalysis::UpdateMemory_LastStep(){
         u_last = memory.u();
         memory.Set_u_last(u_last);
     }
+
+}
+
+void TPZNSAnalysis::ComputeDragAndLift(){
+
+    REAL time = m_simulation_data->GetTime();
+    REAL Reyn = 1./(m_simulation_data->GetViscosity());
+    TPZManVector<STATE,3> result(4,0.);
+    int64_t nelem = fCompMesh->NElements();
+    for (int64_t el=0; el<nelem; el++) {
+        TPZCompEl *cel = fCompMesh->Element(el);
+        if (!cel) {
+            continue;
+        }
+        TPZGeoEl *gel = cel->Reference();
+        if (!gel) {
+            continue;
+        }
+        int matid = gel->MaterialId();
+        if (matid != -7) {
+            continue;
+        }
+        //find a 2D neighbour
+        TPZGeoElSide gelside(gel,2);
+        TPZGeoElSide neighbour = gelside.Neighbour();
+
+        while (neighbour != gelside) {
+            if(neighbour.Element()->Dimension()==2){
+                break;
+            }
+            neighbour = neighbour.Neighbour();
+        }
+
+        TPZCompElSide neighRef = neighbour.Reference();
+
+        TPZIntPoints *intrule = gel->CreateSideIntegrationRule(gel->NSides()-1, 5);
+        int dim = gel->Dimension();
+        TPZManVector<REAL,3> xi(dim),xi_neight(2);
+        TPZMaterialData data;
+        TPZFNMatrix<9,REAL> jac(dim,dim),jacinv(dim,dim),axes(dim,3);
+        REAL detjac;
+        TPZVec<REAL> co_obs(3),co_neigh(3);
+        TPZManVector<STATE,3> p_sol(1), w_sol(1);
+        int npoints = intrule->NPoints();
+        for (int ip =0; ip<npoints; ip++) {
+            REAL weight;
+            intrule->Point(ip, xi, weight);
+            gel->Jacobian(xi, jac, axes, detjac, jacinv);
+            xi_neight[0]=0.;
+            xi_neight[1]=0.;
+            gel->X(xi,co_obs);
+            neighbour.Element()->X(xi_neight,co_neigh);
+            STATE atheta = atan((co_neigh[1]-1.)/(co_neigh[0]-1.));
+            if(atheta<0.&&co_neigh[0]-1.<0.){
+                atheta+=M_PI;
+            }
+            if(atheta>0.&&co_neigh[1]-1.<0.){
+                atheta+=M_PI;
+            }
+            if(atheta<0.&&co_neigh[1]-1<0.){
+                atheta+=2*M_PI;
+            }
+            neighRef.Element()->Solution(xi_neight, 0, p_sol); //pressure solution
+            neighRef.Element()->Solution(xi_neight, 9, w_sol); // vorticity solution
+            result[0] += weight*fabs(detjac)*p_sol[0]*cos(atheta-M_PI)*2.;
+            result[1] += weight*fabs(detjac)*p_sol[0]*sin(atheta-M_PI)*2.;
+
+            result[2] -= (2./Reyn)*weight*fabs(detjac)*w_sol[0]*sin(atheta-M_PI);
+            result[3] -= (2./Reyn)*weight*fabs(detjac)*w_sol[0]*cos(atheta-M_PI);
+        }
+        delete intrule;
+    }
+
+    ofstream CoefOut("DragAndLiftCoef_NavierStokes.txt", std::ofstream::app);
+
+    CoefOut <<"  Time = "<< time  << std::endl;
+    CoefOut <<"-------------" << std::endl;
+    CoefOut <<"C Drag - P = " << result[0] << std::endl;
+    CoefOut <<"C Drag - V = " << result[2] << std::endl;
+    CoefOut <<"C Lift - P = " << result[1] << std::endl;
+    CoefOut <<"C Lift - V = " << result[3] << std::endl;
+    CoefOut <<"-------------" << std::endl;
+    CoefOut <<"C Drag = " << result[0]+result[2] << std::endl;
+    CoefOut <<"C Lift = " << result[1]+result[3] << std::endl;
+    CoefOut <<"-------------" << std::endl;
+    CoefOut <<"             " << std::endl;
+    CoefOut.flush();
 
 }
