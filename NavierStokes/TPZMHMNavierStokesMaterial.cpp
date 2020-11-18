@@ -406,17 +406,17 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             
         case 1: //Neumann for continuous formulation
         {
-//            //Oscillations
-//            REAL time = f_sim_data->GetTime();
-//            REAL valbc1 = bc.Val1()(2,2);
-//            if(nshapeLambda!=0&&valbc1!=0){
-//                if((time>=1)&&(time<=2)){
-//                    v_value[0] = 0.15;
-//                }
-//                if((time>=2.5)&&(time<=3.5)){
-//                    v_value[0] = -0.25;
-//                }
-//            }
+            //Oscillations
+            REAL time = f_sim_data->GetTime();
+            REAL valbc1 = bc.Val1()(2,2);
+            if(nshapeLambda!=0&&valbc1!=0){
+                if((time>=1.)&&(time<=2.)){
+                    v_value[0] = 0.15;
+                }
+                if((time>=2.5)&&(time<=3.5)){
+                    v_value[0] = -0.25;
+                }
+            }
 
             for(int j1 = 0; j1 < phi->Rows(); j1++)
             {

@@ -325,7 +325,9 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     //std::cout<<this->Mesh()->Solution()<<std::endl;
     REAL time = m_simulation_data->GetTime();
     this->SetTime(time);
-    this->PostProcess(div,dim);
+    if(time>80){
+        this->PostProcess(div,dim);
+    }
 
     if(m_simulation_data->GetDomainType()==TStokesAnalytic::EObstacles){
         ComputeDragAndLift();
