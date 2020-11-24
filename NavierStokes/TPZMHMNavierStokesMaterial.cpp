@@ -236,7 +236,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         v_Dirichlet[2] = vbc[2];
         p_D = vbc[3];
 
-//        REAL time = f_sim_data->GetTime();
+        REAL time = f_sim_data->GetTime();
 //        v_Dirichlet[0] = v_Dirichlet[0]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
 //        v_Dirichlet[1] = v_Dirichlet[1]*(sin(M_PI*(time+0.1-0.5))*0.5+0.5);
 //        if(time<0.9){
@@ -410,11 +410,11 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             REAL time = f_sim_data->GetTime();
             REAL valbc1 = bc.Val1()(2,2);
             if(nshapeLambda!=0&&valbc1!=0){
-                if((time>=1.)&&(time<=2.)){
-                    v_value[0] = 0.15;
+                if((time>=1.)&&(time<=2.5)){
+                    v_value[0] = 0.4;
                 }
-                if((time>=2.5)&&(time<=3.5)){
-                    v_value[0] = -0.25;
+                if((time>=2.9)&&(time<=4.6)){
+                    v_value[0] = -0.5;
                 }
             }
 

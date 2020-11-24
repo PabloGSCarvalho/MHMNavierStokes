@@ -325,9 +325,9 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     //std::cout<<this->Mesh()->Solution()<<std::endl;
     REAL time = m_simulation_data->GetTime();
     this->SetTime(time);
-    if(time>80){
+    //if(time>9.9){
         this->PostProcess(div,dim);
-    }
+    //}
 
     if(m_simulation_data->GetDomainType()==TStokesAnalytic::EObstacles){
         ComputeDragAndLift();
@@ -688,13 +688,15 @@ void TPZNSAnalysis::ComputeDragAndLift(){
         TPZVec<REAL> co_obs(3),co_neigh(3);
         TPZManVector<STATE,3> p_sol(1), w_sol(1);
         int npoints = intrule->NPoints();
+        int nsides_neigh = neighbour.Element()->NSides();
         for (int ip =0; ip<npoints; ip++) {
             REAL weight;
             intrule->Point(ip, xi, weight);
             gel->Jacobian(xi, jac, axes, detjac, jacinv);
-            xi_neight[0]=0.;
-            xi_neight[1]=0.;
+            //xi_neight[0]=0.;
+            //xi_neight[1]=0.;
             gel->X(xi,co_obs);
+            neighbour.Element()->CenterPoint(nsides_neigh-1,xi_neight);
             neighbour.Element()->X(xi_neight,co_neigh);
             STATE atheta = atan((co_neigh[1]-1.)/(co_neigh[0]-1.));
             if(atheta<0.&&co_neigh[0]-1.<0.){
@@ -719,7 +721,7 @@ void TPZNSAnalysis::ComputeDragAndLift(){
 
     ofstream CoefOut("DragAndLiftCoef_NavierStokes.txt", std::ofstream::app);
 
-    CoefOut <<"  Time = "<< time  << std::endl;
+    CoefOut <<"  Time = "<< time +0.1 << std::endl;
     CoefOut <<"-------------" << std::endl;
     CoefOut <<"C Drag - P = " << result[0] << std::endl;
     CoefOut <<"C Drag - V = " << result[2] << std::endl;

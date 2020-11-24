@@ -160,8 +160,8 @@ void MHMNavierStokesTest::Run()
         case TStokesAnalytic::EObstacles: //Pressure
         {
             //    gmesh = CreateGMeshCurve();
-            //gmesh = CreateGmshMesh();
-            gmesh = CreateGMeshRefPattern(n_s,h_s);
+            gmesh = CreateGmshMesh();
+            //gmesh = CreateGMeshRefPattern(n_s,h_s);
         }
             break;
 
@@ -3145,8 +3145,8 @@ void MHMNavierStokesTest::Sol_exact_Obstacle(const TPZVec<REAL> &x, TPZVec<STATE
         REAL x1 = x[0];
         REAL x2 = x[1];
 
-        STATE v_1 = 1. * (1. - 4 * ((x2 - 1.) / 2.) * ((x2 - 1.) / 2.));
-        //STATE v_1 = 1. * (1. - 4 * ((x2 - 2.) / 4.) * ((x2 - 2.) / 4.));
+        //STATE v_1 = 1. * (1. - 4 * ((x2 - 1.) / 2.) * ((x2 - 1.) / 2.));
+        STATE v_1 = 1. * (1. - 4 * ((x2 - 2.) / 4.) * ((x2 - 2.) / 4.));
         STATE v_2 = 0.;
 
         sol[0] = v_1;
@@ -3599,10 +3599,12 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
             val2(0,0) = 0.0;
             TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+//            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
             val2(0,0) = 0.0;
             TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+//            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
             val2(0,0) = 0.0;
@@ -3613,10 +3615,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             val2(0,0) = 0.0;
-            val1(2,2) = -1;
             TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
+//            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_hole);
-            val1(2,2) = 0.0;
+
 
         }
             break;

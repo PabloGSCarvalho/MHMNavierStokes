@@ -1,4 +1,4 @@
-IsquadQ = 1;
+IsquadQ = 0;
  
 Mesh.ElementOrder = 1;
 Mesh.SecondOrderLinear = 0;
@@ -6,7 +6,7 @@ Mesh.SecondOrderLinear = 0;
 // Definição de parâmtros
 
 h = 4;
-L = 8;
+L = 12;
 
 refp = 32;
 refc1 = 24*2;
@@ -42,7 +42,7 @@ pr = 1.0;
 
 // Obstacle
  cl = 0.0; 
- co01 = 1.0; co02 = 2.0;  //center point
+ co01 = 2.0; co02 = 2.0;  //center point
  h01 = 1.0; h02 = 1.0;    //dimensions
  Point(5) = {co01,co02,0,cl}; 
  Point(6) = {co01-h01/2.,co02,0,cl};

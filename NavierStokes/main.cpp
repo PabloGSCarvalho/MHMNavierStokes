@@ -168,9 +168,9 @@ int main(int argc, char *argv[])
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(0.002);
+            sim_data->SetViscosity(0.01);
             sim_data->SetBrinkmanCoef(0.); //For Brinkman
-            sim_data->SetNthreads(24);
+            sim_data->SetNthreads(8);
             //simdata.SetShapeTest(); // Test for shape functions
 
             sim_data->SetOptimizeBandwidthQ(true);
@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
-            sim_data->SetTimeTotal(101);
-            sim_data->SetTimeStep(0.5);
+            sim_data->SetTimeTotal(10.5);
+            sim_data->SetTimeStep(0.1);
             //
             Test2->SetSimulationData(sim_data);
             Test2->Run();
