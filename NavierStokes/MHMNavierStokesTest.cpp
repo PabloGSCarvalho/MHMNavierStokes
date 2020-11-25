@@ -3615,8 +3615,10 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
             val2(0,0) = 0.0;
+            val1(2,2)=1.;
             TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
 //            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
+            val1.Zero();
             cmesh.InsertMaterialObject(matLambdaBC_hole);
 
 

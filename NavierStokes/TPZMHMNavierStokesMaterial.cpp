@@ -410,11 +410,11 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             REAL time = f_sim_data->GetTime();
             REAL valbc1 = bc.Val1()(2,2);
             if(nshapeLambda!=0&&valbc1!=0){
-                if((time>=1.)&&(time<=2.5)){
-                    v_value[0] = 0.4;
+                if((time>=0.1)&&(time<=1.4)){
+                    v_value[0] = 0.5;
                 }
-                if((time>=2.9)&&(time<=4.6)){
-                    v_value[0] = -0.5;
+                if((time>=1.5)&&(time<=2.9)){
+                    v_value[0] = -0.6;
                 }
             }
 
