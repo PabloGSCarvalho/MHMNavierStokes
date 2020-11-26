@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(0.002);
+            sim_data->SetViscosity(0.001);
             sim_data->SetBrinkmanCoef(0.); //For Brinkman
             sim_data->SetNthreads(24);
             //simdata.SetShapeTest(); // Test for shape functions
