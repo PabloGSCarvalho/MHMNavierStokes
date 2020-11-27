@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     int nx=h_level+1 ,ny=h_level+1; //Número de nos em x  y
     
     TPZVec<REAL> h_s(3,0);
-    h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Dimensões em x e y do domínio
+    h_s[0]=4.,h_s[1]=4.,h_s[2]=4.; //Dimensões em x e y do domínio
 
     switch(sim_case) {
 

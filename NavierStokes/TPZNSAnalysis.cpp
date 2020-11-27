@@ -651,7 +651,9 @@ void TPZNSAnalysis::ComputeDragAndLift(){
 
     REAL time = m_simulation_data->GetTime();
     REAL Reyn = 1./(m_simulation_data->GetViscosity());
-    TPZManVector<STATE,3> result(4,0.);
+    TPZManVector<STATE,3> result(4,0.),co_center_obs(3,0.);
+    co_center_obs[0]=m_simulation_data->GetDomainSize()[1]/2.;
+    co_center_obs[1]=co_center_obs[0];
     int64_t nelem = fCompMesh->NElements();
     for (int64_t el=0; el<nelem; el++) {
         TPZCompEl *cel = fCompMesh->Element(el);
@@ -698,14 +700,14 @@ void TPZNSAnalysis::ComputeDragAndLift(){
             gel->X(xi,co_obs);
             neighbour.Element()->CenterPoint(nsides_neigh-1,xi_neight);
             neighbour.Element()->X(xi_neight,co_neigh);
-            STATE atheta = atan((co_neigh[1]-1.)/(co_neigh[0]-1.));
-            if(atheta<0.&&co_neigh[0]-1.<0.){
+            STATE atheta = atan((co_neigh[1]-co_center_obs[0])/(co_neigh[0]-co_center_obs[0]));
+            if(atheta<0.&&co_neigh[0]-co_center_obs[0]<0.){
                 atheta+=M_PI;
             }
-            if(atheta>0.&&co_neigh[1]-1.<0.){
+            if(atheta>0.&&co_neigh[1]-co_center_obs[0]<0.){
                 atheta+=M_PI;
             }
-            if(atheta<0.&&co_neigh[1]-1<0.){
+            if(atheta<0.&&co_neigh[1]-co_center_obs[0]<0.){
                 atheta+=2*M_PI;
             }
             neighRef.Element()->Solution(xi_neight, 0, p_sol); //pressure solution
