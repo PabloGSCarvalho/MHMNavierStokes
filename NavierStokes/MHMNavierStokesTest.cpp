@@ -770,7 +770,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
 //    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
         gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
-        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel.msh";
+        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel500.msh";
     }else{
         DebugStop();
     }
