@@ -262,7 +262,12 @@ public:
         fdim = 3;
         f_ExactSol.fDimension = 3;
     };
-    
+
+    bool Is3Dmesh(){
+        return f_3Dmesh;
+    }
+
+
     void SetHdivPlus(){
         f_hdivPlus = true;
     };
@@ -344,6 +349,10 @@ public:
     
     //solucao exata
     static void Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
+
+    static void Sol_exact_Infiltration(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
+
+    static void Sol_exact_Sphere(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
 
     static void Sol_exact_Obstacle(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol);
 

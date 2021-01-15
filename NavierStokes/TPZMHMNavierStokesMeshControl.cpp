@@ -1818,16 +1818,14 @@ void TPZMHMNavierStokesMeshControl::InsertBJSInterfaceSkeleton()
                 TPZGeoElSide neighbour = gelside.Neighbour();
 
                 bool near_hole = true;
+
                 while (neighbour != gelside) {
-                    if (neighbour.Element()->Dimension()==fGMesh->Dimension()&&neighbour.Element()->MaterialId() != 2) {
-                        near_hole = false;
+                    if (neighbour.Element()->Dimension()==fGMesh->Dimension()&&neighbour.Element()->MaterialId() == 2) {
+                        TPZGeoElBC(gelside, fBJSInterfaceMatId);
                     }
                     neighbour = neighbour.Neighbour();
                 }
 
-                if (near_hole) {
-                    TPZGeoElBC(gelside, fBJSInterfaceMatId);
-                }
             }
 
 

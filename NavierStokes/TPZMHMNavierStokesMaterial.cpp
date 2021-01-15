@@ -455,7 +455,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
             {
                 for(int istate = 0; istate < nstateBC; istate++) {
                     for (int j1 = 0; j1 < phi->Rows(); j1++) {
-                        ef(j1*nstateBC+istate, 0) += 0 * (*phi)(j1, 0) * weight;
+                       // ef(j1*nstateBC+istate, 0) += -0. * (*phi)(j1, 0) * weight;
 
                         for (int i1 = 0; i1 < phi->Rows(); i1++) {
                             ek(i1*nstateBC+istate, j1*nstateBC+istate) +=  -weight * (*phi)(j1, 0) * (*phi)(i1, 0);

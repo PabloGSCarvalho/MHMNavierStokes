@@ -157,7 +157,7 @@ void MHMNavierStokesTest::Run()
 
     switch(f_domaintype) {
 
-        case TStokesAnalytic::EObstacles: //Pressure
+        case TStokesAnalytic::EObstacles:
         {
             //    gmesh = CreateGMeshCurve();
             gmesh = CreateGmshMesh();
@@ -165,7 +165,8 @@ void MHMNavierStokesTest::Run()
         }
             break;
 
-        case TStokesAnalytic::EVugs2D: //Pressure
+        case TStokesAnalytic::EVugs2D:
+        case TStokesAnalytic::EInfiltrationNS:
         {
             //mesh = CreateGMeshVugsRefPattern(n_s,h_s);
             gmesh = CreateGmshMesh();
@@ -173,7 +174,7 @@ void MHMNavierStokesTest::Run()
         }
             break;
 
-        case TStokesAnalytic::ECouplingSD: //Pressure
+        case TStokesAnalytic::ECouplingSD:
         case TStokesAnalytic::ECouplingNSD:
         {
             gmesh = CreateGMeshCoupling(n_s, h_s);
@@ -206,7 +207,7 @@ void MHMNavierStokesTest::Run()
     StokesControl->SetStaticCondensation(f_sim_data->IsStaticCondensedQ());
     StokesControl->DefinePartitionbyCoarseIndices(coarseindex); //Define the MHM partition by the coarse element indices
 
-    if(f_domaintype==TStokesAnalytic::EVugs2D){
+    if(f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         StokesControl->SetBJSInterface(true);
     //    InsertArcInterface(StokesControl->GMesh());
     }
@@ -220,7 +221,7 @@ void MHMNavierStokesTest::Run()
 
     std::set<int> matids;
     matids.insert(fmatID);
-    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EVugs2D){
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         matids.insert(2);
     }
     StokesControl->fMaterialIds = matids;
@@ -236,7 +237,7 @@ void MHMNavierStokesTest::Run()
     if(f_domaintype==TStokesAnalytic::EObstacles){
         matids.insert(fmatBChole);
     }
-    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         matids.insert(fmatBCleft_2);
         matids.insert(fmatBCright_2);
     }
@@ -253,7 +254,7 @@ void MHMNavierStokesTest::Run()
     if(f_domaintype==TStokesAnalytic::EObstacles){
         StokesControl->fBCTractionMatIds[fmatBChole]=fmatLambdaBC_hole;
     }
-    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         StokesControl->fBCTractionMatIds[fmatBCleft_2]=fmatLambdaBC_left_2;
         StokesControl->fBCTractionMatIds[fmatBCright_2]=fmatLambdaBC_right_2;
     }
@@ -496,7 +497,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
         NS_analysis->SolveSystem();
     }
 
-    if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D){
+    if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         return;
     }
 
@@ -769,6 +770,8 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     if(f_domaintype==TStokesAnalytic::EVugs2D) {
 //    gmshFolder = "MHMNavierStokes/GmshRefs/Example3Dv8.msh";
         gmshFolder = "MHMNavierStokes/GmshRefs/Example3D.msh";
+    } else if(f_domaintype==TStokesAnalytic::EInfiltrationNS) {
+        gmshFolder = "MHMNavierStokes/GmshRefs/SimInfiltration01.msh";
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
         gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel500.msh";
     }else{
@@ -799,6 +802,11 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
 
     if(f_domaintype==TStokesAnalytic::EObstacles) {
         Geometry.GetDimNamePhysical()[dim-1]["obstacle"] = fmatBChole;
+    }
+
+    if(f_domaintype==TStokesAnalytic::EInfiltrationNS) {
+        Geometry.GetDimNamePhysical()[dim-1]["right2"] = fmatBCright_2;
+        Geometry.GetDimNamePhysical()[dim-1]["left2"] = fmatBCleft_2;
     }
 
     Geometry.GetDimNamePhysical()[dim]["Omega"] = fmatID; // Stokes Vug
@@ -3124,16 +3132,54 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         REAL x3 = x[2];
 
         STATE v_1 = 0.;
-        REAL r_in = 0.5;
-        if(x2*x2+x3*x3<=r_in*r_in){
-            v_1 = 20.*(1.-(x2*x2+x3*x3)/(r_in*r_in));
-        }
         STATE v_2 = 0.;
 
-        sol[0]=v_1;
+        sol[0]=0.;
         sol[1]=0.;
         sol[2]=0.;
         sol[3]=0.;
+
+}
+
+void MHMNavierStokesTest::Sol_exact_Infiltration(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
+
+    dsol.Resize(3,3);
+    sol.Resize(4);
+
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    REAL x3 = x[2];
+
+    STATE v_1 = 4.-(x2-5.)*(x2-5.);
+    STATE v_2 = 0.;
+
+    sol[0]=v_1+1.;
+    sol[1]=0.;
+    sol[2]=0.;
+    sol[3]=0.;
+
+}
+
+void MHMNavierStokesTest::Sol_exact_Sphere(const TPZVec<REAL> &x, TPZVec<STATE> &sol, TPZFMatrix<STATE> &dsol){
+
+    dsol.Resize(3,3);
+    sol.Resize(4);
+
+    REAL x1 = x[0];
+    REAL x2 = x[1];
+    REAL x3 = x[2];
+
+    STATE v_1 = 0.;
+    REAL r_in = 0.5;
+    if(x2*x2+x3*x3<=r_in*r_in){
+        v_1 = 20.*(1.-(x2*x2+x3*x3)/(r_in*r_in));
+    }
+    STATE v_2 = 0.;
+
+    sol[0]=v_1;
+    sol[1]=0.;
+    sol[2]=0.;
+    sol[3]=0.;
 
 }
 
@@ -3306,7 +3352,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     mat1->SetSimulationData(f_sim_data);
 
     TPZMHMNavierStokesMaterial *mat2 = NULL;
-    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EVugs2D){
+    if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         //Insert a Darcy material domain;
         mat2 = new TPZMHMNavierStokesMaterial(2,fdim);
         mat2->SetSimulationData(f_sim_data);
@@ -3317,7 +3363,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
 
-    if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D) {
+    if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS) {
 
     }else{
         mat1->SetForcingFunction(fp); //Caso simples sem termo fonte
@@ -3326,6 +3372,11 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     if(f_domaintype==TStokesAnalytic::EObstacles){
         solp = new TPZDummyFunction<STATE> (Sol_exact_Obstacle, 12);
+        mat1->SetForcingFunctionExact(solp);
+    }
+
+    if(f_domaintype==TStokesAnalytic::EInfiltrationNS){
+        solp = new TPZDummyFunction<STATE> (Sol_exact_Infiltration, 12);
         mat1->SetForcingFunctionExact(solp);
     }
 
@@ -3347,14 +3398,16 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         mat2->SetForcingFunctionExact(solp);
         cmesh.InsertMaterialObject(mat2);
     }
-    if(f_domaintype==TStokesAnalytic::EVugs2D){
+    if(f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
         f_ExactSol_2.fcBrinkman=1.;
         f_ExactSol_2.fvisco=0.;
         f_ExactSol_2.fExactSol = f_domaintype;
         mat2->SetProblemType(f_ExactSol_2.fProblemType); //Material 2 -> always EBrinkman (Darcy equation)
 
-        solp = new TPZDummyFunction<STATE> (Sol_exact, 7); //oioioio
-        mat2->SetForcingFunctionExact(solp); //oioioioi
+        if(f_3Dmesh){
+            solp = new TPZDummyFunction<STATE> (Sol_exact_Sphere, 7); //oioioio
+            mat2->SetForcingFunctionExact(solp); //oioioioi
+        }
 
         cmesh.InsertMaterialObject(mat2);
     }
@@ -3400,7 +3453,9 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
             val2(0, 0) = 1.0;
             TPZBndCond *BC_left = mat2->CreateBC(mat2, fmatBCleft, fdirichlet_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            if (f_3Dmesh) {
+                BC_left->SetBCForcingFunction(0, solp);
+            }
             cmesh.InsertMaterialObject(BC_left);
 
             val2(0, 0) = 0.0;
@@ -3477,7 +3532,34 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         }
             break;
 
-        default: {
+        case TStokesAnalytic::EInfiltrationNS:
+        {
+
+            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
+            cmesh.InsertMaterialObject(BC_bott);
+
+            TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
+            cmesh.InsertMaterialObject(BC_top);
+
+            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
+            BC_left->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(BC_left);
+
+            TPZBndCond *BC_left_2 = mat2->CreateBC(mat2, fmatBCleft_2, fdirichlet_v, val1, val2);
+            cmesh.InsertMaterialObject(BC_left_2);
+
+            TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            cmesh.InsertMaterialObject(BC_right);
+
+            TPZBndCond *BC_right_2 = mat2->CreateBC(mat2, fmatBCright_2, fneumann_v, val1, val2);
+            cmesh.InsertMaterialObject(BC_right_2);
+
+            TPZBndCond *BC_BJS = mat1->CreateBC(mat1, fmatBChole, f_BJS_condition, val1, val2);
+            cmesh.InsertMaterialObject(BC_BJS);
+        }
+            break;
+
+            default: {
 
             TPZBndCond * BCondD1 = mat1->CreateBC(mat1, fmatBCbott, fneumann_v, val1, val2);
             BCondD1->SetBCForcingFunction(0, solp);
@@ -3545,7 +3627,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     switch(f_domaintype) {
 
-        case TStokesAnalytic::ECavity: {
+        case TStokesAnalytic::ECavity:{
 
             val2(0,0) = 0.0;
             TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
@@ -3566,7 +3648,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             break;
 
 
-        case TStokesAnalytic::EVugs2D: {
+        case TStokesAnalytic::EVugs2D:{
 
             val2(0,0) = 0.0;
             TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
@@ -3651,6 +3733,31 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
             TPZBndCond *matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
             matLambdaBC_right_2->SetBCForcingFunction(0, solp);
+            cmesh.InsertMaterialObject(matLambdaBC_right_2);
+
+
+        }
+            break;
+
+        case TStokesAnalytic::EInfiltrationNS:
+        {
+
+            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+            cmesh.InsertMaterialObject(matLambdaBC_bott);
+
+            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            cmesh.InsertMaterialObject(matLambdaBC_top);
+
+            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            cmesh.InsertMaterialObject(matLambdaBC_left);
+
+            TPZBndCond *matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
+            cmesh.InsertMaterialObject(matLambdaBC_left_2);
+
+            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            cmesh.InsertMaterialObject(matLambdaBC_right);
+
+            TPZBndCond *matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right_2);
 
 
