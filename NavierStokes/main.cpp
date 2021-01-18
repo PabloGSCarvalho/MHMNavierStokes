@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     
     TPZMaterial::gBigNumber = 1.e10;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = InfiltrationNS;
+    Simulation_case sim_case = ObstacleTime;
 #ifdef LOG4CXX
     InitializePZLOG();
 #endif
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
             sim_data->SetCoarseDivisions(n_s);
             sim_data->SetDomainSize(h_s);
             sim_data->SetNInterRefs(0);
-            sim_data->SetViscosity(0.001);
+            sim_data->SetViscosity(0.0001);
             sim_data->SetBrinkmanCoef(0.); //For Brinkman
             sim_data->SetNthreads(24);
             //simdata.SetShapeTest(); // Test for shape functions
@@ -181,12 +181,12 @@ int main(int argc, char *argv[])
             sim_data->SetPardisoSolver();
             sim_data->ActivatePostProcessing();
 
-            sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
+            sim_data->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
             sim_data->SetTimeTotal(50.5);
-            sim_data->SetTimeStep(0.1);
+            sim_data->SetTimeStep(0.01);
             //
             Test2->SetSimulationData(sim_data);
             Test2->Run();

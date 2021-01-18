@@ -773,7 +773,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     } else if(f_domaintype==TStokesAnalytic::EInfiltrationNS) {
         gmshFolder = "MHMNavierStokes/GmshRefs/SimInfiltration01.msh";
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
-        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel500.msh";
+        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel.msh";
     }else{
         DebugStop();
     }
