@@ -326,7 +326,7 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     //this->PostProcess(div,dim);
     REAL time = m_simulation_data->GetTime();
     this->SetTime(time);
-    if((time>=0.8)&&(time<=1.2)||(time>=9.8)&&(time<=10.2)||(time>=19.8)&&(time<=20.2)||(time>=29.8)&&(time<=30.2)||(time>=39.8)&&(time<=40.2)||(time>=49.8)&&(time<=50.2)){
+    if((time>=0.89)&&(time<=0.91)||(time>=9.89)&&(time<=9.91)||(time>=19.89)&&(time<=19.91)||(time>=29.89)&&(time<=29.91)||(time>=39.89)&&(time<=39.91)||(time>=49.89)&&(time<=49.91)){
         this->PostProcess(div,dim);
     }
 
