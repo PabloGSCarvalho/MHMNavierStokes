@@ -775,6 +775,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         divui = Tr( GradVi ); //datavec[0].divphi(i);
         //divui = datavec[0].divphi(i);
 
+        //Stabilization:
+        STATE divUn = Tr( gradUn );
+        STATE Stab_term_f = 1.*divui*divUn;
+        ef(i) += weight * (-Stab_term_f);
+        //
 
 
         STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
@@ -924,6 +929,13 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             STATE A_term = Inner(Dui, Duj);
             STATE viscc = fViscosity;
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
+
+            //Stabilization:
+            STATE divuj = 0.;
+            divuj = Tr( GradVj );
+            STATE Stab_term = 1.*divui*divuj;
+            ek(i,j) += weight * Stab_term;
+            //
 
             if (f_problemtype==TStokesAnalytic::ENavierStokes) {
 

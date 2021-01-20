@@ -79,9 +79,10 @@ int main(int argc, char *argv[])
 
         case MHMProblem: //Pressure
         {
+            h_s[0]=2.,h_s[1]=2.,h_s[2]=2.;
             int pOrder = 1;
-            for (pOrder=2; pOrder<=2; pOrder++){
-                for (int it=4; it<=4; it++) {
+            for (pOrder=1; pOrder<=1; pOrder++){
+                for (int it=4; it<=6; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
                     sim_data->SetCoarseDivisions(n_s);
                     sim_data->SetDomainSize(h_s);
                     sim_data->SetNInterRefs(0);
-                    sim_data->SetViscosity(1.);
+                    sim_data->SetViscosity(.01);
                     sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(8);
                     //simdata.SetShapeTest(); // Test for shape functions
@@ -181,12 +182,12 @@ int main(int argc, char *argv[])
             sim_data->SetPardisoSolver();
             sim_data->ActivatePostProcessing();
 
-            sim_data->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+            sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
             sim_data->SetDomainType(TStokesAnalytic::EObstacles);
 
             //Transient parameters:
             sim_data->SetTimeTotal(50.5);
-            sim_data->SetTimeStep(0.01);
+            sim_data->SetTimeStep(0.1);
             //
             Test2->SetSimulationData(sim_data);
             Test2->Run();
