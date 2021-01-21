@@ -325,9 +325,11 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     //std::cout<<this->Mesh()->Solution()<<std::endl;
     //this->PostProcess(div,dim);
     REAL time = m_simulation_data->GetTime();
+    REAL t_step = m_simulation_data->GetTimeStep();
     this->SetTime(time);
+    REAL t_total = time + t_step;
 
-    if((time>=0.89)&&(time<=0.91)||(time>=9.89)&&(time<=9.91)||(time>=19.89)&&(time<=19.91)||(time>=29.89)&&(time<=29.91)||(time>=39.89)&&(time<=39.91)||(time>=49.89)&&(time<=49.91)){
+    if((fabs(t_total-1.)<=10.e-5)||(fabs(t_total-10.)<=10.e-5)||(fabs(t_total-20.)<=10.e-5)||(fabs(t_total-30.)<=10.e-5)||(fabs(t_total-40.)<=10.e-5)||(fabs(t_total-50.)<=10.e-5)){
         this->PostProcess(div,dim);
     }
 
@@ -725,7 +727,7 @@ void TPZNSAnalysis::ComputeDragAndLift(){
 
     ofstream CoefOut("DragAndLiftCoef_NavierStokes.txt", std::ofstream::app);
 
-    CoefOut <<"  Time = "<< time +0.1 << std::endl;
+    CoefOut <<"  Time = "<< time + m_simulation_data->GetTimeStep() << std::endl;
     CoefOut <<"-------------" << std::endl;
     CoefOut <<"C Drag - P = " << result[0] << std::endl;
     CoefOut <<"C Drag - V = " << result[2] << std::endl;

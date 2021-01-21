@@ -160,8 +160,7 @@ int main(int argc, char *argv[])
             MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
             //Test2->Set3Dmesh();
             //Test2->SetHdivPlus();
-            //Test2->SetElType(ETriangle);
-
+            //Test2->SetElType(ETriangle); //Gmsh generator is off
 
             TPZSimulationData *sim_data= new TPZSimulationData;
             sim_data->SetInternalOrder(pOrder);
@@ -187,7 +186,7 @@ int main(int argc, char *argv[])
 
             //Transient parameters:
             sim_data->SetTimeTotal(50.5);
-            sim_data->SetTimeStep(0.1);
+            sim_data->SetTimeStep(0.05);
             //
             Test2->SetSimulationData(sim_data);
             Test2->Run();
