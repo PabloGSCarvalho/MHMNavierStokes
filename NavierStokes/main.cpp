@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 
         case ObstacleTime:
         {
-            int pOrder = 2;
+            int pOrder = 1;
             h_level = 1;
 
             TPZVec<int> n_s(3,0.);
