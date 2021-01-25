@@ -778,7 +778,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         //Stabilization:
         STATE divUn = Tr( gradUn );
         STATE Stab_term_f = 1.*divui*divUn;
-        ef(i) += weight * (-Stab_term_f);
+        //ef(i) += weight * (-Stab_term_f);
         //
 
 
@@ -934,7 +934,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             STATE divuj = 0.;
             divuj = Tr( GradVj );
             STATE Stab_term = 1.*divui*divuj;
-            ek(i,j) += weight * Stab_term;
+            //ek(i,j) += weight * Stab_term;
             //
 
             if (f_problemtype==TStokesAnalytic::ENavierStokes) {

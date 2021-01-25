@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.;
             int pOrder = 1;
             for (pOrder=1; pOrder<=1; pOrder++){
-                for (int it=4; it<=6; it++) {
+                for (int it=5; it<=6; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
                     sim_data->SetCoarseDivisions(n_s);
                     sim_data->SetDomainSize(h_s);
                     sim_data->SetNInterRefs(0);
-                    sim_data->SetViscosity(.01);
+                    sim_data->SetViscosity(.0002);
                     sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(8);
                     //simdata.SetShapeTest(); // Test for shape functions
