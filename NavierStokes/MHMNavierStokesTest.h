@@ -114,7 +114,7 @@ private:
     int fdirichlet_v;
     int fneumann_v;
 
-    int fdirichlet_sigma;
+    int fdirichlet_sigma;  //No-slip condition v.t =0
     int fneumann_sigma;
 
     int f_BJS_condition;

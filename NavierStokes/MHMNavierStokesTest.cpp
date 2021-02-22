@@ -88,7 +88,7 @@ MHMNavierStokesTest::MHMNavierStokesTest()
     fdirichlet_v=0;
     fneumann_v=1;
 
-    fdirichlet_sigma=1;
+    fdirichlet_sigma=1; //No-slip condition v.t =0
     fneumann_sigma=0;
 
     f_BJS_condition =7;
@@ -148,6 +148,7 @@ void MHMNavierStokesTest::Run()
     SetDomainType(f_sim_data->GetDomainType());
     f_ExactSol.fvisco = f_sim_data->GetViscosity();
     f_ExactSol.fcBrinkman = f_sim_data->GetBrinkmanCoef();
+    f_ExactSol.multRa = 1;
 
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
@@ -310,9 +311,9 @@ void MHMNavierStokesTest::Run()
     std::stringstream MHMStokesPref;
     MHMStokesPref << "MHMStokes";
 
-    //SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    SolveProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
 
-    SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
+    //SolveNonLinearProblem(StokesControl->CMesh(), StokesControl->GetMeshes(), MHMStokesPref.str());
     std::cout << "FINISHED!" << std::endl;
     
 }
@@ -340,7 +341,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELU);
+    step.SetDirect(ELDLt);
     an.SetSolver(step);
     std::cout << "Assembling\n";
     an.Assemble();
@@ -708,6 +709,11 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h
     if(f_domaintype==TStokesAnalytic::ESinCos||f_domaintype==TStokesAnalytic::ESinCosBDS){
         x0[0] = 0., x0[1] = -1.;
         x1[0] = 2., x1[1] = 1.;
+    }
+
+    if(f_domaintype==TStokesAnalytic::ENoFlow){
+        x0[0] = 0., x0[1] = 0.;
+        x1[0] = 1., x1[1] = 1.;
     }
 
     TPZGenGrid2D grid(n_div,x0,x1);
