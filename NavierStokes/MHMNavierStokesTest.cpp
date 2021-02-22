@@ -340,7 +340,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELDLt);
+    step.SetDirect(ELU);
     an.SetSolver(step);
     std::cout << "Assembling\n";
     an.Assemble();
@@ -427,6 +427,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
             vecnames.Push("V_exact");
             scalnames.Push("P_exact");
             scalnames.Push("Div");
+            scalnames.Push("Vorticity2D");
         }
 
         an.DefineGraphMesh(cmesh->Dimension(), scalnames, vecnames, plotfile);
@@ -773,7 +774,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
     } else if(f_domaintype==TStokesAnalytic::EInfiltrationNS) {
         gmshFolder = "MHMNavierStokes/GmshRefs/SimInfiltration01.msh";
     }else if(f_domaintype==TStokesAnalytic::EObstacles) {
-        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel10Kquad.msh";
+        gmshFolder = "MHMNavierStokes/GmshRefs/ObstacleTunnel.msh";
     }else{
         DebugStop();
     }

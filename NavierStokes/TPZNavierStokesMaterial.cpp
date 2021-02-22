@@ -82,6 +82,7 @@ void TPZNavierStokesMaterial::FillDataRequirements(TPZMaterialData &data)
 {
     data.SetAllRequirements(false);
     data.fNeedsSol = true;
+    data.fNeedsHSize = true;
     data.fNeedsNormal = true;
     data.fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
 }
@@ -95,6 +96,7 @@ void TPZNavierStokesMaterial::FillDataRequirements(TPZVec<TPZMaterialData> &data
     for (int idata=0; idata < ndata ; idata++) {
         datavec[idata].SetAllRequirements(false);
         datavec[idata].fNeedsSol = true;
+        datavec[idata].fNeedsHSize = true;
         datavec[idata].fNeedsNormal = true;
     }
     datavec[0].fNeedsDeformedDirectionsFad = NeedsNormalVecFad;
@@ -425,7 +427,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
         }
             break;
 
-        case 7: //PressureCDG
+        case 7: //PressureCDG is the pressure p (from N-S equation)
         {
             Solout[0] = p_h[0]-(v_h[0]*v_h[0]+v_h[1]*v_h[1]+v_h[2]*v_h[2])*0.5;
         }
@@ -444,7 +446,7 @@ void TPZNavierStokesMaterial::Solution(TPZVec<TPZMaterialData> &datavec, int var
         }
             break;
 
-        case 9: //Vorticity
+        case 9: //Vorticity (multiplicar 1/2???)
         {
             Solout[0] = dsolxy(0,1)-dsolxy(1,0);
         }
@@ -599,7 +601,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     // pindex is 1
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
-    
+
     // tensorizing the scalar shape functions (in order to use Taylor Hood for instance)
     // but how does one compute the gradient of these vectors?
     
@@ -622,7 +624,8 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     // P
     TPZFMatrix<REAL> &phiP = datavec[pindex].phi;
     TPZFMatrix<REAL> &dphiP = datavec[pindex].dphix;
-    
+
+
     TPZFNMatrix<220,REAL> dphiVx(fDimension,dphiV.Cols());
     
     // computing the derivative of the vector functions in xy
@@ -632,7 +635,7 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     TPZFNMatrix<220,REAL> dphiPx(fDimension,phiP.Cols());
     // computing the derivatives of the pressure shape functions in xy (WHY?)
     TPZAxesTools<REAL>::Axes2XYZ(dphiP, dphiPx, datavec[pindex].axes);
-    
+
     int nshapeV, nshapeP;
     nshapeP = phiP.Rows();
     nshapeV = datavec[vindex].fVecShapeIndex.NElements();
@@ -679,8 +682,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
     TPZFNMatrix<40,STATE> div_on_master;
     TPZFNMatrix<10,STATE> dsolVec = datavec[vindex].dsol[0];
     // u_n is the solution at the previous iteration
+
     TPZManVector<STATE,3> u_n    = datavec[vindex].sol[0];
     STATE p_n                  = datavec[pindex].sol[0][0];
+
+    TPZFNMatrix<10,STATE> dsolp_n = datavec[pindex].dsol[0];
 
     fDeltaT = f_sim_data->GetTimeStep();
 
@@ -736,6 +742,30 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
     }
 
+    REAL norm_beta = 0.,norm_un;
+    REAL h_size = datavec[1].HSize;
+    TPZManVector<STATE> beta(3,0.);
+    TPZFNMatrix<9,STATE> grad_beta(3,3,0.), Beta_vec(3,1,0.),un_vec(3,1,0.);
+
+    for (int iv = 0; iv < 3; ++iv) {
+        un_vec(iv,0)=u_n[iv];
+    }
+    norm_un = Norm(un_vec);
+
+    if (f_problemtype==TStokesAnalytic::EOseenCDG||f_problemtype==TStokesAnalytic::EOseen) {
+        if (HasForcingFunctionExact()) {
+            TPZVec<STATE> x(3, 0.), xrot(3, 0.);
+            x = datavec[vindex].x;
+            this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
+        }
+
+        for (int iv = 0; iv < 3; ++iv) {
+            Beta_vec(iv,0)=beta[iv];
+        }
+        norm_beta = Norm(Beta_vec);
+    }
+
+
     for(int i = 0; i < nshapeV; i++ )
     {
         int iphi = datavec[vindex].fVecShapeIndex[i].second;
@@ -775,12 +805,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         divui = Tr( GradVi ); //datavec[0].divphi(i);
         //divui = datavec[0].divphi(i);
 
-        //Stabilization:
-        STATE divUn = Tr( gradUn );
-        STATE Stab_term_f = 1.*divui*divUn;
-        //ef(i) += weight * (-Stab_term_f);
-        //
-
 
         STATE phi_dot_f = 0.0, un_dot_phiV = 0.0; // f - Source term
         for (int e=0; e<3; e++) {
@@ -806,11 +830,11 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
         ef(i) += weight * (-B_term_f);
 
         //std::cout<<ef<<std::endl;
-
-        STATE C_term_f = 0.; // C - Trilinear terms
+        TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.), GradV_phiU(3,1,0.);
+        STATE C_term_f = 0., Stab_term_f = 0.; // C - Trilinear terms
         if (f_problemtype==TStokesAnalytic::ENavierStokes) {
+
             // this is the original Navier Stokes term
-            TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.);
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
                     GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
@@ -819,13 +843,24 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
             C_term_f = InnerVec(GradUn_phiU, phiVi);
 
-            // factorM is equal to one!!
             ef(i) += -weight * C_term_f;
+
+
+            //Stabilization-NS:
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_phiU(e,0) += GradVi(e,f)*u_n[f];
+//                }
+//            }
+//            Stab_term_f = InnerVec(GradUn_phiU, GradV_phiU);
+//            ef(i) += -0.5*h_size*(1./norm_un)*weight * Stab_term_f; //nsok
+
         }
 
+        TPZFNMatrix<9,STATE> GradUnTr_phiU(3,1,0.),GradVTr_phiU(3,1,0.),WUn_Un(3,1,0.),WV_Un(3,1,0.),WV_V(3,1,0.);
+        TPZFNMatrix<9,STATE> GradV_phiV(3,1,0.),GradVTr_phiV(3,1,0.);
         if (f_problemtype==TStokesAnalytic::ENavierStokesCDG) {
-            // this is the original Navier Stokes term
-            TPZFNMatrix<9,STATE> GradUn_phiU(3,1,0.), GradUnTr_phiU(3,1,0.);
+
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
                     GradUn_phiU(e,0) += gradUn(e,f)*u_n[f];
@@ -835,24 +870,43 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
             C_term_f = InnerVec(GradUn_phiU, phiVi) - InnerVec(GradUnTr_phiU, phiVi);
 
-            // factorM is equal to one!!
             ef(i) += -weight * C_term_f;
+
+            //Stabilization-NS-CDG:
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_phiU(e,0) += GradVi(e,f)*u_n[f];
+//                    GradVTr_phiU(e,0) += GradVi(f,e)*u_n[f];
+//                }
+//            }
+//
+//            for (int e=0; e<3; e++) {
+//                WUn_Un(e,0) = (1./2.)*(GradUn_phiU(e,0)-GradUnTr_phiU(e,0));
+//                WV_Un(e,0) = (1./2.)*(GradV_phiU(e,0)-GradVTr_phiU(e,0)) ;
+//            }
+//
+//
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_phiV(e,0) += GradVi(e,f)*phiVi(f,0);
+//                    GradVTr_phiV(e,0) += GradVi(f,e)*phiVi(f,0);
+//                }
+//            }
+//
+//            for (int e=0; e<3; e++) {
+//                WV_V(e,0) = (1./2.)*(GradV_phiV(e,0)-GradVTr_phiV(e,0)) ;
+//            }
+//
+//            Stab_term_f = InnerVec(GradUn_phiU, GradV_phiU);
+//            ef(i) += -0.5*h_size*(1./norm_un)*weight * Stab_term_f; //nscdg
+
         }
 
-        TPZManVector<STATE> beta(u_n);
-        TPZFNMatrix<9,STATE> grad_beta(3,3,0.);
-        TPZFNMatrix<9,STATE> GradUn_Beta(3,1,0.),GradV_Beta(3,1,0.),GradUnTr_Beta(3,1,0.);
 
+        TPZFNMatrix<9,STATE> GradUn_Beta(3,1,0.),GradV_Beta(3,1,0.),GradVTr_Beta(3,1,0.),GradUnTr_Beta(3,1,0.);
+        TPZFNMatrix<9,STATE> GradBeta_Beta(3,1,0.);
         if (f_problemtype==TStokesAnalytic::EOseen) {
             // this is an adjustment for a Oseen version of Navier Stokes?
-
-            if(HasForcingFunctionExact())
-            {
-                TPZVec<STATE> x(3,0.),xrot(3,0.);
-                x=datavec[vindex].x;
-                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
-            }
-
 
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
@@ -863,25 +917,23 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             C_term_f = InnerVec(GradUn_Beta, phiVi);
             ef(i) += -weight * C_term_f;
 
-
-
-            for (int e=0; e<3; e++) {
-                for (int f=0; f<3; f++) {
-                    GradV_Beta(e,0) += GradVi(e,f)*beta[f]; //Oseen eqs
-                }
-            }
-
+            //Stabilization-Oseen:
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_phiU(e,0) += GradVi(e,f)*u_n[f];
+//                    GradV_Beta(e,0) += GradVi(e,f)*beta[f];
+//                    GradBeta_Beta(e,0)+= grad_beta(e,f)*beta[f];
+//                }
+//            }
+//            STATE Stab_term_f = InnerVec(GradBeta_Beta, GradV_Beta);
+//            ef(i) += -0.5*h_size*(1./norm_beta)*weight * Stab_term_f;
         }
+
+        TPZFNMatrix<9,STATE> WUn_Beta(3,1,0.),WV_Beta(3,1,0.),WBeta_Beta(3,1,0.);
+        TPZFNMatrix<9,STATE> GradTrBeta_Beta(3,1,0.);
 
 
         if (f_problemtype==TStokesAnalytic::EOseenCDG) {
-
-            if(HasForcingFunctionExact())
-            {
-                TPZVec<STATE> x(3,0.),xrot(3,0.);
-                x=datavec[vindex].x;
-                this->ForcingFunctionExact()->Execute(x, beta, grad_beta);
-            }
 
             for (int e=0; e<3; e++) {
                 for (int f=0; f<3; f++) {
@@ -893,7 +945,46 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             C_term_f = InnerVec(GradUn_Beta, phiVi) - InnerVec(GradUnTr_Beta, phiVi);
             ef(i) += -weight * C_term_f;
 
+            //Stabilization-OseenCDG:
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_Beta(e,0) += GradVi(e,f)*beta[f];
+//                    GradVTr_Beta(e,0) += GradVi(f,e)*beta[f];
+//                }
+//            }
+//
+//            //grad_beta
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradBeta_Beta(e,0) += grad_beta(e,f)*beta[f];
+//                    GradTrBeta_Beta(e,0) += grad_beta(f,e)*beta[f];
+//                }
+//            }
+//
+//            for (int e=0; e<3; e++) {
+//                WUn_Beta(e,0) = (1./2.)*(GradUn_Beta(e,0)-GradUnTr_Beta(e,0));
+//                WBeta_Beta(e,0) = (1./2.)*(GradBeta_Beta(e,0)-GradTrBeta_Beta(e,0));
+//                WV_Beta(e,0) = (1./2.)*(GradV_Beta(e,0)-GradVTr_Beta(e,0)) ;
+//            }
+//
+//
+//            for (int e=0; e<3; e++) {
+//                for (int f=0; f<3; f++) {
+//                    GradV_phiU(e,0) += GradVi(e,f)*u_n[f];
+//                    GradVTr_phiU(e,0) += GradVi(f,e)*u_n[f];
+//                }
+//            }
+//
+//            for (int e=0; e<3; e++) {
+//                WV_Un(e,0) = (1./2.)*(GradV_phiU(e,0)-GradVTr_phiU(e,0)) ;
+//            }
+//
+//
+//            STATE Stab_term_f = 2.*InnerVec(WUn_Beta, WV_Beta)+InnerVec(dsolp_n, WV_Beta);
+//            ef(i) += -0.5*h_size*(1./norm_beta)*weight * Stab_term_f;  //efocdg
+
         }
+
 
         // A, C e D - velocity X velocity
         for(int j = 0; j < nshapeV; j++){
@@ -930,12 +1021,6 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             STATE viscc = fViscosity;
             ek(i,j) += 2. * weight * fViscosity * A_term;  // A - Bilinear gradV * gradU
 
-            //Stabilization:
-            STATE divuj = 0.;
-            divuj = Tr( GradVj );
-            STATE Stab_term = 1.*divui*divuj;
-            //ek(i,j) += weight * Stab_term;
-            //
 
             if (f_problemtype==TStokesAnalytic::ENavierStokes) {
 
@@ -946,21 +1031,34 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                     }
                 }
 
-                TPZFNMatrix<9,STATE> GradUn_phiV(3,1,0.);
+                TPZFNMatrix<9,STATE> GradUn_phiVj(3,1,0.);
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
-                        GradUn_phiV(e,0) += gradUn(e,f)*phiVj(f,0);
+                        GradUn_phiVj(e,0) += gradUn(e,f)*phiVj(f,0);
                     }
                 }
 
                 STATE C_term = InnerVec(GradU_Un, phiVi);
 
-                STATE C_term_2 = InnerVec(GradUn_phiV, phiVi);
+                STATE C_term_2 = InnerVec(GradUn_phiVj, phiVi);
 
                 // THIS IS WRONG!! EITHER TRANSPOSE OR NOT
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
 
                 ek(i,j) += weight * C_term_2;  // C - Trilinear terms
+
+
+                //Stabilization-NS-CDG:
+//                TPZFNMatrix<9,STATE> GradVi_phiVj(3,1,0.);
+//
+//                for (int e=0; e<3; e++) {
+//                    for (int f=0; f<3; f++) {
+//                        GradVi_phiVj(e,0) += GradVi(e,f)*phiVj(f,0);
+//                    }
+//                }
+//
+//                STATE Stab_term = InnerVec(GradU_Un, GradV_phiU)+InnerVec(GradUn_phiVj, GradV_phiU)+InnerVec(GradUn_phiU, GradV_phiU);
+//                ek(i,j) += 0.5*h_size*(1./norm_un)*weight * Stab_term; //nsok
 
             }
 
@@ -969,34 +1067,71 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 TPZFNMatrix<9,STATE> GradU_Un(3,1,0.), GradUTr_Un(3,1,0.);
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
-                        GradU_Un(e,0) += GradVj(e,f)*u_n[f]; //Oseen eqs
+                        GradU_Un(e,0) += GradVj(e,f)*u_n[f]; //Oseen eqs Obs:GradU = GradVj = Grad Du
                         GradUTr_Un(e,0)+= GradVj(f,e)*u_n[f];
                     }
                 }
 
-                TPZFNMatrix<9,STATE> GradUn_phiV(3,1,0.),GradUnTr_phiV(3,1,0.);
+                TPZFNMatrix<9,STATE> GradUn_phiVj(3,1,0.),GradUnTr_phiVj(3,1,0.);
+
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
-                        GradUn_phiV(e,0) += gradUn(e,f)*phiVj(f,0);
-                        GradUnTr_phiV(e,0) += gradUn(f,e)*phiVj(f,0);
+                        GradUn_phiVj(e,0) += gradUn(e,f)*phiVj(f,0);
+                        GradUnTr_phiVj(e,0) += gradUn(f,e)*phiVj(f,0);
                     }
                 }
 
                 STATE C_term = InnerVec(GradU_Un, phiVi) - InnerVec(GradUTr_Un, phiVi);
 
-                STATE C_term_2 = InnerVec(GradUn_phiV, phiVi) - InnerVec(GradUnTr_phiV, phiVi);
+                STATE C_term_2 = InnerVec(GradUn_phiVj, phiVi) - InnerVec(GradUnTr_phiVj, phiVi);
 
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
 
                 ek(i,j) += weight * C_term_2;  // C - Trilinear terms
 
-            }
 
+                //Stabilization-NS-CDG:
+//                TPZFNMatrix<9,STATE> GradVi_phiVj(3,1,0.),GradViTr_phiVj(3,1,0.);
+//                TPZFNMatrix<9,STATE> WUn_U(3,1,0.),WU_Un(3,1,0.),WV_U(3,1,0.);
+//
+//                for (int e=0; e<3; e++) {
+//                    for (int f=0; f<3; f++) {
+//                        GradVi_phiVj(e,0) += GradVi(e,f)*phiVj(f,0);
+//                        GradViTr_phiVj(e,0) += GradVi(f,e)*phiVj(f,0);
+//                    }
+//                }
+//
+//                for (int e=0; e<3; e++) {
+//                    WUn_U(e,0) = (1./2.)*(GradUn_phiVj(e,0)-GradUnTr_phiVj(e,0));
+//                    WU_Un(e,0) = (1./2.)*(GradU_Un(e,0)-GradUTr_Un(e,0)) ;
+//                    WV_U(e,0) = (1./2.)*(GradVi_phiVj(e,0)-GradViTr_phiVj(e,0));
+//                }
+//
+//                STATE Stab_term = InnerVec(GradU_Un, GradV_phiU)+InnerVec(GradUn_phiVj, GradV_phiU)+InnerVec(GradUn_phiU, GradV_phiU);
+//
+//                ek(i,j) += 0.5*h_size*(1./norm_un)*weight * (Stab_term); //nscdg
+//                for (int j = 0; j < nshapeP; j++) {
+//
+//                    TPZFNMatrix<9,STATE> GradPj(3,1,0.);
+//                    for (int e=0; e<3; e++) {
+//                        GradPj(e,0) = dphiPx(e,j);
+//                    }
+//
+//                    STATE PStab_term = 0.;
+//                    PStab_term = 0.5*h_size*(1./norm_beta)*weight *InnerVec(GradPj, WV_Beta);
+//                    // Matrix B
+//                    ek(i, nshapeV+j) += PStab_term; //zxzxzxzx
+//                    // Matrix B^T
+//                    ek(nshapeV+j,i) += PStab_term;  //zxzxzxzx
+//
+//                }
+
+            }
 
 
             if (f_problemtype==TStokesAnalytic::EOseen) {
 
-                TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.), GradUTr_Beta(3,1,0.);
+                TPZFNMatrix<9,STATE> GradU_Beta(3,1,0.);
                 for (int e=0; e<3; e++) {
                     for (int f=0; f<3; f++) {
                         GradU_Beta(e,0) += GradVj(e,f)*beta[f]; //Oseen eqs
@@ -1006,6 +1141,10 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
                 STATE C_term = InnerVec(GradU_Beta, phiVi);
 
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
+
+                //Stabilization-Oseen:
+//                STATE Stab_term = InnerVec(GradU_Beta, GradV_Beta);
+//                ek(i,j) += 0.5*h_size*(1./norm_beta)*weight * Stab_term;
 
             }
 
@@ -1023,6 +1162,29 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
 
                 ek(i,j) += weight * C_term;  // C - Trilinear terms
 
+                //Stabilization-OseenCDG:
+//                TPZFNMatrix<9,STATE> WU_Beta(3,1,0.);
+//                for (int e=0; e<3; e++) {
+//                    WU_Beta(e,0) = (1./2.)*(GradU_Beta(e,0)-GradUTr_Beta(e,0));
+//                }
+//                STATE Stab_term = 2.*InnerVec(WU_Beta, WV_Beta);
+//                ek(i,j) += 0.5*h_size*(1./norm_beta)*weight * Stab_term; //ekocdg
+//
+//                for (int j = 0; j < nshapeP; j++) {
+//
+//                    TPZFNMatrix<9,STATE> GradPj(3,1,0.);
+//                    for (int e=0; e<3; e++) {
+//                        GradPj(e,0) = phiV(e,j);
+//                    }
+//
+//                    STATE PStab_term = 0.;
+//                    PStab_term = 0.5*h_size*(1./norm_beta)*weight *InnerVec(phiVj, WV_Beta);
+//                    // Matrix B
+//                    ek(i, nshapeV+j) += PStab_term; //zxzxzxzx
+//                    // Matrix B^T
+//                    ek(nshapeV+j,i) += PStab_term;  //zxzxzxzx
+//                }
+//
             }
 
 
@@ -1059,6 +1221,29 @@ void TPZNavierStokesMaterial::Contribute(TPZVec<TPZMaterialData> &datavec, REAL 
             Brinkman_source = phiP(i,0)*Force[3]; //gsource
             ef(i+nshapeV) += -weight*Brinkman_source;
         }
+
+//        if (f_problemtype==TStokesAnalytic::EOseenCDG) {
+//
+//            TPZFNMatrix<9,STATE> GradPi(3,1,0.);
+//            for (int e=0; e<3; e++) {
+//                GradPi(e,0) = dphiPx(e,i);
+//            }
+//
+//            //Stabilization-OseenCDG - pressure and velocity
+//            for (int j = 0; j < nshapeP; j++) {
+//
+//                TPZFNMatrix<9,STATE> GradPj(3,1,0.);
+//                for (int e=0; e<3; e++) {
+//                    GradPj(e,0) = dphiPx(e,j);
+//                }
+//
+//                STATE PStab_term = 0.;
+//                PStab_term = 0.5*h_size*(1./norm_beta)*weight *InnerVec(GradPj, GradPi);
+//            //    ek(i+nshapeV, j+nshapeV) += PStab_term;  //zxzxzxzx
+//            }
+//        }
+
+
     }
 
 
@@ -1788,7 +1973,7 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
 
 //    std::cout<<Velocity<<std::endl;
 //    std::cout<<sol_exact<<std::endl;
-    
+
     int shift = 3;
     // velocity - erro norma L2
     STATE diff, diffp;

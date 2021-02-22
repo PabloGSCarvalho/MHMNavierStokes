@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     
     TPZMaterial::gBigNumber = 1.e10;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = ObstacleTime;
+    Simulation_case sim_case = MHMProblem;
 #ifdef LOG4CXX
     InitializePZLOG();
 #endif
@@ -81,8 +81,8 @@ int main(int argc, char *argv[])
         {
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.;
             int pOrder = 1;
-            for (pOrder=1; pOrder<=1; pOrder++){
-                for (int it=5; it<=6; it++) {
+            for (pOrder=2; pOrder<=2; pOrder++){
+                for (int it=4; it<=4; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
                     MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                     //Test2->Set3Dmesh();
                     //Test2->SetHdivPlus();
-                    //Test2->SetElType(ECube);
+                    //Test2->SetElType(ETriangle);
 
                     TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                     Test2->SetTransform(Transf, InvTransf);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
                     sim_data->SetCoarseDivisions(n_s);
                     sim_data->SetDomainSize(h_s);
                     sim_data->SetNInterRefs(0);
-                    sim_data->SetViscosity(.0002);
+                    sim_data->SetViscosity(.01);
                     sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(8);
                     //simdata.SetShapeTest(); // Test for shape functions
@@ -123,16 +123,16 @@ int main(int argc, char *argv[])
                     sim_data->Set_n_iterations(40);
                     sim_data->Set_epsilon_cor(0.0000001);
                     sim_data->Set_epsilon_res(0.0000001);
-                    sim_data->SetPardisoSolver();
+                    //sim_data->SetPardisoSolver();
                     if(h_level==4){
                         sim_data->ActivatePostProcessing();
                     }
                     if(h_level>=32){
                         //    sim_data->SetPardisoSolver();
                     }
-
-                    sim_data->SetProblemType(TStokesAnalytic::ENavierStokes);
-                    sim_data->SetDomainType(TStokesAnalytic::EKovasznay);
+                    sim_data->ActivatePostProcessing();
+                    sim_data->SetProblemType(TStokesAnalytic::ENavierStokesCDG);
+                    sim_data->SetDomainType(TStokesAnalytic::EKovasznayCDG);
 
                     //Transient parameters:
                     //sim_data->SetTimeTotal(11.);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 
         case ObstacleTime:
         {
-            int pOrder = 1;
+            int pOrder = 2;
             h_level = 1;
 
             TPZVec<int> n_s(3,0.);

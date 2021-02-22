@@ -91,13 +91,12 @@ Field[7] = Min;
 Field[7].FieldsList = {2,4};
 Background Field = 7;
 
-
-
-  If(IsquadQ)
+  If(IsquadQ)  
 
   Recombine Surface {1,2};
 
   EndIf
+
 
   Physical Surface("Omega") = {1};
   Physical Line("bottom") = {1};
