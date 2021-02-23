@@ -148,7 +148,7 @@ void MHMNavierStokesTest::Run()
     SetDomainType(f_sim_data->GetDomainType());
     f_ExactSol.fvisco = f_sim_data->GetViscosity();
     f_ExactSol.fcBrinkman = f_sim_data->GetBrinkmanCoef();
-    f_ExactSol.multRa = 1;
+    f_ExactSol.multRa = 1000000.;
 
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
@@ -3144,7 +3144,7 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         sol[0]=0.;
         sol[1]=0.;
         sol[2]=0.;
-        sol[3]=0.;
+        sol[3]=1000000.*(x2*x2*x2-(x2*x2)/2.+x2-7./12.);
 
 }
 
@@ -3225,7 +3225,7 @@ void MHMNavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZF
     REAL x3 = x[2];
     
     f[0] =0.;
-    f[1] =0.;
+    f[1] =1000000.*(1.-x2+3*x2*x2);
     f[2] =0.;
     
     TPZVec<REAL> f_s(3,0), f_rot(3,0);
@@ -3263,16 +3263,16 @@ void MHMNavierStokesTest::F_source(const TPZVec<REAL> &x, TPZVec<STATE> &f, TPZF
     // Stokes : : Artigo Botti, Di Pietro, Droniou
     
     
-    f_s[0] = -3.*sin(x1)*sin(x2);
-    f_s[1] = -1.*cos(x1)*cos(x2);
-
-    f_T.Apply(f_s, f_rot);
-    f_s = f_rot;
-
-
-    f[0] = f_s[0]; // x direction
-    f[1] = f_s[1]; // y direction
-    f[2] = f_s[2];
+//    f_s[0] = -3.*sin(x1)*sin(x2);
+//    f_s[1] = -1.*cos(x1)*cos(x2);
+//
+//    f_T.Apply(f_s, f_rot);
+//    f_s = f_rot;
+//
+//
+//    f[0] = f_s[0]; // x direction
+//    f[1] = f_s[1]; // y direction
+//    f[2] = f_s[2];
     
     
     // Darcy : : Artigo Botti, Di Pietro, Droniou
@@ -3370,12 +3370,20 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
     TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
 
+//    if(f_domaintype==TStokesAnalytic::ENoFlow){ //yuyuyuyuy
+//        solp = new TPZDummyFunction<STATE> (Sol_exact, 9);
+//        fp = new TPZDummyFunction<STATE> (F_source, 9);
+//    }
+
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS) {
 
     }else{
         mat1->SetForcingFunction(fp); //Caso simples sem termo fonte
         mat1->SetForcingFunctionExact(solp);
     }
+
+
+
 
     if(f_domaintype==TStokesAnalytic::EObstacles){
         solp = new TPZDummyFunction<STATE> (Sol_exact_Obstacle, 12);
