@@ -80,8 +80,13 @@ int main(int argc, char *argv[])
         case MHMProblem: //Pressure
         {
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Default
-            int pOrder = 1;
-            for (pOrder=2; pOrder<=2; pOrder++){
+            int pOrder = 2;
+            TPZVec<REAL> m_Ras(4,0);
+            m_Ras[0] = 1;
+            m_Ras[1] = 100;
+            m_Ras[2] = 10000;
+            m_Ras[3] = 1000000;
+            for (int im=0; im<=3; im++){
                 for (int it=2; it<=7; it++) {
                     h_level = pow(2., it);
 
@@ -94,7 +99,7 @@ int main(int argc, char *argv[])
                     MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                     //Test2->Set3Dmesh();
                     //Test2->SetHdivPlus();
-                    //Test2->SetElType(ETriangle);
+                    Test2->SetElType(ETriangle);
 
                     TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                     Test2->SetTransform(Transf, InvTransf);
@@ -117,6 +122,7 @@ int main(int argc, char *argv[])
                     sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(24);
                     //simdata.SetShapeTest(); // Test for shape functions
+                    sim_data->SetMultRa(m_Ras[im]);
 
                     sim_data->SetOptimizeBandwidthQ(true);
                     //sim_data->SetStaticCondensation(false);

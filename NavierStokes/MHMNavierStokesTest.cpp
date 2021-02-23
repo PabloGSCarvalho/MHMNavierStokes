@@ -148,7 +148,7 @@ void MHMNavierStokesTest::Run()
     SetDomainType(f_sim_data->GetDomainType());
     f_ExactSol.fvisco = f_sim_data->GetViscosity();
     f_ExactSol.fcBrinkman = f_sim_data->GetBrinkmanCoef();
-    f_ExactSol.multRa = 1000000.;
+    f_ExactSol.multRa = f_sim_data->GetMultRa();
 
     if(feltype==ECube||feltype==EPrisma||feltype==ETetraedro){
         Set3Dmesh();
@@ -566,7 +566,11 @@ std::ostream &MHMNavierStokesTest::ConfigPrint(std::ostream &out)
     TPZVec<int> n_s = f_sim_data->GetCoarseDivisions();
     TPZVec<REAL> h_s = f_sim_data->GetDomainSize();
     int nrefs = f_sim_data->GetNInterRefs();
-    
+
+    if(f_domaintype==TStokesAnalytic::ENoFlow){
+        out << " Multiplier Ra : " << f_sim_data->GetMultRa()  << endl;
+    }
+
     std::string elemName;
     
     if (feltype==EQuadrilateral) {

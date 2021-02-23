@@ -42,6 +42,7 @@ TPZSimulationData::TPZSimulationData()
     m_deltaT = 0.;
     m_time = 0.;
     m_timeTotal = 0.;
+    m_multRa = 1.;
 
 }
 
@@ -83,6 +84,7 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_deltaT                            = other.m_deltaT;
     m_time                              = other.m_time;
     m_timeTotal                         = other.m_timeTotal;
+    m_multRa                            = other.m_multRa;
 
 }
 
@@ -121,6 +123,7 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_deltaT                            = other.m_deltaT;
         m_time                              = other.m_time;
         m_timeTotal                         = other.m_timeTotal;
+        m_multRa                            = other.m_multRa;
     }
     return *this;
 }

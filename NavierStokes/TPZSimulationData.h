@@ -112,6 +112,8 @@ protected:
 
     REAL m_timeTotal;
 
+    REAL m_multRa;
+
 public:
     
     /** default constructor */
@@ -421,6 +423,16 @@ public:
     }
 
     void UpdateTime();
+
+    /** Set the multiplier for Pressure Robustness Test */
+    void SetMultRa(REAL multRa){
+        m_multRa = multRa;
+    }
+
+    /** Get the multiplier for Pressure Robustness Test */
+    REAL GetMultRa(){
+        return m_multRa;
+    }
 
 };
 
