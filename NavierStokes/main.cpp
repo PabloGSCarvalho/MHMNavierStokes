@@ -80,14 +80,11 @@ int main(int argc, char *argv[])
         case MHMProblem: //Pressure
         {
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Default
-            int pOrder = 2;
-            TPZVec<REAL> m_Ras(4,0);
-            m_Ras[0] = 1;
-            m_Ras[1] = 100;
-            m_Ras[2] = 10000;
-            m_Ras[3] = 1000000;
-            for (int im=0; im<=3; im++){
-                for (int it=2; it<=7; it++) {
+            int pOrder = 1;
+
+            for (int im=1; im<=3; im++){
+                int pOrder = im;
+                for (int it=2; it<=6; it++) {
                     h_level = pow(2., it);
 
                     std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
@@ -122,7 +119,8 @@ int main(int argc, char *argv[])
                     sim_data->SetBrinkmanCoef(0.); //For Brinkman
                     sim_data->SetNthreads(24);
                     //simdata.SetShapeTest(); // Test for shape functions
-                    sim_data->SetMultRa(m_Ras[im]);
+
+                    sim_data->SetDivPlusOrder(1);
 
                     sim_data->SetOptimizeBandwidthQ(true);
                     //sim_data->SetStaticCondensation(false);
@@ -137,8 +135,8 @@ int main(int argc, char *argv[])
                         //    sim_data->SetPardisoSolver();
                     }
                     //sim_data->ActivatePostProcessing();
-                    sim_data->SetProblemType(TStokesAnalytic::EStokes);
-                    sim_data->SetDomainType(TStokesAnalytic::ENoFlow);
+                    sim_data->SetProblemType(TStokesAnalytic::EBrinkman);
+                    sim_data->SetDomainType(TStokesAnalytic::ESinCosBDS);
 
                     //Transient parameters:
                     //sim_data->SetTimeTotal(11.);

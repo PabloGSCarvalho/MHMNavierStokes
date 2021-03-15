@@ -40,10 +40,13 @@ protected:
     
     /** Polynomial order for internal elements */
     int m_internal_order;
-    
+
     /** Polynomial order for internal elements */
     int m_skeleton_order;
-    
+
+    /** Internal function hdiv order  for internal elements */
+    int m_divplus_order;
+
     /** Physical dimension of the domain */
     int m_dimesion;
     
@@ -180,6 +183,18 @@ public:
     int GetSkeletonOrder(){
         return m_skeleton_order;
     }
+
+    /** Set hdiv plus order for internal elements */
+    void SetDivPlusOrder(int divplus_order){
+        m_divplus_order = divplus_order;
+    }
+
+    /** Get hdiv plus order for internal elements */
+    int GetDivPlusOrder(){
+        return m_divplus_order;
+    }
+
+
 
     /** Set the physical dimension of the domain */
     void SetDimension(int dim){

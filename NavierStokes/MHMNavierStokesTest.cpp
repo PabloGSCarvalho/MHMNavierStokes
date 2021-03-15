@@ -264,6 +264,10 @@ void MHMNavierStokesTest::Run()
     
     StokesControl->SetInternalPOrder(int_order);
     StokesControl->SetSkeletonPOrder(skeleton_order);
+
+    int hdivplusOrder = f_sim_data->GetDivPlusOrder();
+    StokesControl->SetHdivmaismaisPOrder(hdivplusOrder);
+
     //StokesControl->DivideSkeletonElements(0); //Insere material id do skeleton wrap
 
     //if (fsimData.GetNInterRefs()>0) {
@@ -563,6 +567,7 @@ std::ostream &MHMNavierStokesTest::ConfigPrint(std::ostream &out)
 {
     int int_order = f_sim_data->GetInternalOrder();
     int skeleton_order = f_sim_data->GetSkeletonOrder();
+    int divPlus_order = f_sim_data->GetDivPlusOrder();
     TPZVec<int> n_s = f_sim_data->GetCoarseDivisions();
     TPZVec<REAL> h_s = f_sim_data->GetDomainSize();
     int nrefs = f_sim_data->GetNInterRefs();
@@ -585,7 +590,7 @@ std::ostream &MHMNavierStokesTest::ConfigPrint(std::ostream &out)
         elemName = " Cubic elements : ";
     }
     
-    out << elemName << n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << " - N refs : " << nrefs << " - Order Skel : " << skeleton_order << " - Order Intern : " << int_order<<"\n";
+    out << elemName << n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << " - N refs : " << nrefs << " - Order Skel : " << skeleton_order << " - Order Intern : " << int_order<< " - HdivPlus Intern : " << divPlus_order<< "\n";
     return out;
 }
 

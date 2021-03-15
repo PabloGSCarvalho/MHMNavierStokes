@@ -129,7 +129,13 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
 
     //InsertPeriferalMaterialObjects();  //Skeleton com dirichlet v=0
     CreateHDivMHMMesh();
-    
+
+    if(0){
+        TPZCompMesh *cmeshV = fFluxMesh.operator->();
+        std::ofstream outv("FluxMesh.txt");
+        cmeshV->Print(outv);
+    }
+
     InsertBCSkeleton();
     InsertInternalSkeleton();
 
@@ -220,9 +226,13 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
 }
 
 void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
-    
+
     CreatePressureMHMMesh();
-    
+
+    std::ofstream out0("PressureAndTractionFineMesh.txt");
+    fPressureFineMesh->Print(out0);
+
+
     TPZGeoMesh * gmesh = fGMesh.operator->();
     gmesh->ResetReference();
     

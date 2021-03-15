@@ -43,6 +43,7 @@ TPZSimulationData::TPZSimulationData()
     m_time = 0.;
     m_timeTotal = 0.;
     m_multRa = 1.;
+    m_divplus_order = 0.;
 
 }
 
@@ -85,6 +86,7 @@ TPZSimulationData::TPZSimulationData(const TPZSimulationData & other)
     m_time                              = other.m_time;
     m_timeTotal                         = other.m_timeTotal;
     m_multRa                            = other.m_multRa;
+    m_divplus_order                     = other.m_divplus_order;
 
 }
 
@@ -124,6 +126,7 @@ TPZSimulationData & TPZSimulationData::operator=(const TPZSimulationData &other)
         m_time                              = other.m_time;
         m_timeTotal                         = other.m_timeTotal;
         m_multRa                            = other.m_multRa;
+        m_divplus_order                     = other.m_divplus_order;
     }
     return *this;
 }
