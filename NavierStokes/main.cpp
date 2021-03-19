@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             for (int ivisc = 0; ivisc < 4; ++ivisc) {
                 for (int im=1; im<=3; im++){
                     int pOrder = im;
-                    for (int it=4; it<=6; it++) {
+                    for (int it=4; it<=7; it++) {
                         h_level = pow(2., it);
 
                         std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
