@@ -81,72 +81,76 @@ int main(int argc, char *argv[])
         {
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Default
             int pOrder = 1;
+            TPZVec<REAL> viscos(4,0);
+            viscos[0]=1.; viscos[1]=.1; viscos[2]=.01; viscos[3]=.002;
+            for (int ivisc = 0; ivisc < 4; ++ivisc) {
+                for (int im=1; im<=3; im++){
+                    int pOrder = im;
+                    for (int it=4; it<=6; it++) {
+                        h_level = pow(2., it);
 
-            for (int im=1; im<=3; im++){
-                int pOrder = im;
-                for (int it=2; it<=6; it++) {
-                    h_level = pow(2., it);
+                        std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
+                        TPZVec<int> n_s(3,0.);
+                        n_s[0]=h_level,n_s[1]=h_level;
+                        n_s[2]=h_level; //Obs!!
+                        //h_s[0]=4*h_s[0];
 
-                    std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
-                    TPZVec<int> n_s(3,0.);
-                    n_s[0]=h_level,n_s[1]=h_level;
-                    n_s[2]=h_level; //Obs!!
-                    //h_s[0]=4*h_s[0];
+                        MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
+                        //Test2->Set3Dmesh();
+                        //Test2->SetHdivPlus();
+                        //Test2->SetElType(ETriangle);
 
-                    MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
-                    //Test2->Set3Dmesh();
-                    //Test2->SetHdivPlus();
-                    Test2->SetElType(ETriangle);
+                        TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
+                        Test2->SetTransform(Transf, InvTransf);
 
-                    TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
-                    Test2->SetTransform(Transf, InvTransf);
+                        REAL rot_x = 5.;
+                        REAL rot_z = 44.;
+                        REAL rot_y = -85.;
+                        rot_z = rot_z*Pi/180.;
+                        rot_y = rot_y*Pi/180.;
+                        rot_z = rot_z*Pi/180.;
 
-                    REAL rot_x = 5.;
-                    REAL rot_z = 44.;
-                    REAL rot_y = -85.;
-                    rot_z = rot_z*Pi/180.;
-                    rot_y = rot_y*Pi/180.;
-                    rot_z = rot_z*Pi/180.;
+                        //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
+                        TPZSimulationData *sim_data= new TPZSimulationData;
+                        sim_data->SetInternalOrder(pOrder);
+                        sim_data->SetSkeletonOrder(pOrder);
+                        sim_data->SetCoarseDivisions(n_s);
+                        sim_data->SetDomainSize(h_s);
+                        sim_data->SetNInterRefs(0);
+                        sim_data->SetViscosity(viscos[ivisc]);
+                        sim_data->SetBrinkmanCoef(0.); //For Brinkman
+                        sim_data->SetNthreads(24);
+                        //simdata.SetShapeTest(); // Test for shape functions
 
-                    //Test2->SetRotation3DMatrix(rot_x,rot_y,rot_z);
-                    TPZSimulationData *sim_data= new TPZSimulationData;
-                    sim_data->SetInternalOrder(pOrder);
-                    sim_data->SetSkeletonOrder(pOrder);
-                    sim_data->SetCoarseDivisions(n_s);
-                    sim_data->SetDomainSize(h_s);
-                    sim_data->SetNInterRefs(0);
-                    sim_data->SetViscosity(1.);
-                    sim_data->SetBrinkmanCoef(0.); //For Brinkman
-                    sim_data->SetNthreads(24);
-                    //simdata.SetShapeTest(); // Test for shape functions
+                        sim_data->SetDivPlusOrder(1);
 
-                    sim_data->SetDivPlusOrder(1);
+                        sim_data->SetOptimizeBandwidthQ(true);
+                        //sim_data->SetStaticCondensation(false);
+                        sim_data->Set_n_iterations(40);
+                        sim_data->Set_epsilon_cor(0.0000001);
+                        sim_data->Set_epsilon_res(0.0000001);
+                        sim_data->SetPardisoSolver();
+                        if(h_level==4){
+                            sim_data->ActivatePostProcessing();
+                        }
+                        if(h_level>=32){
+                            //    sim_data->SetPardisoSolver();
+                        }
+                        //sim_data->ActivatePostProcessing();
+                        sim_data->SetProblemType(TStokesAnalytic::EOseen);
+                        sim_data->SetDomainType(TStokesAnalytic::EKovasznay);
 
-                    sim_data->SetOptimizeBandwidthQ(true);
-                    //sim_data->SetStaticCondensation(false);
-                    sim_data->Set_n_iterations(40);
-                    sim_data->Set_epsilon_cor(0.0000001);
-                    sim_data->Set_epsilon_res(0.0000001);
-                    sim_data->SetPardisoSolver();
-                    if(h_level==4){
-                        sim_data->ActivatePostProcessing();
+                        //Transient parameters:
+                        //sim_data->SetTimeTotal(11.);
+                        //sim_data->SetTimeStep(0.1);
+
+                        Test2->SetSimulationData(sim_data);
+                        Test2->Run();
+
                     }
-                    if(h_level>=32){
-                        //    sim_data->SetPardisoSolver();
-                    }
-                    //sim_data->ActivatePostProcessing();
-                    sim_data->SetProblemType(TStokesAnalytic::EBrinkman);
-                    sim_data->SetDomainType(TStokesAnalytic::ESinCosBDS);
-
-                    //Transient parameters:
-                    //sim_data->SetTimeTotal(11.);
-                    //sim_data->SetTimeStep(0.1);
-
-                    Test2->SetSimulationData(sim_data);
-                    Test2->Run();
-
                 }
             }
+
         }
             break;
 

@@ -333,7 +333,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
-        TPZSymetricSpStructMatrix strmat(cmesh.operator->());
+        TPZSpStructMatrix strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }else{
@@ -345,7 +345,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELDLt);
+    step.SetDirect(ELU);
     an.SetSolver(step);
     std::cout << "Assembling\n";
     an.Assemble();
@@ -449,6 +449,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     std::cout << "Comuting Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_Results_Linear.txt", std::ofstream::app);
+    ofstream ErroOut2("Errors_Lite.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
     int n_threads_sim =f_sim_data->GetNthreads();
     an.SetThreadsForError(4);
@@ -471,8 +472,10 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     ErroOut <<"Darcy - Norma L2 - P = "<< Errors[5] << std::endl;
     ErroOut <<"-------------" << std::endl;
     ErroOut.flush();
-    
-    
+
+    ErroOut2 << Errors[0] << " " << Errors[2] << " " << Errors[1] <<std::endl;
+    ErroOut2.flush();
+
 }
 
 void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmesh_m, TPZVec<TPZAutoPointer<TPZCompMesh> > compmeshes, std::string prefix){
@@ -571,6 +574,7 @@ std::ostream &MHMNavierStokesTest::ConfigPrint(std::ostream &out)
     TPZVec<int> n_s = f_sim_data->GetCoarseDivisions();
     TPZVec<REAL> h_s = f_sim_data->GetDomainSize();
     int nrefs = f_sim_data->GetNInterRefs();
+    REAL visco = f_sim_data->GetViscosity();
 
     if(f_domaintype==TStokesAnalytic::ENoFlow){
         out << " Multiplier Ra : " << f_sim_data->GetMultRa()  << endl;
@@ -590,7 +594,7 @@ std::ostream &MHMNavierStokesTest::ConfigPrint(std::ostream &out)
         elemName = " Cubic elements : ";
     }
     
-    out << elemName << n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << " - N refs : " << nrefs << " - Order Skel : " << skeleton_order << " - Order Intern : " << int_order<< " - HdivPlus Intern : " << divPlus_order<< "\n";
+    out << elemName << "(visc = " <<  visco<< ") " << n_s[0] <<" x "<< n_s[1] << " x " << n_s[2] << " - N refs : " << nrefs << " - Order Skel : " << skeleton_order << " - Order Intern : " << int_order<< " - HdivPlus Intern : " << divPlus_order<< "\n";
     return out;
 }
 
