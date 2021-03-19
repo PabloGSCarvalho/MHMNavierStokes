@@ -452,7 +452,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     ofstream ErroOut2("Errors_Lite.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
     int n_threads_sim =f_sim_data->GetNthreads();
-    an.SetThreadsForError(4);
+    an.SetThreadsForError(24);
 //    an.PostProcessError(Errors,false);
 
     auto old_buffer = std::cout.rdbuf(nullptr);

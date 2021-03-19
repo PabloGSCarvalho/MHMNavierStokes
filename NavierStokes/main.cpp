@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
                         MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                         //Test2->Set3Dmesh();
                         //Test2->SetHdivPlus();
-                        //Test2->SetElType(ETriangle);
+                        Test2->SetElType(ETriangle);
 
                         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                         Test2->SetTransform(Transf, InvTransf);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
                             sim_data->ActivatePostProcessing();
                         }
                         if(h_level>=32){
-                            //    sim_data->SetPardisoSolver();
+                                //sim_data->SetPardisoSolver();
                         }
                         //sim_data->ActivatePostProcessing();
                         sim_data->SetProblemType(TStokesAnalytic::EOseen);
