@@ -82,8 +82,8 @@ int main(int argc, char *argv[])
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Default
             int pOrder = 1;
             TPZVec<REAL> viscos(4,0);
-            viscos[0]=1.; viscos[1]=.1; viscos[2]=.01; viscos[3]=.002;
-            for (int ivisc = 0; ivisc < 4; ++ivisc) {
+           // viscos[0]=0.002; viscos[1]=.1; viscos[2]=.01; viscos[3]=.002;
+            for (int idivp = 0; idivp < 2; ++idivp) {
                 for (int im=1; im<=3; im++){
                     int pOrder = im;
                     for (int it=4; it<=7; it++) {
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
                         MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                         //Test2->Set3Dmesh();
                         //Test2->SetHdivPlus();
-                        Test2->SetElType(ETriangle);
+                        //Test2->SetElType(ETriangle);
 
                         TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                         Test2->SetTransform(Transf, InvTransf);
@@ -117,12 +117,12 @@ int main(int argc, char *argv[])
                         sim_data->SetCoarseDivisions(n_s);
                         sim_data->SetDomainSize(h_s);
                         sim_data->SetNInterRefs(0);
-                        sim_data->SetViscosity(viscos[ivisc]);
+                        sim_data->SetViscosity(0.01);
                         sim_data->SetBrinkmanCoef(0.); //For Brinkman
                         sim_data->SetNthreads(24);
                         //simdata.SetShapeTest(); // Test for shape functions
 
-                        sim_data->SetDivPlusOrder(1);
+                        sim_data->SetDivPlusOrder(idivp+1);
 
                         sim_data->SetOptimizeBandwidthQ(true);
                         //sim_data->SetStaticCondensation(false);
