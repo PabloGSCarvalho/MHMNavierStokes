@@ -10,7 +10,6 @@
 #include "MHMNavierStokesTest.h"
 #include "pzcheckgeom.h"
 #include "pzstack.h"
-#include "TPZParSkylineStructMatrix.h"
 #include "TPZParFrontStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 #include "TPZSSpStructMatrix.h"
@@ -18,7 +17,6 @@
 #include "TPZInterfaceInsertion.h"
 #include "pzinterpolationspace.h"
 #include "pzcompel.h"
-#include "TPZVecL2.h"
 #include "pzintel.h"
 #include "TPZNullMaterial.h"
 #include "TPZGenGrid2D.h"
@@ -330,16 +328,16 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     bool shapetest = f_sim_data->GetShapeTest();
     //calculo solution
     bool shouldrenumber = f_sim_data->GetOptimizeBandwidthQ();
-    TPZAnalysis an(cmesh,shouldrenumber);
+    TPZLinearAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
-        TPZSpStructMatrix strmat(cmesh.operator->());
+        TPZSpStructMatrix<STATE> strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }else{
         //TPZSkylineStructMatrix strmat(cmesh.operator->());
         //strmat.SetNumThreads(f_sim_data->GetNthreads());
-        TPZFStructMatrix strmat(cmesh.operator->());
+        TPZFStructMatrix<STATE> strmat(cmesh.operator->());
         strmat.SetNumThreads(f_sim_data->GetNthreads());
         an.SetStructuralMatrix(strmat);
     }
@@ -380,7 +378,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
         filename += "_Global.nb";
         std::ofstream global(filename.c_str());
         TPZAutoPointer<TPZStructMatrix> strmat = an.StructMatrix();
-        an.Solver().Matrix()->Print("Kg = ",global,EMathematicaInput);
+        an.MatrixSolver<STATE>().Matrix()->Print("Kg = ",global,EMathematicaInput);
         an.Rhs().Print("Fg = ",global,EMathematicaInput);
     }
 #endif
@@ -831,7 +829,7 @@ TPZGeoMesh *MHMNavierStokesTest::CreateGmshMesh()
 
     Geometry.GetDimNamePhysical()[dim]["Omega"] = fmatID; // Stokes Vug
     Geometry.GetDimNamePhysical()[dim]["Omega2"] = 2; //Porous Media
-    Geometry.SetFormatVersion("4.1");
+//    Geometry.SetFormatVersion("4.1");
     gmesh = Geometry.GeometricGmshMesh(meshSource);
 
     TPZCheckGeom check(gmesh);
@@ -3135,9 +3133,9 @@ void MHMNavierStokesTest::UniformRefine(int nDiv, TPZGeoMesh *gmesh, TPZVec<REAL
     gmesh->BuildConnectivity();
 }
 
-TPZCompEl *MHMNavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh,int64_t &index) {
+TPZCompEl *MHMNavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh) {
     if(!gel->Reference() && gel->NumInterfaces() == 0)
-        return new TPZInterfaceElement(mesh,gel,index);
+        return new TPZInterfaceElement(mesh,gel);
     
     return NULL;
 }
@@ -3391,39 +3389,36 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS) {
 
     }else{
-        mat1->SetForcingFunction(fp); //Caso simples sem termo fonte
-        mat1->SetForcingFunctionExact(solp);
+        mat1->SetForcingFunction(f_ExactSol.ForceFunc(),5); //Caso simples sem termo fonte
+        mat1->SetExactSol(f_ExactSol.ExactSolution(),5);
     }
 
 
 
 
     if(f_domaintype==TStokesAnalytic::EObstacles){
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Obstacle, 12);
-        mat1->SetForcingFunctionExact(solp);
+        mat1->SetExactSol(Sol_exact_Obstacle,12);
     }
 
     if(f_domaintype==TStokesAnalytic::EInfiltrationNS){
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Infiltration, 12);
-        mat1->SetForcingFunctionExact(solp);
+        mat1->SetExactSol(Sol_exact_Infiltration, 12);
     }
 
     if (f_sim_data->GetShapeTest()) {
-        mat1->SetForcingFunction(NULL);
-        mat1->SetForcingFunctionExact(NULL);
+        mat1->SetForcingFunction(NULL,0);
+        mat1->SetExactSol(NULL,0);
     }
 
     //TPZMaterial * mat1(material);
     cmesh.InsertMaterialObject(mat1);
 
     if(f_domaintype==TStokesAnalytic::ECouplingSD||f_domaintype==TStokesAnalytic::ECouplingNSD){
-        TPZAutoPointer<TPZFunction<STATE> > fp2 = f_ExactSol_2.ForcingFunction();
         f_ExactSol_2.fcBrinkman=1.;
         f_ExactSol_2.fvisco=0.;
         f_ExactSol_2.fExactSol = f_domaintype;
         mat2->SetProblemType(f_ExactSol_2.fProblemType); //Material 2 -> always EBrinkman (Darcy equation)
-        mat2->SetForcingFunction(fp2);
-        mat2->SetForcingFunctionExact(solp);
+        mat2->SetForcingFunction(f_ExactSol_2.ForceFunc(), 4);
+        mat2->SetExactSol(f_ExactSol_2.ExactSolution(), 4);
         cmesh.InsertMaterialObject(mat2);
     }
     if(f_domaintype==TStokesAnalytic::EVugs2D||f_domaintype==TStokesAnalytic::EInfiltrationNS){
@@ -3434,7 +3429,8 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         if(f_3Dmesh){
             solp = new TPZDummyFunction<STATE> (Sol_exact_Sphere, 7); //oioioio
-            mat2->SetForcingFunctionExact(solp); //oioioioi
+            
+            mat2->SetExactSol(Sol_exact_Sphere, 7); //oioioioi
         }
 
         cmesh.InsertMaterialObject(mat2);
@@ -3444,25 +3440,26 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
     control->SwitchLagrangeMultiplierSign(false);
     ///Inserir condicao de contorno
-    TPZFMatrix<STATE> val1(3,3,0.), val2(3,1,0.);
+    TPZFMatrix<STATE> val1(3,3,0.);
+    TPZManVector<STATE> val2(3,0.);
 
     switch(f_domaintype) {
 
         case TStokesAnalytic::ECavity: //Pressure
         {
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_bott = mat1->CreateBC(mat1, fmatBCbott, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_bott);
 
-            val2(0, 0) = 0.0; // vx -> 1
+            val2[0] = 0.0; // vx -> 1
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_left);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_right);
 
@@ -3471,22 +3468,22 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         case TStokesAnalytic::EVugs2D: //Pressure
         {
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_bott);
 
-            val2(0, 0) = 0.0; // vx -> 1
+            val2[0] = 0.0; // vx -> 1
             TPZBndCond *BC_top = mat2->CreateBC(mat2, fmatBCtop, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 1.0;
-            TPZBndCond *BC_left = mat2->CreateBC(mat2, fmatBCleft, fdirichlet_v, val1, val2);
+            val2[0] = 1.0;
+            auto BC_left = mat2->CreateBC(mat2, fmatBCleft, fdirichlet_v, val1, val2);
             if (f_3Dmesh) {
-                BC_left->SetBCForcingFunction(0, solp);
+                BC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             }
             cmesh.InsertMaterialObject(BC_left);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_right = mat2->CreateBC(mat2, fmatBCright, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_right);
 
@@ -3506,24 +3503,24 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         case TStokesAnalytic::EObstacles:
         {
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_bott = mat1->CreateBC(mat1, fmatBCbott, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_bott);
 
-            val2(0, 0) = 0.0; // vx -> 1
+            val2[0] = 0.0; // vx -> 1
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 1.0;
-            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            val2[0] = 1.0;
+            auto BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
+            BC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_left);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
             cmesh.InsertMaterialObject(BC_right);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond * BC_hole = mat1->CreateBC(mat1, fmatBChole, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_hole);
 
@@ -3534,28 +3531,28 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::ECouplingNSD:
         {
 
-            TPZBndCond *BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
-            BC_bott->SetBCForcingFunction(0, solp);
+            auto BC_bott = mat2->CreateBC(mat2, fmatBCbott, fdirichlet_v, val1, val2);
+            BC_bott->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_bott);
 
-            TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fneumann_v, val1, val2);
-            BC_top->SetBCForcingFunction(0, solp);
+            auto BC_top = mat1->CreateBC(mat1, fmatBCtop, fneumann_v, val1, val2);
+            BC_top->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_top);
 
-            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fneumann_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            auto BC_left = mat1->CreateBC(mat1, fmatBCleft, fneumann_v, val1, val2);
+            BC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_left);
 
-            TPZBndCond *BC_left_2 = mat2->CreateBC(mat2, fmatBCleft_2, fneumann_v, val1, val2);
-            BC_left_2->SetBCForcingFunction(0, solp);
+            auto BC_left_2 = mat2->CreateBC(mat2, fmatBCleft_2, fneumann_v, val1, val2);
+            BC_left_2->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_left_2);
 
-            TPZBndCond *BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
-            BC_right->SetBCForcingFunction(0, solp);
+            auto BC_right = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+            BC_right->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_right);
 
-            TPZBndCond *BC_right_2 = mat2->CreateBC(mat2, fmatBCright_2, fneumann_v, val1, val2);
-            BC_right_2->SetBCForcingFunction(0, solp);
+            auto BC_right_2 = mat2->CreateBC(mat2, fmatBCright_2, fneumann_v, val1, val2);
+            BC_right_2->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_right_2);
         }
             break;
@@ -3569,8 +3566,8 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
             TPZBndCond *BC_top = mat1->CreateBC(mat1, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh.InsertMaterialObject(BC_top);
 
-            TPZBndCond *BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            auto BC_left = mat1->CreateBC(mat1, fmatBCleft, fdirichlet_v, val1, val2);
+            BC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(BC_left);
 
             TPZBndCond *BC_left_2 = mat2->CreateBC(mat2, fmatBCleft_2, fdirichlet_v, val1, val2);
@@ -3589,34 +3586,34 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
             default: {
 
-            TPZBndCond * BCondD1 = mat1->CreateBC(mat1, fmatBCbott, fneumann_v, val1, val2);
-            BCondD1->SetBCForcingFunction(0, solp);
-            cmesh.InsertMaterialObject(BCondD1);
+                auto BCondD1 = mat1->CreateBC(mat1, fmatBCbott, fneumann_v, val1, val2);
+                BCondD1->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                cmesh.InsertMaterialObject(BCondD1);
 
-            val1.Zero();
-            TPZBndCond * BCondD2 = mat1->CreateBC(mat1, fmatBCtop, fneumann_v, val1, val2);
-            BCondD2->SetBCForcingFunction(0, solp);
-            cmesh.InsertMaterialObject(BCondD2);
+                val1.Zero();
+                auto BCondD2 = mat1->CreateBC(mat1, fmatBCtop, fneumann_v, val1, val2);
+                BCondD2->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                cmesh.InsertMaterialObject(BCondD2);
 
-            val1.Zero();
-            val2.Zero();
-            TPZBndCond * BCondD3 = mat1->CreateBC(mat1, fmatBCleft, fneumann_v, val1, val2);
-            BCondD3->SetBCForcingFunction(0, solp);
-            cmesh.InsertMaterialObject(BCondD3);
+                val1.Zero();
+                val2.Fill(0.);
+                auto BCondD3 = mat1->CreateBC(mat1, fmatBCleft, fneumann_v, val1, val2);
+                BCondD3->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                cmesh.InsertMaterialObject(BCondD3);
 
-            TPZBndCond * BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
-            BCondD4->SetBCForcingFunction(0, solp);
-            cmesh.InsertMaterialObject(BCondD4);
+                auto BCondD4 = mat1->CreateBC(mat1, fmatBCright, fneumann_v, val1, val2);
+                BCondD4->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                cmesh.InsertMaterialObject(BCondD4);
 //qwqwqwqw
-            if (f_3Dmesh) {
-                TPZBndCond * BCondD5 = mat1->CreateBC(mat1, fmatBCtop_z, fdirichlet_v, val1, val2);
-                BCondD5->SetBCForcingFunction(0, solp);
-                cmesh.InsertMaterialObject(BCondD5);
+                if (f_3Dmesh) {
+                    auto BCondD5 = mat1->CreateBC(mat1, fmatBCtop_z, fdirichlet_v, val1, val2);
+                    BCondD5->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                    cmesh.InsertMaterialObject(BCondD5);
 
-                TPZBndCond * BCondD6 = mat1->CreateBC(mat1, fmatBCbott_z, fdirichlet_v, val1, val2);
-                BCondD6->SetBCForcingFunction(0, solp);
-                cmesh.InsertMaterialObject(BCondD6);
-            }
+                    auto BCondD6 = mat1->CreateBC(mat1, fmatBCbott_z, fdirichlet_v, val1, val2);
+                    BCondD6->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
+                    cmesh.InsertMaterialObject(BCondD6);
+                }
 
         }
     }
@@ -3628,7 +3625,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     cmesh.InsertMaterialObject(bcFlux);
     
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial *matLambda = new TPZNullMaterial(fmatLambda);
+    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(fdim-1);
     control->CMesh()->InsertMaterialObject(matLambda);
@@ -3657,15 +3654,15 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         case TStokesAnalytic::ECavity:{
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            val2(0,0) = 1.;
+            val2[0] = 1.;
             TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
@@ -3678,15 +3675,15 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         case TStokesAnalytic::EVugs2D:{
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_top = mat2->CreateBC(mat2, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_left = mat2->CreateBC(mat2, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
@@ -3707,24 +3704,24 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         case TStokesAnalytic::EObstacles: {
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
 //            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
 //            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
             TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fneumann_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             val1(2,2)=1.;
             TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fdirichlet_sigma, val1, val2);
 //            TPZBndCond *matLambdaBC_hole = mat1->CreateBC(mat1, fmatLambdaBC_hole, fneumann_sigma, val1, val2);
@@ -3739,28 +3736,28 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::ECouplingNSD:
         {
 
-            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
-            matLambdaBC_bott->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+            matLambdaBC_bott->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
-            matLambdaBC_top->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            matLambdaBC_top->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
-            matLambdaBC_left->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            matLambdaBC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
-            matLambdaBC_left_2->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
+            matLambdaBC_left_2->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_left_2);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
-            matLambdaBC_right->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            matLambdaBC_right->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
-            TPZBndCond *matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
-            matLambdaBC_right_2->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
+            matLambdaBC_right_2->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_right_2);
 
 
@@ -3770,22 +3767,22 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
         case TStokesAnalytic::EInfiltrationNS:
         {
 
-            TPZBndCond *matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_bott = mat2->CreateBC(mat2, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_left_2 = mat2->CreateBC(mat2, fmatLambdaBC_left_2, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_left_2);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 
-            TPZBndCond *matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
+            auto matLambdaBC_right_2 = mat2->CreateBC(mat2, fmatLambdaBC_right_2, fdirichlet_sigma, val1, val2);
             cmesh.InsertMaterialObject(matLambdaBC_right_2);
 
 
@@ -3794,29 +3791,29 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
 
         default: {
 
-            TPZBndCond *matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
-            matLambdaBC_bott->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_bott = mat1->CreateBC(mat1, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
+            matLambdaBC_bott->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_bott);
 
-            TPZBndCond *matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
-            matLambdaBC_top->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_top = mat1->CreateBC(mat1, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            matLambdaBC_top->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_top);
 
-            TPZBndCond *matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
-            matLambdaBC_left->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_left = mat1->CreateBC(mat1, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
+            matLambdaBC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
-            matLambdaBC_right->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_right = mat1->CreateBC(mat1, fmatLambdaBC_right, fdirichlet_sigma, val1, val2);
+            matLambdaBC_right->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh.InsertMaterialObject(matLambdaBC_right);
 //qwqwqwqw
             if (f_3Dmesh) {
-                TPZBndCond *matLambdaBC_top_z = mat1->CreateBC(mat1, fmatLambdaBC_top_z, fneumann_sigma, val1, val2);
-                matLambdaBC_top_z->SetBCForcingFunction(0, solp);
+                auto matLambdaBC_top_z = mat1->CreateBC(mat1, fmatLambdaBC_top_z, fneumann_sigma, val1, val2);
+                matLambdaBC_top_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
                 cmesh.InsertMaterialObject(matLambdaBC_top_z);
 
-                TPZBndCond *matLambdaBC_bott_z = mat1->CreateBC(mat1, fmatLambdaBC_bott_z, fneumann_sigma, val1, val2);
-                matLambdaBC_bott_z->SetBCForcingFunction(0, solp);
+                auto matLambdaBC_bott_z = mat1->CreateBC(mat1, fmatLambdaBC_bott_z, fneumann_sigma, val1, val2);
+                matLambdaBC_bott_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
                 cmesh.InsertMaterialObject(matLambdaBC_bott_z);
             }
 
@@ -3919,7 +3916,6 @@ void MHMNavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     std::vector<int64_t> GroupIndex;
     TPZStack<TPZElementGroup *> elgroups;
     int count = 0;
-    int64_t index =0;
     
     for(int64_t el = 0; el < ncompel; el++){
         
@@ -3931,7 +3927,7 @@ void MHMNavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
         count++;
         GroupIndex.resize(count);
         GroupIndex[count-1]=cel->Index();
-        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m,index);
+        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m);
         elgroups.Push(GroupEl);
         elgroups[count-1]->AddElement(cel);
     }

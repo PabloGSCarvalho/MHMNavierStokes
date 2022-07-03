@@ -19,8 +19,8 @@
 #include "pzgmesh.h"
 #include "pzstack.h"
 #include "TPZVTKGeoMesh.h"
-#include "pzanalysis.h"
-#include "pzbndcond.h"
+#include "TPZLinearAnalysis.h"
+#include "TPZBndCondT.h"
 #include "TPZMHMNavierStokesMaterial.h"
 #include "TPZMultiphysicsCompMesh.h"
 
@@ -33,18 +33,15 @@
 #include "pzbuildmultiphysicsmesh.h"
 #include "TPZInterfaceEl.h"
 #include "TPZMultiphysicsInterfaceEl.h"
-#include "pzmat1dlin.h"
-#include "pzmat2dlin.h"
 #include "pzfstrmatrix.h"
 #include "pzskylstrmatrix.h"
 #include "TPZSkylineNSymStructMatrix.h"
-#include "TPZParSkylineStructMatrix.h"
 #include "pzstepsolver.h"
 #include "TPZGeoLinear.h"
 #include "tpzgeoelrefpattern.h"
 #include "TPZParFrontStructMatrix.h"
 #include "TPZSSpStructMatrix.h"
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "TPZParFrontStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 #include "pzinterpolationspace.h"
@@ -235,7 +232,7 @@ public:
     void ChangeExternalOrderConnects(TPZCompMesh *mesh, int addToOrder);
     /* Malhas computacionais */
     
-    TPZCompEl *CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh, int64_t &index);
+    TPZCompEl *CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh);
     
     TPZCompMesh *CMesh_v(TPZGeoMesh *gmesh);
     TPZCompMesh *CMesh_p(TPZGeoMesh *gmesh);

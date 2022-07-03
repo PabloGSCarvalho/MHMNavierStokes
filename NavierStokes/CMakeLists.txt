@@ -5,5 +5,5 @@ set(Mymain main.cpp ${sources} ${headers})
 
 add_executable(NavierStokes ${Mymain})
 
-target_link_libraries(NavierStokes pz)
+target_link_libraries(NavierStokes NeoPZ::pz)
 

@@ -10,7 +10,6 @@
 #include "NavierStokesTest.h"
 #include "pzcheckgeom.h"
 #include "pzstack.h"
-#include "TPZParSkylineStructMatrix.h"
 #include "TPZParFrontStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 #include "TPZSSpStructMatrix.h"
@@ -18,7 +17,6 @@
 #include "TPZInterfaceInsertion.h"
 #include "pzinterpolationspace.h"
 #include "pzcompel.h"
-#include "TPZVecL2.h"
 #include "pzintel.h"
 #include "TPZNullMaterial.h"
 #include "TPZGenGrid2D.h"
@@ -2181,9 +2179,9 @@ void NavierStokesTest::UniformRefine(int nDiv, TPZGeoMesh *gmesh, TPZVec<REAL> c
     gmesh->BuildConnectivity();
 }
 
-TPZCompEl *NavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh,int64_t &index) {
+TPZCompEl *NavierStokesTest::CreateInterfaceEl(TPZGeoEl *gel,TPZCompMesh &mesh) {
     if(!gel->Reference() && gel->NumInterfaces() == 0)
-        return new TPZInterfaceElement(mesh,gel,index);
+        return new TPZInterfaceElement(mesh,gel);
     
     return NULL;
 }
@@ -2740,7 +2738,7 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh)
     
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material = new TPZVecL2(fmatID);
+    auto *material = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material);
 
     cmesh->SetAllCreateFunctionsHDiv(); //Criando funções HDIV:
@@ -2751,31 +2749,32 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh)
         
 
     // 1 - Condições de contorno
-    TPZFMatrix<STATE> val1(1,1,0.), val2(2,1,0.);
+    TPZFMatrix<STATE> val1(1,1,0.);
+    TPZManVector<STATE> val2(2,0.);
     {
-        TPZMaterial * BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
+        auto BCond0 = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond0);
         
-        TPZMaterial * BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
+        auto BCond1 = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond1);
         
-        TPZMaterial * BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
+        auto BCond2 = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond2);
         
-        TPZMaterial * BCond3 = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
+        auto BCond3 = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond3);
     }
     
     if (f_domaintype==TStokesAnalytic::EObstacles){
-        TPZMaterial * BCondHole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
+        auto BCondHole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCondHole);
     }
     
     if (f_3Dmesh) {
-        TPZMaterial * BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
+        auto BCond4 = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond4);
         
-        TPZMaterial * BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
+        auto BCond5 = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
         cmesh->InsertMaterialObject(BCond5);
     }
     
@@ -2817,7 +2816,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
     
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material = new TPZVecL2(fmatID);
+    auto material = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material);
     
     //Dimensões do material (para H1 e descontínuo):
@@ -2826,41 +2825,41 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
     
     // 2 - Material para tração tangencial 1D
     
-    TPZVecL2 *matLambda = new TPZVecL2(fmatLambda);
+    auto matLambda = new TPZNullMaterial<>(fmatLambda);
     //matLambda->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambda);
     
     // 3 - Material para tração tangencial nos contornos
     
-    TPZVecL2 *matLambdaBC_bott = new TPZVecL2(fmatLambdaBC_bott);
+    auto matLambdaBC_bott = new TPZNullMaterial<>(fmatLambdaBC_bott);
     //matLambdaBC_bott->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
     
-    TPZVecL2 *matLambdaBC_top = new TPZVecL2(fmatLambdaBC_top);
+    auto matLambdaBC_top = new TPZNullMaterial<>(fmatLambdaBC_top);
     //matLambdaBC_top->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambdaBC_top);
     
-    TPZVecL2 *matLambdaBC_left = new TPZVecL2(fmatLambdaBC_left);
+    auto matLambdaBC_left = new TPZNullMaterial<>(fmatLambdaBC_left);
     //matLambdaBC_left->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambdaBC_left);
     
-    TPZVecL2 *matLambdaBC_right = new TPZVecL2(fmatLambdaBC_right);
+    auto matLambdaBC_right = new TPZNullMaterial<>(fmatLambdaBC_right);
     //matLambdaBC_right->SetMaterial(xkin, xcin, xbin, xfin);
     cmesh->InsertMaterialObject(matLambdaBC_right);
     
     if (f_domaintype==TStokesAnalytic::EObstacles){
-        TPZVecL2 *matLambdaBC_hole = new TPZVecL2(fmatLambdaBC_hole);
+        auto matLambdaBC_hole = new TPZNullMaterial<>(fmatLambdaBC_hole);
         cmesh->InsertMaterialObject(matLambdaBC_hole);
     }
 
     
     if (f_3Dmesh) {
 
-        TPZVecL2 *matLambdaBC_bott_z = new TPZVecL2(fmatLambdaBC_bott_z);
+        auto matLambdaBC_bott_z = new TPZNullMaterial<>(fmatLambdaBC_bott_z);
         //matLambdaBC_bott_z->SetMaterial(xkin, xcin, xbin, xfin);
         cmesh->InsertMaterialObject(matLambdaBC_bott_z);
         
-        TPZVecL2 *matLambdaBC_top_z = new TPZVecL2(fmatLambdaBC_top_z);
+        auto matLambdaBC_top_z = new TPZNullMaterial<>(fmatLambdaBC_top_z);
         //matLambdaBC_top_z->SetMaterial(xkin, xcin, xbin, xfin);
         cmesh->InsertMaterialObject(matLambdaBC_top_z);
 
@@ -2964,7 +2963,7 @@ TPZCompMesh *NavierStokesTest::CMesh_pM(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material_pM = new TPZVecL2(fmatID);
+    auto material_pM = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material_pM);
     
     
@@ -3008,7 +3007,7 @@ TPZCompMesh *NavierStokesTest::CMesh_gM(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material_pM = new TPZVecL2(fmatID);
+    auto material_pM = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material_pM);
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha
@@ -3051,7 +3050,7 @@ TPZCompMesh *NavierStokesTest::CMesh_pM_0(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material_pM = new TPZVecL2(fmatID);
+    auto material_pM = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material_pM);
     
     
@@ -3095,7 +3094,7 @@ TPZCompMesh *NavierStokesTest::CMesh_gM_0(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    TPZVecL2 *material_pM = new TPZVecL2(fmatID);
+    auto material_pM = new TPZNullMaterial<>(fmatID);
     cmesh->InsertMaterialObject(material_pM);
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha
@@ -3146,10 +3145,10 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
 
     if(f_domaintype==TStokesAnalytic::EOneCurve){
         solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
-        material->SetForcingFunctionExact(solp);
+        material->SetExactSol(Sol_exact_Curve,fexact_order);
     }else if(f_domaintype!=TStokesAnalytic::EObstacles){
-        material->SetForcingFunction(fp); //Caso simples sem termo fonte
-        material->SetForcingFunctionExact(solp);
+        material->SetForcingFunction(f_ExactSol.ForceFunc(), fexact_order); //Caso simples sem termo fonte
+        material->SetExactSol(f_ExactSol.ExactSolution(),fexact_order);
     }
 
     cmesh->InsertMaterialObject(material);
@@ -3157,33 +3156,34 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
     // 1 - Condições de contorno:
     // Condições de contorno - Impõe v fortemente
     
-    TPZFMatrix<STATE> val1(3,3,0.), val2(3,1,0.);
-    val2(0,0) = 0.0; // vx -> 0
-    val2(1,0) = 0.0; // vy -> 0
+    TPZFMatrix<STATE> val1(3,3,0.);
+    TPZManVector<STATE> val2(3,0.);
+    val2[0] = 0.0; // vx -> 0
+    val2[1] = 0.0; // vy -> 0
 
     switch(f_domaintype) {
 
         case TStokesAnalytic::EObstacles: //Pressure
         {
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_bott = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
             cmesh->InsertMaterialObject(BC_bott);
 
-            val2(0, 0) = 0.0; // vx -> 0
+            val2[0] = 0.0; // vx -> 0
             TPZBndCond *BC_top = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
             cmesh->InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 1.;
+            val2[0] = 1.;
             TPZBndCond *BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
             //BC_left->SetBCForcingFunction(0, sol_teste);
             cmesh->InsertMaterialObject(BC_left);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
             cmesh->InsertMaterialObject(BC_right);
 
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *BC_hole = material->CreateBC(material, fmatBChole, fdirichlet_v, val1, val2);
             cmesh->InsertMaterialObject(BC_hole);
 
@@ -3192,23 +3192,23 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
 
         case TStokesAnalytic::EOneCurve: {
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
             //BC_bott->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_bott);
 
-            val2(0,0) = 0.0; // vx -> 0
+            val2[0] = 0.0; // vx -> 0
             TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
             //BC_top->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_top);
 
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
             //BC_left->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_left);
 
-            val2(1,0) = -1.0;
-            val2(0,0) = -1.0;
+            val2[1] = -1.0;
+            val2[0] = -1.0;
             TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fdirichlet_v, val1, val2);
             //BC_right->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(BC_right);
@@ -3218,24 +3218,24 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
 
         default: {
 
-            val2(0, 0) = 0.0;
-            TPZBndCond *BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
-            BC_bott->SetBCForcingFunction(0, solp);
+            val2[0] = 0.0;
+            auto BC_bott = material->CreateBC(material, fmatBCbott, fneumann_v, val1, val2);
+            BC_bott->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(BC_bott);
 
-            val2(0, 0) = 0.0; // vx -> 0
-            TPZBndCond *BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
-            BC_top->SetBCForcingFunction(0, solp);
+            val2[0] = 0.0; // vx -> 0
+            auto BC_top = material->CreateBC(material, fmatBCtop, fneumann_v, val1, val2);
+            BC_top->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(BC_top);
 
-            val2(0, 0) = 0.0;
-            TPZBndCond *BC_left = material->CreateBC(material, fmatBCleft, fneumann_v, val1, val2);
-            BC_left->SetBCForcingFunction(0, solp);
+            val2[0] = 0.0;
+            auto BC_left = material->CreateBC(material, fmatBCleft, fneumann_v, val1, val2);
+            BC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(BC_left);
 
-            val2(0, 0) = 0.0;
-            TPZBndCond *BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
-            BC_right->SetBCForcingFunction(0, solp);
+            val2[0] = 0.0;
+            auto BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
+            BC_right->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(BC_right);
 
         }
@@ -3243,17 +3243,17 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
     }
 
     if (f_3Dmesh) {
-        TPZBndCond * BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
-        BC_bott_z->SetBCForcingFunction(0, solp);
+        auto BC_bott_z = material->CreateBC(material, fmatBCbott_z, fdirichlet_v, val1, val2);
+        BC_bott_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
         cmesh->InsertMaterialObject(BC_bott_z);
         
-        TPZBndCond * BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
-        BC_top_z->SetBCForcingFunction(0, solp);
+        auto BC_top_z = material->CreateBC(material, fmatBCtop_z, fdirichlet_v, val1, val2);
+        BC_top_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
         cmesh->InsertMaterialObject(BC_top_z);
     }
     
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial *matLambda = new TPZNullMaterial(fmatLambda);
+    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(1);
     cmesh->InsertMaterialObject(matLambda);
@@ -3276,7 +3276,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
 
         case TStokesAnalytic::EObstacles: //Pressure
         {
-            val2(0, 0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
             cmesh->InsertMaterialObject(matLambdaBC_bott);
 
@@ -3297,7 +3297,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
             break;
 
         case TStokesAnalytic::EOneCurve: {
-            val2(0,0) = 0.0;
+            val2[0] = 0.0;
             TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
             //matLambdaBC_bott->SetBCForcingFunction(0, solp);
             cmesh->InsertMaterialObject(matLambdaBC_bott);
@@ -3318,35 +3318,35 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
 
         default: {
 
-            TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1,
+            auto matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1,
                                                               val2);
-            matLambdaBC_bott->SetBCForcingFunction(0, solp);
+            matLambdaBC_bott->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(matLambdaBC_bott);
 
-            TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
-            matLambdaBC_top->SetBCForcingFunction(0, solp);
+            auto matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fdirichlet_sigma, val1, val2);
+            matLambdaBC_top->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(matLambdaBC_top);
 
-            TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1,
+            auto matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1,
                                                               val2);
-            matLambdaBC_left->SetBCForcingFunction(0, solp);
+            matLambdaBC_left->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(matLambdaBC_left);
 
-            TPZBndCond *matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1,
+            auto matLambdaBC_right = material->CreateBC(material, fmatLambdaBC_right, fdirichlet_sigma, val1,
                                                                val2);
-            matLambdaBC_right->SetBCForcingFunction(0, solp);
+            matLambdaBC_right->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
             cmesh->InsertMaterialObject(matLambdaBC_right);
 
         }
     }
 
     if (f_3Dmesh) {
-        TPZBndCond *matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
-        matLambdaBC_bott_z->SetBCForcingFunction(0, solp);
+        auto matLambdaBC_bott_z = material->CreateBC(material, fmatLambdaBC_bott_z, fdirichlet_sigma, val1, val2);
+        matLambdaBC_bott_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
         cmesh->InsertMaterialObject(matLambdaBC_bott_z);
         
-        TPZBndCond *matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
-        matLambdaBC_top_z->SetBCForcingFunction(0, solp);
+        auto matLambdaBC_top_z = material->CreateBC(material, fmatLambdaBC_top_z, fdirichlet_sigma, val1, val2);
+        matLambdaBC_top_z->SetForcingFunctionBC(f_ExactSol.ExactSolution(), 0);
         cmesh->InsertMaterialObject(matLambdaBC_top_z);
     }
     
@@ -3397,27 +3397,28 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
 
     // 1 - Condições de contorno:
 
-    TPZFMatrix<STATE> val1(3,3,0.), val2(3,1,0.);
+    TPZFMatrix<STATE> val1(3,3,0.);
+    TPZManVector<STATE> val2(3,0.);
 
-    val2(0,0) = 0.0;
+    val2[0] = 0.0;
     TPZBndCond * BC_bott = material->CreateBC(material, fmatBCbott, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_bott);
 
-    val2(0,0) = 0.0; // vx -> 1
+    val2[0] = 0.0; // vx -> 1
     TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_top);
 
-    val2(0,0) = 1.0;
+    val2[0] = 1.0;
     TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_left);
 
-    val2(0,0) = 0.0;
+    val2[0] = 0.0;
     TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
     cmesh->InsertMaterialObject(BC_right);
 
 
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial *matLambda = new TPZNullMaterial(fmatLambda);
+    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(1);
     cmesh->InsertMaterialObject(matLambda);
@@ -3435,15 +3436,15 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
 
 
     // 3.1 - Material para tração tangencial 1D nos contornos
-    val2(0,0) = 0.0;
+    val2[0] = 0.0;
     TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
 
-    val2(0,0) = 0.;
+    val2[0] = 0.;
     TPZBndCond *matLambdaBC_top = material->CreateBC(material, fmatLambdaBC_top, fneumann_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_top);
 
-    val2(0,0) = 0.0;
+    val2[0] = 0.0;
     TPZBndCond *matLambdaBC_left = material->CreateBC(material, fmatLambdaBC_left, fdirichlet_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_left);
 
@@ -3574,7 +3575,6 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     std::vector<int64_t> GroupIndex;
     TPZStack<TPZElementGroup *> elgroups;
     int count = 0;
-    int64_t index =0;
     
     for(int64_t el = 0; el < ncompel; el++){
         
@@ -3595,7 +3595,7 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
         count++;
         GroupIndex.resize(count);
         GroupIndex[count-1]=cel->Index();
-        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m,index);
+        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m);
         elgroups.Push(GroupEl);
         elgroups[count-1]->AddElement(cel);
         

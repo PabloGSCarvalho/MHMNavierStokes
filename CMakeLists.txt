@@ -1,27 +1,16 @@
 # @file MHMStokes/CMakeList.txt  -- First file to read for CMake
 
-cmake_minimum_required (VERSION 2.8.0)
-
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE  INTERNAL FORCE )
+cmake_minimum_required (VERSION 3.0)
 
 project (MHMStokes)
 
-IF (WIN32)
-	# Prevents timespec redefinition problem with Visual Studio 2015
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_STRUCT_TIMESPEC")
-ELSE (WIN32)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")#this flag is for preventing errors when casting from double to float
-ENDIF()
-
-
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 IF (WIN32)
 	find_package( PZ PATHS "C:/Arquivos de Programas/PZ" REQUIRED NO_DEFAULT_PATH)
 ELSE()
-	find_package( PZ REQUIRED )
+	find_package(NeoPZ REQUIRED HINTS ${CMAKE_SOURCE_DIR}/../neopz_install/ ${CMAKE_SOURCE_DIR}/neopz_install/ "../neopz_install")
 ENDIF (WIN32)
 
 
@@ -38,26 +27,6 @@ IF(APPLE)
 ENDIF(APPLE)
 
 include_directories(${PZ_INCLUDE_DIRS})
-
-#enabling VTK library
-option(USING_VTK "Whether the VTK package will be linked IN" OFF)
-
-if(USING_VTK)
-	find_package(VTK 8.0.0 REQUIRED)
-	include(${VTK_USE_FILE})
-	add_definitions(-DUSING_VTK)
-	mark_as_advanced(Qt5Core_DIR)
-	mark_as_advanced(Qt5Gui_DIR)
-	mark_as_advanced(Qt5Sql_DIR)
-	mark_as_advanced(Qt5Widgets_DIR)	
-else()
-	unset(Qt5Core_DIR CACHE)
-	unset(Qt5Gui_DIR CACHE)
-	unset(Qt5Sql_DIR CACHE)
-	unset(Qt5Widgets_DIR CACHE)
-	unset(VTK_LIBRARIES)
-	unset(VTK_DIR CACHE)
-endif(USING_VTK)
 
 
 # Location to search files or libraries

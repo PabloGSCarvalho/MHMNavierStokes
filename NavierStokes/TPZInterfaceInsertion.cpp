@@ -172,7 +172,7 @@ void TPZInterfaceInsertion::InsertHdivBound(int mat_id_flux_wrap){
             
             
             TPZGeoElBC bc(intel->Reference(),neigh[0].Side(),mat_id_flux_wrap);
-            cmesh->CreateCompEl(bc.CreatedElement(), index);
+            cmesh->CreateCompEl(bc.CreatedElement());
             
             TPZCompEl *var = cmesh->Element(index);
             var->Reference()->ResetReference();
@@ -193,11 +193,10 @@ void TPZInterfaceInsertion::InsertHdivBound(int mat_id_flux_wrap){
             
             intel->SetSideOrient(neigh[1].Side(), 1);
             
-            int64_t index;
             
             TPZGeoElBC bc(intel->Reference(),neigh[1].Side(),mat_id_flux_wrap);
-            cmesh->CreateCompEl(bc.CreatedElement(), index);
-            TPZCompEl *var = cmesh->Element(index);
+            
+            TPZCompEl *var = cmesh->CreateCompEl(bc.CreatedElement());
             var->Reference()->ResetReference();
             
             intel->Reference()->ResetReference();
@@ -264,9 +263,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
             }
             
             TPZGeoElBC gbc(gelside,m_interfaceVector_ids[stack_i]);
-            int64_t index;
             
-            TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+            TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
             elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
 //            std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
@@ -286,8 +284,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
             
             TPZGeoElBC gbc(gelside, m_interfaceVector_ids[1]);
             
-            int64_t index;
-            TPZMultiphysicsInterfaceElement *intface = new TPZMultiphysicsInterfaceElement(*cmesh, gbc.CreatedElement(), index, clarge, celside);
+            TPZMultiphysicsInterfaceElement *intface = new TPZMultiphysicsInterfaceElement(*cmesh, gbc.CreatedElement(), clarge, celside);
             intface->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
 //            std::cout << "Created an interface element between volumetric element " << glarge.Element()->Index() <<
@@ -370,9 +367,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                     TPZCompElSide cel_sub_neigh = subel[i_sub].Reference();
                     
                     TPZGeoElBC gbc_sub(subel[i_sub],m_interfaceVector_ids[stack_i]);
-                    int64_t index;
                     
-                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     num_interface_created++;
 //                    std::cout << "****Created an interface element between volumetric element " << subel[i_sub].Element()->Index() <<
@@ -391,9 +387,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                 }
                 
                 TPZGeoElBC gbc(gelside,m_interfaceVector_ids[stack_i]);
-                int64_t index;
                 
-                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                 num_interface_created++;
 //                std::cout << "Created an interface element between volumetric element " << neigh.Element()->Index() <<
@@ -480,8 +475,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfaces()
                         " side " << neighbour.Side() <<
                         " and interface element " << gelside.Element()->Index() << std::endl;
                         TPZGeoElBC gelbc(gelside,m_interface_id);
-                        int64_t index;
-                        TPZMultiphysicsInterfaceElement *intf = new TPZMultiphysicsInterfaceElement(*cmesh,gelbc.CreatedElement(),index,celneigh,celside);
+                        TPZMultiphysicsInterfaceElement *intf = new TPZMultiphysicsInterfaceElement(*cmesh,gelbc.CreatedElement(),celneigh,celside);
                         intf->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                         
                     }
@@ -518,8 +512,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfaces(int matfrom, int mattarget
             DebugStop();
         }
         gel->SetMaterialId(mattarget);
-        int64_t index;
-        new TPZMultiphysicsInterfaceElement(*m_cmesh,gel,index,celstack[1],celstack[0]);
+        new TPZMultiphysicsInterfaceElement(*m_cmesh,gel,celstack[1],celstack[0]);
     }
     
 }
@@ -578,9 +571,8 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface(int matfrom, int matBCint
             }
             
             TPZGeoElBC gbc(gelside,matBCinterface);
-            int64_t index;
             
-            TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+            TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
             elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
             
             
@@ -658,9 +650,8 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
                     TPZCompElSide cel_sub_neigh = subelside[i_sub].Reference();
                     
                     TPZGeoElBC gbc_sub(subelside[i_sub],matBCinterface);
-                    int64_t index;
                     
-                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
                     
@@ -672,9 +663,8 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
             }else{
                 
                 TPZGeoElBC gbc(gelside,matBCinterface);
-                int64_t index;
                 
-                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                 
                 

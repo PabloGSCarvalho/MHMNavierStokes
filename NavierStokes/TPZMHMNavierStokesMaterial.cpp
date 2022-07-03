@@ -8,14 +8,14 @@
  */
 
 #include "TPZMHMNavierStokesMaterial.h"
-#include "pzbndcond.h"
+#include "TPZBndCondT.h"
 #include "pzaxestools.h"
 #include "TPZMatWithMem.h"
 #include "pzfmatrix.h"
 
 using namespace std;
 
-void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &data, TPZVec<TPZMaterialData > &datavec_left, TPZVec<TPZMaterialData > &datavec_right)
+void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data, std::map<int,TPZMaterialDataT<STATE> > &datavec_left, std::map<int, TPZMaterialDataT<STATE> > &datavec_right)
 {
     //TPZMaterial::FillDataRequirementsInterface(data, datavec_left, datavec_right);
     int nref_left = datavec_left.size();
@@ -25,7 +25,12 @@ void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialData &
     
 }
 
-void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavecleft, TPZVec<TPZMaterialData> &datavecright, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef){
+void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE> &data,
+                                 std::map<int, TPZMaterialDataT<STATE>> &datavecleft,
+                                 std::map<int, TPZMaterialDataT<STATE>> &datavecright, REAL weight,
+                                 TPZFMatrix<STATE> &ek,
+                                                     TPZFMatrix<STATE> &ef) {
+
 
     //2 = 1 Vel space + 1 Press space for datavecleft
 
@@ -48,30 +53,42 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
+    
+    if(datavecleft.find(vindex) == datavecleft.end()) DebugStop();
+    if(datavecleft.find(pindex) == datavecleft.end()) DebugStop();
+    if(datavecright.find(vindex) == datavecleft.end()) DebugStop();
+    if(datavecright.find(pindex) == datavecleft.end()) DebugStop();
 
-    if (datavecleft[vindex].fVecShapeIndex.size() == 0) {
-        FillVecShapeIndex(datavecleft[vindex]);
+    TPZMaterialDataT<STATE> &vdataleft = datavecleft.find(vindex)->second;
+    TPZMaterialDataT<STATE> &pdataleft = datavecleft.find(pindex)->second;
+    TPZMaterialDataT<STATE> &vdataright = datavecright.find(vindex)->second;
+    TPZMaterialDataT<STATE> &pdataright = datavecright.find(pindex)->second;
+
+    if (vdataleft.fVecShapeIndex.size() == 0) {
+        DebugStop();
+//        FillVecShapeIndex(vdataleft);
     }
 
-    if (datavecleft[pindex].fVecShapeIndex.size() == 0) {
-        FillVecShapeIndex(datavecleft[pindex]);
+    if (pdataleft.fVecShapeIndex.size() == 0) {
+        DebugStop();
+//         FillVecShapeIndex(datavecleft[pindex]);
     }
 
     // Setting the phis
     // V - left
-    TPZFNMatrix<9,REAL>  &tan = datavecright[pindex].axes;
+    const TPZFNMatrix<9,REAL>  &tan = pdataleft.axes;
 
-    TPZManVector<STATE,3> u_n = datavecleft[vindex].sol[0];
+    TPZManVector<STATE,3> u_n = vdataleft.sol[0];
 
-    STATE sLambda_n = datavecright[pindex].sol[0][0];
+    STATE sLambda_n = pdataright.sol[0][0];
 
-    TPZManVector<STATE,3> Lambda_n = datavecright[pindex].sol[0];
+    TPZManVector<STATE,3> Lambda_n = pdataright.sol[0];
 
 
     int nshapeV , nshapeP , nshapeLambda, nstateVariablesL;
-    nshapeV = datavecleft[vindex].fVecShapeIndex.NElements();
+    nshapeV = vdataleft.fVecShapeIndex.NElements();
     nshapeP = datavecleft[pindex].phi.Rows();
-    nshapeLambda = datavecright[pindex].phi.Rows();
+    nshapeLambda = pdataright.phi.Rows();
     int dim = this->Dimension();
     nstateVariablesL = dim-1;
 //    if(nstateVariablesL>1){
@@ -180,8 +197,10 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(TPZMaterialData &data, TPZV
 }
 
 
-
-void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
+void TPZMHMNavierStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
+                          REAL weight, TPZFMatrix<STATE> &ek,
+                          TPZFMatrix<STATE> &ef,
+                                              TPZBndCondT<STATE> &bc) {
 
     if(fState==ELastState){
         return;
@@ -226,10 +245,10 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
     TPZFMatrix<STATE> gradu(3,3,0.);
     TPZManVector<STATE> vbc(4,0.);
     TPZFMatrix<STATE> Du(3,3,0.),Dun(3,1,0.),u_x_beta(3,3,0.), u_x_beta_n(3,1,0.);
-    if(bc.HasBCForcingFunction())
+    if(bc.HasForcingFunctionBC())
     {
         
-        bc.BCForcingFunction()->Execute(x,vbc,gradu);
+        bc.ForcingFunctionBC()(x,vbc,gradu);
         //std::cout<<gradu<<std::endl;
         v_Dirichlet[0] = vbc[0];
         v_Dirichlet[1] = vbc[1];
@@ -277,7 +296,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 
 
         for (int i = 0; i<3; i++) {
-            v_Dirichlet[i] = bc.Val2()(i,0);
+            v_Dirichlet[i] = bc.Val2()[i];
         }
 
         for (int i = 0; i<3; i++) {
@@ -392,10 +411,10 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         {
             for(int istate = 0; istate < nstateBC; istate++) {
                 for (int j1 = 0; j1 < phi->Rows(); j1++) {
-                    ef(j1*nstateBC+istate, 0) += gBigNumber * v_value[istate] * (*phi)(j1, 0) * weight;
+                    ef(j1*nstateBC+istate, 0) += fBigNumber * v_value[istate] * (*phi)(j1, 0) * weight;
 
                     for (int i1 = 0; i1 < phi->Rows(); i1++) {
-                        ek(i1*nstateBC+istate, j1*nstateBC+istate) += gBigNumber * weight * (*phi)(j1, 0) * (*phi)(i1, 0);
+                        ek(i1*nstateBC+istate, j1*nstateBC+istate) += fBigNumber * weight * (*phi)(j1, 0) * (*phi)(i1, 0);
                     }
                 }
             }
@@ -431,7 +450,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
         {
 
             //return;
-            p_D = bc.Val2()(0,0);
+            p_D = bc.Val2()[0];
             
             
             for(int i = 0; i < phi->Rows(); i++ )
@@ -476,8 +495,11 @@ void TPZMHMNavierStokesMaterial::ContributeBC(TPZVec<TPZMaterialData> &datavec, 
 
 }
 
-
-void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc){
+void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
+                      std::map<int, TPZMaterialDataT<STATE>> &datavec,
+                      REAL weight,
+                      TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
+                                                       TPZBndCondT<STATE> &bc) {
     
     
     
@@ -513,7 +535,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
     TPZFMatrix<REAL> &phiP = datavec[pindex].phi;
     TPZFMatrix<REAL> &dphiP = datavec[pindex].dphix;
     //Normal
-    TPZManVector<REAL,3> &normal = data.normal;
+    const TPZManVector<REAL,3> &normal = data.normal;
     
     TPZFNMatrix<220,REAL> dphiVx(fDimension,dphiV.Cols());
     TPZAxesTools<REAL>::Axes2XYZ(dphiV, dphiVx, datavec[vindex].axes);
@@ -533,7 +555,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
     
     //Dirichlet
     
-    TPZFMatrix<STATE> v_2=bc.Val2();
+    auto v_2=bc.Val2();
     TPZFMatrix<STATE> v_1=bc.Val1();
     STATE p_D = bc.Val1()(0,0);
     
@@ -544,13 +566,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
         case 0: //Dirichlet for continuous formulation
         {
             
-            if(bc.HasBCForcingFunction())
+            if(bc.HasForcingFunctionBC())
             {
                 TPZManVector<STATE> vbc(3);
                 TPZFMatrix<STATE> gradu;
-                bc.BCForcingFunction()->Execute(datavec[vindex].x,vbc,gradu);
-                v_2(0,0) = vbc[0];
-                v_2(1,0) = vbc[1];
+                bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                v_2[0] = vbc[0];
+                v_2[1] = vbc[1];
                 p_D=vbc[2];
                 
             }
@@ -726,7 +748,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                             REAL vh_n = v_h[0];
                             REAL v_n = n[0] * v_2[0] + n[1] * v_2[1];
                             
-                            ef(i,0) += -weight * gBigNumber * (vh_n-v_n) * (phiVni(0,0));
+                            ef(i,0) += -weight * fBigNumber * (vh_n-v_n) * (phiVni(0,0));
                             
                             
                             for(int j = 0; j < nshapeV; j++){
@@ -743,7 +765,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                                     
                                 }
                                 
-                                ek(i,j) += weight * gBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
+                                ek(i,j) += weight * fBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
                                 
                             }
                             
@@ -762,13 +784,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
             {
                 
                 
-                if(bc.HasBCForcingFunction())
+                if(bc.HasForcingFunctionBC())
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.BCForcingFunction()->Execute(datavec[vindex].x,vbc,gradu);
-                    v_2(0,0) = vbc[0];
-                    v_2(1,0) = vbc[1];
+                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    v_2[0] = vbc[0];
+                    v_2[1] = vbc[1];
                     p_D=vbc[2];
                     
                 }
@@ -814,13 +836,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
         case 2: //Penetração com slip for continuous formulation
             {
                 
-                if(bc.HasBCForcingFunction())
+                if(bc.HasForcingFunctionBC())
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.BCForcingFunction()->Execute(datavec[vindex].x,vbc,gradu);
-                    v_2(0,0) = vbc[0];
-                    v_2(1,0) = vbc[1];
+                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    v_2[0] = vbc[0];
+                    v_2[1] = vbc[1];
                     p_D=vbc[2];
                     
                 }
@@ -851,7 +873,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                         REAL vh_n = v_h[0];
                         REAL v_n = n[0] * v_2[0] + n[1] * v_2[1];
                         
-                        ef(i,0) += -weight * gBigNumber * (vh_n-v_n) * (phiVni(0,0));
+                        ef(i,0) += -weight * fBigNumber * (vh_n-v_n) * (phiVni(0,0));
                         
                         
                         for(int j = 0; j < nshapeV; j++){
@@ -868,7 +890,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                                 
                             }
                             
-                            ek(i,j) += weight * gBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
+                            ek(i,j) += weight * fBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
                             
                         }
                         
@@ -959,7 +981,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                             REAL vh_n = v_h[0];
                             REAL v_n = n[0] * v_2[0] + n[1] * v_2[1];
                             
-                            ef(i,0) += -weight * gBigNumber * (vh_n-v_n) * (phiVni(0,0));
+                            ef(i,0) += -weight * fBigNumber * (vh_n-v_n) * (phiVni(0,0));
                             
                             
                             for(int j = 0; j < nshapeV; j++){
@@ -976,7 +998,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
                                     
                                 }
                                 
-                                ek(i,j) += weight * gBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
+                                ek(i,j) += weight * fBigNumber * (phiVni(0,0)) * (phiVnj(0,0)) ;
                                 
                             }
                             
@@ -994,13 +1016,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
         case 10: //Penetração com slip for continuous formulation
             {
                 
-                if(bc.HasBCForcingFunction())
+                if(bc.HasForcingFunctionBC())
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.BCForcingFunction()->Execute(datavec[vindex].x,vbc,gradu);
-                    v_2(0,0) = vbc[0];
-                    v_2(1,0) = vbc[1];
+                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    v_2[0] = vbc[0];
+                    v_2[1] = vbc[1];
                     p_D=vbc[2];
                     
                 }
@@ -1175,7 +1197,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(TPZMaterialData &data, TP
     {
         std::cout << "ef  has norm " << rhsnorm << std::endl;
     }
-    
+    if(0)
     {
         std::ofstream fileEK("FileEKContributeBCInterf.txt");
         std::ofstream fileEF("FileEFContributeBCInterf.txt");
@@ -1247,3 +1269,8 @@ TPZFNMatrix<9,REAL> TPZMHMNavierStokesMaterial::Tangential(TPZManVector<REAL,3> 
 
     return MatrixTan;
 }
+
+////////////////////////////////////////////////////////////////////
+
+
+

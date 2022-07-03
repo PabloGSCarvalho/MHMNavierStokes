@@ -11,7 +11,7 @@
 #include <cmath>
 #include <stdio.h>
 #include "TPZMatWithMem.h"
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "TPZSimulationData.h"
 #include "pzpostprocanalysis.h"
 #include "TPZSkylineNSymStructMatrix.h"
@@ -24,7 +24,7 @@
 #include "TPZNSMemory.h"
 
 
-class TPZNSAnalysis : public TPZAnalysis {
+class TPZNSAnalysis : public TPZLinearAnalysis {
     
 private:
     

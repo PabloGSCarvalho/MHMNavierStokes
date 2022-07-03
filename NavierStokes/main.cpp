@@ -9,8 +9,8 @@
 #include "pzgmesh.h"
 #include "pzstack.h"
 #include "TPZVTKGeoMesh.h"
-#include "pzanalysis.h"
-#include "pzbndcond.h"
+#include "TPZLinearAnalysis.h"
+#include "TPZBndCondT.h"
 #include "NavierStokesTest.h"
 #include "tpzarc3d.h"
 #include "tpzgeoblend.h"
@@ -25,8 +25,6 @@
 #include "pzbuildmultiphysicsmesh.h"
 #include "TPZInterfaceEl.h"
 #include "TPZMultiphysicsInterfaceEl.h"
-#include "pzmat1dlin.h"
-#include "pzmat2dlin.h"
 #include "pzfstrmatrix.h"
 #include "pzskylstrmatrix.h"
 #include "TPZSkylineNSymStructMatrix.h"
@@ -59,7 +57,7 @@ enum Simulation_case {MHMProblem, HybridProblem, Coupling, Vugs2D, ObstacleTime,
 int main(int argc, char *argv[])
 {
     
-    TPZMaterial::gBigNumber = 1.e12;
+//    TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
     Simulation_case sim_case = MHMProblem;
 #ifdef LOG4CXX

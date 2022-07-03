@@ -8,13 +8,14 @@
 
 #include "TPZMHMNavierStokesMeshControl.h"
 #include "TPZMHMeshControl.h"
-#include "TPZVecL2.h"
-#include "pzbndcond.h"
-#include "TPZMatLaplacian.h"
+//#include "TPZVecL2.h"
+#include "TPZBndCondT.h"
+#include "DarcyFLow/TPZDarcyFlow.h"
+#include "Projection/TPZL2Projection.h"
 #include "TPZLagrangeMultiplier.h"
 
 #include "pzsmanal.h"
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "TPZSpStructMatrix.h"
 #include "pzstepsolver.h"
 
@@ -423,7 +424,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
         int matid = *it;
         if (cmeshPressure->MaterialVec().find(matid) == cmeshPressure->MaterialVec().end())
         {
-            TPZNullMaterial *matl2 = new TPZNullMaterial((matid));
+            TPZNullMaterial<> *matl2 = new TPZNullMaterial<>((matid));
             matl2->SetNStateVariables(fNState);
             matl2->SetDimension(fGMesh->Dimension());
             cmeshPressure->InsertMaterialObject(matl2);
@@ -436,13 +437,13 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
     
     // Material for interior traction:
     
-    TPZVecL2 *matTraction = new TPZVecL2(fTractionMatId);
     int mesh_dim = fGMesh->Dimension();
     int nstate_traction = 1, nstate_bctraction = 1;
     if(mesh_dim==3){
         nstate_traction = 2;
         nstate_bctraction =2;
     }
+    TPZL2Projection<> *matTraction = new TPZL2Projection<>(fTractionMatId,mesh_dim-1,nstate_traction);
 
     matTraction->SetDimension(fGMesh->Dimension()-1);
     matTraction->SetNStateVariables(nstate_traction);
@@ -457,7 +458,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
         int matid= fBCTractionMatIds[it];
         if (cmeshPressure->MaterialVec().find(matid) == cmeshPressure->MaterialVec().end())
         {
-            TPZVecL2 *matBCTraction = new TPZVecL2(matid);
+            auto *matBCTraction = new TPZL2Projection<>(matid,mesh_dim-1,nstate_bctraction);
             matBCTraction->SetDimension(fGMesh->Dimension()-1);
             matBCTraction->SetNStateVariables(nstate_bctraction);
             cmeshPressure->InsertMaterialObject(matBCTraction);
@@ -467,7 +468,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalPressureMaterialObjects()
 
     if(fsetBJSInterface){
         int matID_BJS = -7;
-        TPZVecL2 *matBC_BJS = new TPZVecL2(matID_BJS);
+        auto *matBC_BJS = new TPZL2Projection<>(matID_BJS,mesh_dim-1,nstate_bctraction);
         matBC_BJS->SetDimension(fGMesh->Dimension()-1);
         matBC_BJS->SetNStateVariables(nstate_bctraction);
         cmeshPressure->InsertMaterialObject(matBC_BJS);
@@ -486,7 +487,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalAveragePressMaterialObjects()
         int matid = *it;
         if (cmeshAverPressure->MaterialVec().find(matid) == cmeshAverPressure->MaterialVec().end())
         {
-            TPZVecL2 *matl2 = new TPZVecL2((matid));
+            auto *matl2 = new TPZL2Projection<>(matid,fGMesh->Dimension()-1,fNState);
             matl2->SetNStateVariables(fNState);
             matl2->SetDimension(fGMesh->Dimension());
             cmeshAverPressure->InsertMaterialObject(matl2);
@@ -578,7 +579,7 @@ void TPZMHMNavierStokesMeshControl::InsertPeriferalCoarseAveragePressMaterialObj
     
     TPZCompMesh *cmeshCoarseAverPressure = fCoarseAveragePressMesh.operator->();
     
-    TPZVecL2 *matl2 = new TPZVecL2(fSkeletonMatId);
+    auto *matl2 = new TPZL2Projection<>(fSkeletonMatId,fGMesh->Dimension(),fNState);
     matl2->SetNStateVariables(fNState);
     matl2->SetDimension(fGMesh->Dimension());
     cmeshCoarseAverPressure->InsertMaterialObject(matl2);
@@ -672,7 +673,7 @@ void TPZMHMNavierStokesMeshControl::InsertDistributedFluxMaterialObjects(){
         int matid = *it;
         if (cmeshDistributedFlux->MaterialVec().find(matid) == cmeshDistributedFlux->MaterialVec().end())
         {
-            TPZVecL2 *matl2 = new TPZVecL2((matid));
+            auto *matl2 = new TPZL2Projection<>((matid),fGMesh->Dimension(),fNState);
             matl2->SetNStateVariables(fNState);
             matl2->SetDimension(fGMesh->Dimension());
             cmeshDistributedFlux->InsertMaterialObject(matl2);
@@ -769,7 +770,7 @@ void TPZMHMNavierStokesMeshControl::InsertCoarseDistributedFluxMaterialObjects()
         int matid = *it;
         if (cmeshDistributedFlux->MaterialVec().find(matid) == cmeshDistributedFlux->MaterialVec().end())
         {
-            TPZVecL2 *matl2 = new TPZVecL2((matid));
+            auto *matl2 = new TPZL2Projection<>((matid),fGMesh->Dimension(),fNState);
             matl2->SetNStateVariables(fNState);
             matl2->SetDimension(fGMesh->Dimension());
             cmeshDistributedFlux->InsertMaterialObject(matl2);
@@ -1081,9 +1082,9 @@ void TPZMHMNavierStokesMeshControl::BuildSubMeshes(){
 void TPZMHMNavierStokesMeshControl::PutinSubmeshes(TPZCompMesh *cmesh, std::map<int64_t,std::set<int64_t> >&elindices, std::map<int64_t,int64_t> &indices, int KeepOneLagrangian)
 {
     for (std::map<int64_t,std::set<int64_t> >::iterator it = elindices.begin(); it != elindices.end(); it++) {
-        int64_t index;
-        TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh,index);
-        indices[it->first] = index;
+
+        TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh);
+        indices[it->first] = subcmesh->Index();
         for (std::set<int64_t>::iterator itloc = it->second.begin(); itloc != it->second.end(); itloc++) {
             subcmesh->TransferElement(cmesh, *itloc);
         }
@@ -1213,9 +1214,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsInterfaceElements(){
                     TPZCompElSide cel_sub_neigh = subel[i_sub].Reference();
                     
                     TPZGeoElBC gbc_sub(subel[i_sub],m_interfaceVector_ids[stack_i]);
-                    int64_t index;
                     
-                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
 #ifdef PZDEBUG
@@ -1232,9 +1232,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsInterfaceElements(){
             }else{
                 
                 TPZGeoElBC gbc(gelside,m_interfaceVector_ids[stack_i]);
-                int64_t index;
                 
-                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
@@ -1314,9 +1313,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBCInterfaceElements(){
                         TPZCompElSide cel_sub_neigh = subelside[i_sub].Reference();
                         
                         TPZGeoElBC gbc_sub(subelside[i_sub],matBCinterface);
-                        int64_t index;
                         
-                        TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                        TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),cel_sub_neigh,celside);
                         elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
@@ -1332,9 +1330,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBCInterfaceElements(){
                 }else{
                     
                     TPZGeoElBC gbc(gelside,matBCinterface);
-                    int64_t index;
                     
-                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
                     
 #ifdef PZDEBUG
@@ -1412,9 +1409,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBJSInterfaceElements(){
                     TPZCompElSide cel_sub_neigh = subelside[i_sub].Reference();
 
                     TPZGeoElBC gbc_sub(subelside[i_sub],matBCinterface);
-                    int64_t index;
 
-                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),index,cel_sub_neigh,celside);
+                    TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc_sub.CreatedElement(),cel_sub_neigh,celside);
                     elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
@@ -1430,9 +1426,8 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBJSInterfaceElements(){
             }else{
 
                 TPZGeoElBC gbc(gelside,matBCinterface);
-                int64_t index;
 
-                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),index,celneigh,celside);
+                TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
                 elem_inter->SetLeftRightElementIndices(LeftElIndices,RightElIndices);
 
 #ifdef PZDEBUG
@@ -1561,7 +1556,6 @@ void TPZMHMNavierStokesMeshControl::GroupAndCondense(TPZCompMesh *cmesh_m){
     std::vector<int64_t> GroupIndex;
     TPZStack<TPZElementGroup *> elgroups;
     int count = 0;
-    int64_t index =0;
 
     for(int64_t el = 0; el < ncompel; el++){
 
@@ -1574,7 +1568,7 @@ void TPZMHMNavierStokesMeshControl::GroupAndCondense(TPZCompMesh *cmesh_m){
         count++;
         GroupIndex.resize(count);
         GroupIndex[count-1]=cel->Index();
-        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m,index);
+        TPZElementGroup *GroupEl = new TPZElementGroup(*cmesh_m);
         elgroups.Push(GroupEl);
         elgroups[count-1]->AddElement(cel);
     }

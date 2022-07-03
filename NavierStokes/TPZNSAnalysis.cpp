@@ -11,7 +11,7 @@
 static LoggerPtr logger(Logger::getLogger("NavierStokes.Analysis"));
 #endif
 
-TPZNSAnalysis::TPZNSAnalysis() : TPZAnalysis() {
+TPZNSAnalysis::TPZNSAnalysis() : TPZLinearAnalysis() {
     m_simulation_data = NULL;
     m_U_Plus.Resize(0, 0);
     m_U_n.Resize(0, 0);
@@ -67,11 +67,11 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
         case ELU:
         {
             if(m_simulation_data->IsPardisoSolverQ() == true){
-                TPZSpStructMatrix struct_mat(Mesh());
+                TPZSpStructMatrix<STATE> struct_mat(Mesh());
                 struct_mat.SetNumThreads(n_threads);
                 this->SetStructuralMatrix(struct_mat);
             }else{
-                TPZFStructMatrix struct_mat(Mesh());
+                TPZFStructMatrix<STATE> struct_mat(Mesh());
                 //TPZSkylineNSymStructMatrix struct_mat(Mesh());
                 struct_mat.SetNumThreads(n_threads);
                 this->SetStructuralMatrix(struct_mat);
@@ -81,11 +81,11 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
         case ELDLt:
         {
             if(m_simulation_data->IsPardisoSolverQ() == true){
-                TPZSymetricSpStructMatrix struct_mat(Mesh());
+                TPZSSpStructMatrix<STATE> struct_mat(Mesh());
                 struct_mat.SetNumThreads(n_threads);
                 this->SetStructuralMatrix(struct_mat);
             }else{
-                TPZFStructMatrix struct_mat(Mesh());
+                TPZFStructMatrix<STATE> struct_mat(Mesh());
                 struct_mat.SetNumThreads(n_threads);
                 this->SetStructuralMatrix(struct_mat);
             }
@@ -126,7 +126,7 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
     
     m_post_processor->DefineGraphMesh(dim,m_var_names,vecnames,plotfile);
     
-    TPZFStructMatrix structmatrix(m_post_processor->Mesh());
+    TPZFStructMatrix<STATE> structmatrix(m_post_processor->Mesh());
     structmatrix.SetNumThreads(n_threads);
     m_post_processor->SetStructuralMatrix(structmatrix);
     
@@ -364,8 +364,9 @@ void TPZNSAnalysis::SolveSystem(){
     if(0)
     {
         int64_t neq = Mesh()->Solution().Rows();
+        TPZMatrix<STATE> &mat = Mesh()->Solution();
         for (int is = 0; is<neq; is++) {
-            Mesh()->Solution()(is,0) = 1.;
+            mat(is,0) = 1.;
         }
         Mesh()->LoadSolution((Mesh()->Solution()));
         TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
@@ -434,8 +435,9 @@ void TPZNSAnalysis::SolveSystemTransient(){
     if(0)
     {
         int64_t neq = Mesh()->Solution().Rows();
+        TPZFMatrix<STATE> &sol = Mesh()->Solution();
         for (int is = 0; is<neq; is++) {
-            Mesh()->Solution()(is,0) = 1.;
+            sol(is,0) = 1.;
         }
         Mesh()->LoadSolution((Mesh()->Solution()));
         TPZMultiphysicsCompMesh *mphys = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
@@ -542,8 +544,8 @@ void TPZNSAnalysis::ExecuteNewtonIteration(){
 //        m_LastStepRhs.Resize(Rhs().Rows(),Rhs().Cols());
 //        this->Rhs()+=m_LastStepRhs;
 //    }
-
-    this->Rhs() *= 1.0;
+    TPZFMatrix<STATE> &rhs = this->Rhs();
+    rhs *= 1.0;
     {
         std::cout<< "residual norm 0.5 = " << Norm(this->Rhs()) <<std::endl;
     }
@@ -635,7 +637,7 @@ void TPZNSAnalysis::UpdateMemory_LastStep(){
     int matid = m_simulation_data->Get_volumetric_material_id()[0];
 
     TPZMaterial * material = this->Mesh()->FindMaterial(matid);
-    TPZMatWithMem<TPZNSMemory,TPZDiscontinuousGalerkin> * associated_material = dynamic_cast<TPZMatWithMem<TPZNSMemory,TPZDiscontinuousGalerkin> *>(material);
+    TPZMatWithMem<TPZNSMemory> * associated_material = dynamic_cast<TPZMatWithMem<TPZNSMemory>*>(material);
 
     if (!associated_material) {
         DebugStop();
@@ -688,7 +690,7 @@ void TPZNSAnalysis::ComputeDragAndLift(){
         TPZIntPoints *intrule = gel->CreateSideIntegrationRule(gel->NSides()-1, 5);
         int dim = gel->Dimension();
         TPZManVector<REAL,3> xi(dim),xi_neight(2);
-        TPZMaterialData data;
+        TPZMaterialDataT<STATE> data;
         TPZFNMatrix<9,REAL> jac(dim,dim),jacinv(dim,dim),axes(dim,3);
         REAL detjac;
         TPZVec<REAL> co_obs(3),co_neigh(3);
@@ -725,7 +727,7 @@ void TPZNSAnalysis::ComputeDragAndLift(){
         delete intrule;
     }
 
-    ofstream CoefOut("DragAndLiftCoef_NavierStokes.txt", std::ofstream::app);
+    std::ofstream CoefOut("DragAndLiftCoef_NavierStokes.txt", std::ofstream::app);
 
     CoefOut <<"  Time = "<< time + m_simulation_data->GetTimeStep() << std::endl;
     CoefOut <<"-------------" << std::endl;
