@@ -15,7 +15,7 @@ ENDIF (WIN32)
 
 
 # this is the top level directory of your build tree 
-MESSAGE( STATUS "CMAKE_BINARY_DIR:         " ${PZ_INCLUDE_DIRS} )
+#MESSAGE( STATUS "CMAKE_BINARY_DIR:         " ${PZ_INCLUDE_DIRS} )
 
 IF(APPLE)
    # Mac OS X specific code
@@ -31,30 +31,6 @@ include_directories(${PZ_INCLUDE_DIRS})
 
 # Location to search files or libraries
 set(SEARCH_DIRS ENV PATH /usr/local/opt/ /usr/local/opt/qt5/lib/cmake/ /usr/include /usr/local/include /usr/local/include/boost /usr/local/include/log4cxx /usr/local/include/tbb /usr/lib /usr/lib64 /usr/local/lib ./. ./.. ./../libs ./../libs/fad ./../libs/metis ./../libs/metis/include ./../libs/metis/lib ./../externallibs ./../externallibs/fad ./../externallibs/pthread ./../externallibs/metis ./../externallibs/metis/include ./../externallibs/metis/lib ./..metis ./../metis/include ./../metis/lib ./externallibs/lib ./externallibs/include ./../externallibs/lib ./../externallibs/include)
-
-#enabling pthread library
-find_path(PTHREAD_INCLUDE NAMES PThread.h pthread.h PATHS ${SEARCH_DIRS} D:/Projetos/externallibs/include )
-find_library(PTHREAD_LIB NAMES libpthread.dylib pthread.lib pthreadVC2.lib libPThread.so libPThread.a libpthread.so libpthread.a PATHS ${SEARCH_DIRS} D:/Projetos/externallibs/lib  ${PROJECT_SOURCE_DIR}/../pthread/lib)
-if(PTHREAD_INCLUDE-NOTFOUND)
-	set(PTHREAD_INCLUDE "" CACHE PATH "Directory where pthread.h can be found")
-endif()
-if(PTHREAD_LIB-NOTFOUND)
-	set(PTHREAD_LIBexit "" CACHE PATH "Directory where the pthread library can be found")
-endif()
-include_directories(${PTHREAD_INCLUDE})
-
-#message(${PTHREAD_INCLUDE})
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(PZDEBUG PZDEBUG)
-	add_definitions(-DPZDEBUG)
-endif()
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(NODEBUG NODEBUG)
-	set(ZERO_INTERNAL_RESIDU ZERO_INTERNAL_RESIDU)
-        set(MAKEINTERNAL MAKEINTERNAL)
-	add_definitions(-DNODEBUG)
-endif()
 
 
 if(WIN32)
@@ -90,7 +66,4 @@ if(WIN32)
 
 endif()
 
-include_directories(.)
-
 add_subdirectory(NavierStokes)
-#file(COPY DFN_data DESTINATION MHM_Frac)

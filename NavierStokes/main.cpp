@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
 //    TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
     Simulation_case sim_case = MHMProblem;
-#ifdef LOG4CXX
-    InitializePZLOG();
+#ifdef PZ_LOG
+    TPZLogger::InitializePZLOG();
 #endif
     //Dados do problema:
     
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
                         sim_data->SetNInterRefs(0);
                         sim_data->SetViscosity(0.01);
                         sim_data->SetBrinkmanCoef(0.); //For Brinkman
-                        sim_data->SetNthreads(24);
+                        sim_data->SetNthreads(0);
                         //simdata.SetShapeTest(); // Test for shape functions
 
                         sim_data->SetDivPlusOrder(idivp+1);

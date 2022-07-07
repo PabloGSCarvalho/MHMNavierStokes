@@ -19,6 +19,7 @@
 #include "pzcompel.h"
 #include "pzintel.h"
 #include "TPZNullMaterial.h"
+#include "TPZNullMaterialCS.h"
 #include "TPZGenGrid2D.h"
 #include "TPZLagrangeMultiplier.h"
 #include "pzelementgroup.h"
@@ -450,7 +451,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     ofstream ErroOut2("Errors_Lite.txt", std::ofstream::app);
     an.SetExact(f_ExactSol.ExactSolution());
     int n_threads_sim =f_sim_data->GetNthreads();
-    an.SetThreadsForError(24);
+    an.SetThreadsForError(0);
 //    an.PostProcessError(Errors,false);
 
     auto old_buffer = std::cout.rdbuf(nullptr);
@@ -463,12 +464,15 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     ErroOut <<"Norma L2 - V = "<< Errors[0] << std::endl;
     ErroOut <<"Semi-norma H1/Hdiv - V = "<< Errors[1] << std::endl;
     ErroOut <<"Norma L2 - P = "<< Errors[2] << std::endl;
-    ErroOut <<"-------------" << std::endl;
-    ErroOut <<"Mat2:" << std::endl;
-    ErroOut <<"Darcy - Norma L2 - V = "<< Errors[3] << std::endl;
-    ErroOut <<"Darcy - Semi-norma H1/Hdiv - V = "<< Errors[4] << std::endl;
-    ErroOut <<"Darcy - Norma L2 - P = "<< Errors[5] << std::endl;
-    ErroOut <<"-------------" << std::endl;
+    if(Errors.size()>3)
+    {
+        ErroOut <<"-------------" << std::endl;
+        ErroOut <<"Mat2:" << std::endl;
+        ErroOut <<"Darcy - Norma L2 - V = "<< Errors[3] << std::endl;
+        ErroOut <<"Darcy - Semi-norma H1/Hdiv - V = "<< Errors[4] << std::endl;
+        ErroOut <<"Darcy - Norma L2 - P = "<< Errors[5] << std::endl;
+        ErroOut <<"-------------" << std::endl;
+    }
     ErroOut.flush();
 
     ErroOut2 << Errors[0] << " " << Errors[2] << " " << Errors[1] <<std::endl;
@@ -3625,7 +3629,7 @@ void MHMNavierStokesTest::InsertMaterialObjects(TPZMHMeshControl *control)
     cmesh.InsertMaterialObject(bcFlux);
     
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
+    TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(fdim-1);
     control->CMesh()->InsertMaterialObject(matLambda);

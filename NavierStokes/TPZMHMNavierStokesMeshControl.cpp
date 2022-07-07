@@ -1068,6 +1068,17 @@ void TPZMHMNavierStokesMeshControl::BuildSubMeshes(){
     fMHMtoSubCMesh = submeshindices;
 
     fCMesh->ComputeNodElCon();
+    {
+        int64_t nc = fCMesh->NConnects();
+        for (int64_t ic = 0; ic<nc; ic++) {
+            TPZConnect &c = fCMesh->ConnectVec()[ic];
+            if(c.NElConnected() == 0 && c.HasDependency())
+            {
+                c.RemoveDepend();
+            }
+        }
+    }
+    fCMesh->ComputeNodElCon();
     fCMesh->CleanUpUnconnectedNodes();
 
     GroupandCondenseSubMeshes();

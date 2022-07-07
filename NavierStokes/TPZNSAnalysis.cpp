@@ -241,7 +241,8 @@ void TPZNSAnalysis::ExecuteOneTimeStep(){
         {
             
             std::ofstream plotNavierStiff("NavierStiffness_iteration.txt");
-            fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
+            TPZMatrixSolver<STATE> *matsolve = dynamic_cast<TPZMatrixSolver<STATE> *>(fSolver);
+            matsolve->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
             std::ofstream plotNavierRhs("NavierRhs_iteration.txt");;
             fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
         }
@@ -535,7 +536,8 @@ void TPZNSAnalysis::ExecuteNewtonIteration(){
     if(0)
     {
         std::ofstream plotNavierStiff("NavierStiffness_NewtonIteration.txt");
-        fSolver->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
+        TPZMatrixSolver<STATE> *matsolve = dynamic_cast<TPZMatrixSolver<STATE> *>(fSolver);
+        matsolve->Matrix()->Print("ek = ",plotNavierStiff,EMathematicaInput);
         std::ofstream plotNavierRhs("NavierRhs_NewtonIteration.txt");;
         fRhs.Print("Rhs =",plotNavierRhs,EMathematicaInput);
     }
