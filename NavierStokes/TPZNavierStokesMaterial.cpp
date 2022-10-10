@@ -1954,7 +1954,7 @@ void TPZNavierStokesMaterial::Errors(TPZVec<TPZMaterialData> &data, TPZVec<STATE
     int vindex = this->VIndex();
     int pindex = this->PIndex();
     
-    TPZFMatrix<REAL> dudx(3,3);
+    TPZFMatrix<REAL> dudx(3,3,0.);
     TPZFMatrix<STATE> &dsol = data[vindex].dsol[0];
     TPZFMatrix<STATE> &dsolp = data[pindex].dsol[0];
     //std::cout<<dsol<<std::endl;

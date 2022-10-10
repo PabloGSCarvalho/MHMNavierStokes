@@ -277,7 +277,7 @@ void MHMNavierStokesTest::Run()
     //Malha computacional
     StokesControl->BuildComputationalMesh(0);
 
-    if(1){
+    if(0){
         std::ofstream fileg1("MalhaGeo.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk1("MalhaGeo.vtk"); //Impressão da malha geométrica (formato vtk)
         StokesControl->GMesh()->Print(fileg1);
@@ -347,6 +347,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt);
     an.SetSolver(step);
+    return;
     std::cout << "Assembling\n";
     an.Assemble();
 
@@ -3153,7 +3154,29 @@ void MHMNavierStokesTest::Sol_exact(const TPZVec<REAL> &x, TPZVec<STATE> &sol, T
         sol[0]=0.;
         sol[1]=0.;
         sol[2]=0.;
-        sol[3]=1000000.*(x2*x2*x2-(x2*x2)/2.+x2-7./12.);
+        //sol[3]=1000000.*(x2*x2*x2-(x2*x2)/2.+x2-7./12.);
+
+            dsol.Resize(3,3);
+            sol.Resize(3);
+
+            x1 = x[0];
+            x2 = x[1];
+
+            v_1 = sin(x1)*sin(x2);
+            v_2 = -1.*cos(x1)*cos(x2);
+            STATE pressure= cos(x1)*sin(x2);
+
+            sol[0]=v_1;
+            sol[1]=v_2;
+            sol[2]=pressure;
+
+            // vx direction
+            dsol(0,0)= cos(x1)*sin(x2);
+            dsol(0,1)= cos(x2)*sin(x1);
+
+            // vy direction
+            dsol(1,0)= cos(x2)*sin(x1);
+            dsol(1,1)= cos(x1)*sin(x2);
 
 }
 

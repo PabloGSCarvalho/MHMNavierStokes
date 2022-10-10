@@ -82,12 +82,12 @@ int main(int argc, char *argv[])
             h_s[0]=2.,h_s[1]=2.,h_s[2]=2.; //Default
             int pOrder = 1;
 
-            for (int im=1; im<=3; im++){
+            for (int im=1; im<=10; im++){
                 int pOrder = im;
-                for (int it=2; it<=6; it++) {
+                for (int it=6; it<=6; it++) {
                     h_level = pow(2., it);
 
-                    std::cout<< " ---- Runnig level = " << h_level << " ------ "<<std::endl;
+                    std::cout<< " ---- Runnig level = " << h_level << " ------ " << "k = " << im <<std::endl;
                     TPZVec<int> n_s(3,0.);
                     n_s[0]=h_level,n_s[1]=h_level;
                     n_s[2]=h_level; //Obs!!
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
                     MHMNavierStokesTest  *Test2 = new MHMNavierStokesTest();
                     //Test2->Set3Dmesh();
                     //Test2->SetHdivPlus();
-                    Test2->SetElType(ETriangle);
+                    //Test2->SetElType(ETriangle);
 
                     TPZTransform<STATE> Transf(3,3), InvTransf(3,3);
                     Test2->SetTransform(Transf, InvTransf);
@@ -116,11 +116,11 @@ int main(int argc, char *argv[])
                     sim_data->SetDomainSize(h_s);
                     sim_data->SetNInterRefs(0);
                     sim_data->SetViscosity(1.);
-                    sim_data->SetBrinkmanCoef(0.); //For Brinkman
+                    sim_data->SetBrinkmanCoef(1.); //For Brinkman
                     sim_data->SetNthreads(24);
                     //simdata.SetShapeTest(); // Test for shape functions
 
-                    sim_data->SetDivPlusOrder(1);
+                    //sim_data->SetDivPlusOrder(0);
 
                     sim_data->SetOptimizeBandwidthQ(true);
                     //sim_data->SetStaticCondensation(false);
