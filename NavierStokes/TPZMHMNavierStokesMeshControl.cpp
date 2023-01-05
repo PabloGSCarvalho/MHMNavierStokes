@@ -149,7 +149,7 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
     }
 #endif
     
-    if(1){
+    if(0){
         std::ofstream fileg1("MalhaGeo_test.txt"); //Impressão da malha geométrica (formato txt)
         std::ofstream filegvtk1("MalhaGeo_test.vtk"); //Impressão da malha geométrica (formato vtk)
         fGMesh->Print(fileg1);
@@ -228,10 +228,10 @@ void TPZMHMNavierStokesMeshControl::BuildComputationalMesh(bool usersubstructure
 void TPZMHMNavierStokesMeshControl::CreatePressureAndTractionMHMMesh(){
 
     CreatePressureMHMMesh();
-
-    std::ofstream out0("PressureAndTractionFineMesh.txt");
-    fPressureFineMesh->Print(out0);
-
+    if(0){
+        std::ofstream out0("PressureAndTractionFineMesh.txt");
+        fPressureFineMesh->Print(out0);
+    } 
 
     TPZGeoMesh * gmesh = fGMesh.operator->();
     gmesh->ResetReference();
@@ -956,12 +956,15 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
         gmesh->Print(out2);
     }
 
+    ofstream ErroOut("DofsCount.txt", std::ofstream::app);
 
+    ErroOut << fCMesh->NEquations() << std::endl;
     std::cout << "Number of DoFs (without condesation) = " << fCMesh->NEquations() << std::endl;
 
     if(fsetStaticCondensation){
         BuildSubMeshes(); //aoaoaoa
         std::cout << "Number of DoFs (after condesation) = " << fCMesh->NEquations() << std::endl;
+        ErroOut << fCMesh->NEquations() << std::endl;
         fGlobalSystemSize = fCMesh->Solution().Rows();
 
 #ifdef PZDEBUG
