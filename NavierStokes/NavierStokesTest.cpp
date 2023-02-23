@@ -19,6 +19,7 @@
 #include "pzcompel.h"
 #include "pzintel.h"
 #include "TPZNullMaterial.h"
+#include "TPZNullMaterialCS.h"
 #include "TPZGenGrid2D.h"
 #include "TPZLagrangeMultiplier.h"
 #include "pzelementgroup.h"
@@ -28,6 +29,8 @@
 #include "tpzgeoblend.h"
 #include "TPZGenSpecialGrid.h"
 #include "tpzgeoelmapped.h"
+
+#include "Projection/TPZL2ProjectionCS.h"
 
 
 using namespace std;
@@ -44,7 +47,7 @@ NavierStokesTest::NavierStokesTest()
 {
     
     fdim=2; //Dimensão do problema
-    fmatID=1; //Materia do elemento volumétrico
+    fmatIDs={1}; //Materia do elemento volumétrico
     
     //Materiais das condições de contorno
     fmatBCbott=-1;
@@ -87,7 +90,7 @@ NavierStokesTest::NavierStokesTest()
     fmatIntBCbott_z=-16;
     
     //Materia de um ponto
-    fmatPoint=-15;
+    fmatPoint=-17;
     
     //Condições de contorno do problema
     fdirichlet_v=0;
@@ -148,12 +151,19 @@ NavierStokesTest::~NavierStokesTest()
 
 void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
 {
-    
+    f_fluxOrder = pOrder;
+    f_tractionOrder = pOrder-1;
     //Gerando malha geométrica:
     TPZGeoMesh *gmesh;
     f_problemtype = f_sim_data->GetProblemType();
     f_domaintype = f_sim_data->GetDomainType();
     STATE visco = f_sim_data->GetViscosity();
+    f_ExactSol.fvisco = f_sim_data->GetViscosity();
+    f_ExactSol.fcBrinkman = f_sim_data->GetBrinkmanCoef();
+    f_ExactSol.multRa = f_sim_data->GetMultRa();
+    f_ExactSol.fProblemType = f_problemtype;
+    f_ExactSol.fExactSol = f_domaintype;
+
     
     if (f_3Dmesh) {
         gmesh = CreateGMesh3D(n_s, h_s);
@@ -228,8 +238,8 @@ void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
         std::ofstream filecgM("MalhaC_gM.txt");
         cmesh_v->Print(filecv);
         cmesh_p->Print(filecp);
-//        cmesh_pM->Print(filecpM);
-//        cmesh_gM->Print(filecgM);
+        cmesh_pM->Print(filecpM);
+        cmesh_gM->Print(filecgM);
         
         std::ofstream filecm("MalhaC_m.txt");
         cmesh_m->Print(filecm);
@@ -299,12 +309,20 @@ void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
         NS_analysis->SolveSystem();
     }
 
+    {
+        std::ofstream sol("SolMat.nb");
+        cmesh_m->Solution().Print("SolC = ",sol,EMathematicaInput);
+        
+    }
+    VerifyEquilibrium(cmesh_m);
+    
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EOneCurve){
+        std::cout << "FINISHED!" << std::endl;
         return;
     }
 
     //Calculo do erro
-    std::cout << "Comuting Error " << std::endl;
+    std::cout << "Computing Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
 
@@ -512,20 +530,21 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<R
 //    TopolQQuadrilateral[1] =n_div[0];
 //    TopolQQuadrilateral[2] =n_div[1]*(n_div[0]+1);
 //    TopolQQuadrilateral[3] =(n_div[0]+1)*(n_div[1]+1)-1;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQQuadrilateral, fmatID,*gmesh);
+//    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQQuadrilateral, matid,*gmesh);
 //    elementid++;
     
     
     
     //Conectividade dos elementos:
-    
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
     for(int i = 0; i < n_div[1]; i++){
         for(int j = 0; j < n_div[0]; j++){
             TopolQQuadrilateral[0] = (i)*(n_div[1]+1) + (j);
             TopolQQuadrilateral[1] = TopolQQuadrilateral[0]+1;
             TopolQQuadrilateral[2] = TopolQQuadrilateral[1]+n_div[0]+1;
             TopolQQuadrilateral[3] = TopolQQuadrilateral[0]+n_div[0]+1;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQQuadrilateral, fmatID,*gmesh);
+            new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQQuadrilateral, matid,*gmesh);
             elementid++;
         }
     }
@@ -811,7 +830,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshRefPattern(TPZVec<int> &n_div, TPZVec<R
             elementid = gel->Id();
             gmesh->ElementVec()[elementid]->SetFatherIndex(-1);
             delete gmesh->ElementVec()[elementid];
-            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >> (elementid, nodeindices, fmatID,*gmesh);
+            gmesh->ElementVec()[elementid] = new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad >> (elementid, nodeindices, matid,*gmesh);
 
          }
     }
@@ -938,6 +957,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
 TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_s)
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
     int dimmodel = 2;
     TPZManVector<REAL,3> x0(3,0.),x1(3,0.);
     //    x0[0] = 0., x0[1] = -1.;
@@ -1003,7 +1024,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindD1[1] = nodeindD1[0]+1;
                     nodeindD1[2] = nodeindD1[0]+nx;
                     nodeindD1[3] = nodeindD1[1] + (1)*nx*ny;
-                    gmesh->CreateGeoElement(ETetraedro, nodeindD1, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindD1, matid, index,0);
                     
                     index++;
                     
@@ -1011,7 +1032,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindD2[1] = nodeindD1[2];
                     nodeindD2[2] = nodeindD1[1]+nx;
                     nodeindD2[3] = nodeindD1[1] + (1)*nx*ny;
-                    gmesh->CreateGeoElement(ETetraedro, nodeindD2, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindD2, matid, index,0);
                     
                     index++;
                     
@@ -1019,7 +1040,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindU1[1] = nodeindU1[0]+1;
                     nodeindU1[2] = nodeindU1[0]+nx;
                     nodeindU1[3] = nodeindD1[2];
-                    gmesh->CreateGeoElement(ETetraedro, nodeindU1, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindU1, matid, index,0);
                     
                     index++;
                     
@@ -1027,7 +1048,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindU2[1] = nodeindU1[2];
                     nodeindU2[2] = nodeindU1[1]+nx;
                     nodeindU2[3] = nodeindD1[2];
-                    gmesh->CreateGeoElement(ETetraedro, nodeindU2, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindU2, matid, index,0);
                     
                     index++;
                     
@@ -1037,7 +1058,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindL1[1] = nodeindD1[2];
                     nodeindL1[2] = nodeindL1[0]+nx*ny;
                     nodeindL1[3] = nodeindU1[1];
-                    gmesh->CreateGeoElement(ETetraedro, nodeindL1, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindL1, matid, index,0);
                     
                     index++;
                     
@@ -1046,7 +1067,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
                     nodeindL2[1] = nodeindD1[1]+nx*ny;
                     nodeindL2[2] = nodeindU2[2];
                     nodeindL2[3] = nodeindU2[3];
-                    gmesh->CreateGeoElement(ETetraedro, nodeindL2, fmatID, index,0);
+                    gmesh->CreateGeoElement(ETetraedro, nodeindL2, matid, index,0);
                     
                     index++;
                     
@@ -1236,6 +1257,8 @@ TPZGeoMesh *NavierStokesTest::CreateGMesh3D(TPZVec<int> &n_div, TPZVec<REAL> &h_
 TPZGeoMesh *NavierStokesTest::CreateGMeshCurve()
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
     TPZGeoMesh * geomesh = new TPZGeoMesh;
     geomesh->SetDimension(2);
     
@@ -1281,7 +1304,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshCurve()
     TopolQuadrilateral[2] = 2;
     TopolQuadrilateral[3] = 5;
 
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad > > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad > > (elementid,TopolQuadrilateral, matid,*geomesh);
     elementid++;
     
     // outer arcs bc's
@@ -1415,6 +1438,9 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TPZGeoMesh * geomesh = new TPZGeoMesh;
     geomesh->SetDimension(2);
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+    
     int nodes = 25;
     REAL radius = h_el[0]/8.;
     geomesh->SetMaxNodeId(nodes-1);
@@ -1466,7 +1492,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 8;
     TopolQuadrilateral[3] = 6;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * father = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * father = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     elementid++;
 
 
@@ -1475,7 +1501,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 8;
     TopolQuadrilateral[3] = 11;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son1 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son1 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son1->SetFather(father);
     son1->SetFatherIndex(father->Index());
     elementid++;
@@ -1485,7 +1511,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 7;
     TopolQuadrilateral[3] = 13;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son2 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son2 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son2->SetFather(father);
     son2->SetFatherIndex(father->Index());
     elementid++;
@@ -1495,7 +1521,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 6;
     TopolQuadrilateral[3] = 15;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son3 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son3 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son3->SetFather(father);
     son3->SetFatherIndex(father->Index());
     elementid++;
@@ -1505,7 +1531,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 3;
     TopolQuadrilateral[3] = 17;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son4 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son4 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son4->SetFather(father);
     son4->SetFatherIndex(father->Index());
     elementid++;
@@ -1515,7 +1541,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 0;
     TopolQuadrilateral[3] = 19;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son5 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son5 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son5->SetFather(father);
     son5->SetFatherIndex(father->Index());
     elementid++;
@@ -1525,7 +1551,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 1;
     TopolQuadrilateral[3] = 21;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son6 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son6 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son6->SetFather(father);
     son6->SetFatherIndex(father->Index());
     elementid++;
@@ -1535,7 +1561,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 2;
     TopolQuadrilateral[3] = 23;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son7 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son7 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son7->SetFather(father);
     son7->SetFatherIndex(father->Index());
     elementid++;
@@ -1545,7 +1571,7 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
     TopolQuadrilateral[2] = 5;
     TopolQuadrilateral[3] = 9;
 
-    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son8 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, fmatID,*geomesh);
+    TPZGeoElRefPattern< pzgeom::TPZGeoQuad > * son8 = new TPZGeoElRefPattern< pzgeom::TPZGeoQuad > (elementid,TopolQuadrilateral, matid,*geomesh);
     son8->SetFather(father);
     son8->SetFatherIndex(father->Index());
     elementid++;
@@ -1592,6 +1618,8 @@ TPZAutoPointer<TPZRefPattern> NavierStokesTest::CreateGMeshObstacle(TPZManVector
 
 TPZGeoMesh *NavierStokesTest::CreateGMeshCurveBlendSimple()
 {
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
 
     TPZGeoMesh * geomesh = new TPZGeoMesh;
     geomesh->SetDimension(2);
@@ -1638,7 +1666,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshCurveBlendSimple()
     TopolQTriangle[0] =0;
     TopolQTriangle[1] =1;
     TopolQTriangle[2] =2;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, matid,*geomesh);
     elementid++;
 
     // outer arcs bc's
@@ -1693,7 +1721,7 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshCurveBlendSimple()
 //    TopolQQuadrilateral[1] =1;
 //    TopolQQuadrilateral[2] =2;
 //    TopolQQuadrilateral[3] =3;
-//    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad > > (elementid,TopolQQuadrilateral, fmatID,*geomesh);
+//    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoQuad > > (elementid,TopolQQuadrilateral, matid,*geomesh);
 //    elementid++;
 //
 //    // outer arcs bc's
@@ -1774,7 +1802,9 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshCurveBlend()
     
     TPZGeoMesh * geomesh = new TPZGeoMesh;
     geomesh->SetDimension(2);
-    
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     int nodes = 10;
     REAL radius = 1.0;
     REAL innerradius = radius/2.0;
@@ -1817,25 +1847,25 @@ TPZGeoMesh *NavierStokesTest::CreateGMeshCurveBlend()
     TopolQTriangle[0] =5;
     TopolQTriangle[1] =0;
     TopolQTriangle[2] =7;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, matid,*geomesh);
     elementid++;
     
     TopolQTriangle[0] =0;
     TopolQTriangle[1] =2;
     TopolQTriangle[2] =7;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, matid,*geomesh);
     elementid++;
     
     TopolQTriangle[0] =7;
     TopolQTriangle[1] =2;
     TopolQTriangle[2] =9;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, matid,*geomesh);
     elementid++;
     
     TopolQTriangle[0] =2;
     TopolQTriangle[1] =4;
     TopolQTriangle[2] =9;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, fmatID,*geomesh);
+    new TPZGeoElRefPattern< pzgeom::TPZGeoBlend<pzgeom::TPZGeoTriangle > > (elementid,TopolQTriangle, matid,*geomesh);
     elementid++;
     
     // outer arcs bc's
@@ -2731,14 +2761,16 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh)
 {
     //BDM test papapaapapap
     //Criando malha computacional:
-    
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     cmesh->SetDefaultOrder(f_fluxOrder);//Insere ordem polimonial de aproximação
     cmesh->SetDimModel(fdim);//Insere dimensão do modelo
     
     
     // 1 - Material volumétrico 2D
-    auto *material = new TPZNullMaterial<>(fmatID);
+    auto *material = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material);
 
     cmesh->SetAllCreateFunctionsHDiv(); //Criando funções HDIV:
@@ -2804,7 +2836,10 @@ TPZCompMesh *NavierStokesTest::CMesh_v(TPZGeoMesh *gmesh)
 
 TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
 {
-    
+
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
@@ -2816,7 +2851,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
     
     
     // 1 - Material volumétrico 2D
-    auto material = new TPZNullMaterial<>(fmatID);
+    auto material = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material);
     
     //Dimensões do material (para H1 e descontínuo):
@@ -2894,7 +2929,7 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
         
     }
     std::set<int> materialids;
-    materialids.insert(fmatID);
+    materialids.insert(matid);
     
     // materialids.insert(fpointtype);
     cmesh->AutoBuild(materialids);
@@ -2954,6 +2989,9 @@ TPZCompMesh *NavierStokesTest::CMesh_p(TPZGeoMesh *gmesh)
 TPZCompMesh *NavierStokesTest::CMesh_pM(TPZGeoMesh *gmesh, int pOrder)
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
@@ -2963,7 +3001,7 @@ TPZCompMesh *NavierStokesTest::CMesh_pM(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    auto material_pM = new TPZNullMaterial<>(fmatID);
+    auto material_pM = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material_pM);
     
     
@@ -2998,6 +3036,9 @@ TPZCompMesh *NavierStokesTest::CMesh_pM(TPZGeoMesh *gmesh, int pOrder)
 TPZCompMesh *NavierStokesTest::CMesh_gM(TPZGeoMesh *gmesh, int pOrder)
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
@@ -3007,7 +3048,7 @@ TPZCompMesh *NavierStokesTest::CMesh_gM(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    auto material_pM = new TPZNullMaterial<>(fmatID);
+    auto material_pM = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material_pM);
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha
@@ -3040,7 +3081,9 @@ TPZCompMesh *NavierStokesTest::CMesh_gM(TPZGeoMesh *gmesh, int pOrder)
 
 TPZCompMesh *NavierStokesTest::CMesh_pM_0(TPZGeoMesh *gmesh, int pOrder)
 {
-    
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
@@ -3050,7 +3093,7 @@ TPZCompMesh *NavierStokesTest::CMesh_pM_0(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    auto material_pM = new TPZNullMaterial<>(fmatID);
+    auto material_pM = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material_pM);
     
     
@@ -3085,6 +3128,9 @@ TPZCompMesh *NavierStokesTest::CMesh_pM_0(TPZGeoMesh *gmesh, int pOrder)
 TPZCompMesh *NavierStokesTest::CMesh_gM_0(TPZGeoMesh *gmesh, int pOrder)
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
     
@@ -3094,7 +3140,7 @@ TPZCompMesh *NavierStokesTest::CMesh_gM_0(TPZGeoMesh *gmesh, int pOrder)
     cmesh->SetAllCreateFunctionsDiscontinuous();
     
     // 1 - Material volumétrico 2D
-    auto material_pM = new TPZNullMaterial<>(fmatID);
+    auto material_pM = new TPZNullMaterial<>(matid);
     cmesh->InsertMaterialObject(material_pM);
     
     //Criando elementos computacionais que gerenciarão o espaco de aproximação da malha
@@ -3128,6 +3174,9 @@ TPZCompMesh *NavierStokesTest::CMesh_gM_0(TPZGeoMesh *gmesh, int pOrder)
 TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder)
 {
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     //Criando malha computacional:
     
     TPZMultiphysicsCompMesh * cmesh = new TPZMultiphysicsCompMesh(gmesh);
@@ -3137,16 +3186,13 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
     
     // Criando material:
     // 1 - Material volumétrico 2D
-    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim);
+    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(matid,fdim);
     material->SetSimulationData(f_sim_data);
     int fexact_order = 12;
-    TPZAutoPointer<TPZFunction<STATE> > fp = f_ExactSol.ForcingFunction();
-    TPZAutoPointer<TPZFunction<STATE> > solp = f_ExactSol.Exact();
 
     if(f_domaintype==TStokesAnalytic::EOneCurve){
-        solp = new TPZDummyFunction<STATE> (Sol_exact_Curve, fexact_order);
-        material->SetExactSol(Sol_exact_Curve,fexact_order);
-    }else if(f_domaintype!=TStokesAnalytic::EObstacles){
+        material->SetExactSol(f_ExactSol.ExactSolution(),fexact_order);
+    }else if(f_domaintype!=TStokesAnalytic::EObstacles || f_domaintype == TStokesAnalytic::EPconst) {
         material->SetForcingFunction(f_ExactSol.ForceFunc(), fexact_order); //Caso simples sem termo fonte
         material->SetExactSol(f_ExactSol.ExactSolution(),fexact_order);
     }
@@ -3253,7 +3299,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m(TPZGeoMesh *gmesh, int pOrder
     }
     
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
+    TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(1);
     cmesh->InsertMaterialObject(matLambda);
@@ -3381,6 +3427,8 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
 {
 
     //Criando malha computacional:
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
 
     TPZMultiphysicsCompMesh * cmesh = new TPZMultiphysicsCompMesh(gmesh);
     cmesh->SetDefaultOrder(pOrder); //Insere ordem polimonial de aproximação
@@ -3389,7 +3437,7 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
 
     // Criando material:
     // 1 - Material volumétrico 2D
-    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(fmatID,fdim);
+    TPZMHMNavierStokesMaterial *material = new TPZMHMNavierStokesMaterial(matid,fdim);
     material->SetSimulationData(f_sim_data);
     int fexact_order = 12;
 
@@ -3408,17 +3456,20 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
     TPZBndCond * BC_top = material->CreateBC(material, fmatBCtop, fdirichlet_v, val1, val2);
     cmesh->InsertMaterialObject(BC_top);
 
-    val2[0] = 1.0;
-    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fdirichlet_v, val1, val2);
+    val2[1] = 0.0;
+    val1.Identity();
+    val1 *= -1.;
+    TPZBndCond * BC_left = material->CreateBC(material, fmatBCleft, fneumann_v, val1, val2);
     cmesh->InsertMaterialObject(BC_left);
 
-    val2[0] = 0.0;
+    val2[1] = 0.0;
+    val1.Zero();
     TPZBndCond * BC_right = material->CreateBC(material, fmatBCright, fneumann_v, val1, val2);
     cmesh->InsertMaterialObject(BC_right);
 
 
     // 2.1 - Material para tração tangencial 1D (Interior)
-    TPZNullMaterial<> *matLambda = new TPZNullMaterial<>(fmatLambda);
+    TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(fmatLambda);
     matLambda->SetDimension(fdim-1);
     matLambda->SetNStateVariables(1);
     cmesh->InsertMaterialObject(matLambda);
@@ -3434,10 +3485,52 @@ TPZMultiphysicsCompMesh *NavierStokesTest::CMesh_m_cavity(TPZGeoMesh *gmesh, int
     matInterfaceRight->SetMultiplier(-1.);
     cmesh->InsertMaterialObject(matInterfaceRight);
 
-
+    // material para fixar uma pressao
+    TPZL2ProjectionCS<STATE> *l2proj = new TPZL2ProjectionCS<>(fmatPoint,fdim);
+    l2proj->SetNeedSol(1);
+    l2proj->SetScaleFactor(l2proj->BigNumber());
+    cmesh->InsertMaterialObject(l2proj);
+    
+    // insert an L2 projection element to the gmesh and the dist flux mesh
+    if(f_mesh_vector[3]->MaterialVec().find(fmatPoint) == f_mesh_vector[3]->MaterialVec().end())
+    {
+        // insert a volumetric element to gmesh
+        TPZCompMesh *pressmesh = f_mesh_vector[3];
+        int64_t nelc = pressmesh->NElements();
+        TPZCompEl *firstcel = 0;
+        TPZGeoEl *firstgel = 0;
+        for (int el = 0; el<nelc; el++) {
+            auto *cel = pressmesh->Element(el);
+            if(cel && cel->Reference() && cel->Reference()->Dimension() == fdim) {
+                firstcel = cel;
+                firstgel = cel->Reference();
+                break;
+            }
+        }
+        if(!firstgel) DebugStop();
+        TPZGeoElSide gelside(firstgel);
+        TPZGeoElBC gbc(gelside,fmatPoint);
+        TPZGeoEl *fixav = gbc.CreatedElement();
+        // insert an element in the pressure mesh
+        // first insert the material
+        TPZNullMaterial<> *fixavmat = new TPZNullMaterial<>(fmatPoint,fdim);
+        pressmesh->InsertMaterialObject(fixavmat);
+        // set the element type to discontinuous
+        pressmesh->SetAllCreateFunctionsDiscontinuous();
+        pressmesh->SetDimModel(fdim);
+        pressmesh->SetDefaultOrder(0);
+        auto discel = pressmesh->CreateCompEl(fixav);
+        pressmesh->ExpandSolution();
+        int64_t cindex = firstcel->ConnectIndex(0);
+        discel->Connect(0).DecrementElConnected();
+        discel->SetConnectIndex(0, cindex);
+        // adjust the solution vector
+        pressmesh->CleanUpUnconnectedNodes();
+    }
+    
     // 3.1 - Material para tração tangencial 1D nos contornos
     val2[0] = 0.0;
-    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fneumann_sigma, val1, val2);
+    TPZBndCond *matLambdaBC_bott = material->CreateBC(material, fmatLambdaBC_bott, fdirichlet_sigma, val1, val2);
     cmesh->InsertMaterialObject(matLambdaBC_bott);
 
     val2[0] = 0.;
@@ -3489,7 +3582,7 @@ void NavierStokesTest::InsertInterfaces(TPZMultiphysicsCompMesh *cmesh_m){
     }
     
     
-    TPZInterfaceInsertion InterfaceInsertion(cmesh_m, fmatLambda, boundaries_ids, feltype);
+    TPZInterfaceInsertion InterfaceInsertion(cmesh_m, fmatLambda, fmatIDs, boundaries_ids, feltype);
     TPZManVector<int64_t,3> Interfaces(2,0);
     Interfaces[0] = fmatInterfaceLeft;
     Interfaces[1] = fmatInterfaceRight;
@@ -3525,6 +3618,9 @@ void NavierStokesTest::InsertInterfaces(TPZMultiphysicsCompMesh *cmesh_m){
 
 void NavierStokesTest::ComputeSkelNeighbours(){
     
+    if(fmatIDs.size() != 1) DebugStop();
+    int matid = *fmatIDs.begin();
+
     if (!f_mesh0) {
         DebugStop();
     }
@@ -3549,7 +3645,7 @@ void NavierStokesTest::ComputeSkelNeighbours(){
         
         while (neighbour != gelside) {
             int neigh_matID = neighbour.Element()->MaterialId();
-            if (neighbour.Element()->Dimension() == f_mesh0->Dimension() && neigh_matID==fmatID) {
+            if (neighbour.Element()->Dimension() == f_mesh0->Dimension() && neigh_matID==matid) {
                 f_skellNeighs.Push(neighbour);
             }
             if(neighbour.Element()->HasSubElement()){
@@ -3680,4 +3776,68 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     
 }
 
+void NavierStokesTest::VerifyEquilibrium(TPZCompMesh *cmesh)
+{
+    int64_t nel = cmesh->NElements();
+    int dim = cmesh->Dimension();
+    for (int64_t el = nel-1; el>=0; el--) {
+        TPZCompEl *cel = cmesh->Element(el);
+        TPZGeoEl *gel = cel->Reference();
+        if(gel->Dimension() != dim) continue;
+        TPZMaterialT<STATE> *mat = dynamic_cast<TPZMaterialT<STATE> *>(cel->Material());
+        int varindex = mat->VariableIndex("Tension");
+        if(varindex == -1) continue;
+        TPZManVector<REAL,3> xcenter(3);
+        TPZGeoElSide gelvol(gel);
+        gelvol.CenterX(xcenter);
+        std::cout << "elindex " << el << " xcenter " << xcenter << std::endl;
+        STATE moment = 0.;
+        TPZManVector<STATE,2> sumforce(2,0.);
+        TPZInt1d intrule(7);
+        int nsides = gel->NSides(dim-1);
+        for (int side = gel->NCornerNodes(); side < gel->NCornerNodes()+nsides; side++) {
+            TPZGeoElSide gelside(gel,side);
+            TPZTransform<REAL> sidetr = gelside.SideToSideTransform(gelvol);
+            TPZManVector<STATE,3> sumforceside(2,0.);
+            STATE momentside = 0.;
+            for (int ip = 0; ip<intrule.NPoints(); ip++) {
+                REAL weight;
+                TPZManVector<REAL,3> point(dim-1);
+                intrule.Point(ip, point, weight);
+                TPZFNMatrix<3,REAL> gradx(3,dim-1);
+                TPZManVector<REAL,3> normal(3,0.),x(3,0.);
+                gelside.GradX(point, gradx);
+                gelside.X(point, x);
+                REAL detjac = Norm(gradx);
+                gelside.Normal(point, normal);
+                TPZManVector<REAL,3> qsi(dim,0.);
+                sidetr.Apply(point, qsi);
+                TPZManVector<STATE,9> sol(9,0.);
+                cel->Solution(qsi, varindex, sol);
+                TPZFNMatrix<9,STATE> sigma(3,3,0.);
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        sigma(e,f) = sol[e*3+f];
+                    }
+                }
+                TPZManVector<STATE,3> normalstress(3,0.);
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        normalstress[e] += sigma(e,f)*normal[f];
+                    }
+                }
+                sumforceside[0] += normalstress[0]*detjac*weight;
+                sumforceside[1] += normalstress[1]*detjac*weight;
+                momentside += normalstress[1]*(x[0]-xcenter[0])*detjac*weight;
+                momentside += -normalstress[0]*(x[1]-xcenter[1])*detjac*weight;
+                sumforce[0] += normalstress[0]*detjac*weight;
+                sumforce[1] += normalstress[1]*detjac*weight;
+                moment += normalstress[1]*(x[0]-xcenter[0])*detjac*weight;
+                moment += -normalstress[0]*(x[1]-xcenter[1])*detjac*weight;
+            }
+            std::cout << "side " << side << " Integral of forces " << sumforceside << " Moment " << momentside << std::endl;
+        }
+        std::cout << " Integral of forces " << sumforce << " Moment " << moment << std::endl;
+    }
+}
 

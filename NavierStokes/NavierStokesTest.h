@@ -62,7 +62,7 @@ class NavierStokesTest{
 private:
     
     int fdim; //Dimensão do problema
-    int fmatID; //Materia do elemento volumétrico
+    std::set<int> fmatIDs; //Materia do elemento volumétrico
         
     //Materiais das condições de contorno
     int fmatBCbott;
@@ -413,7 +413,8 @@ public:
     
     bool IsSkellNeighbour(TPZGeoElSide neigh);
 
-
+    void VerifyEquilibrium(TPZCompMesh *cmesh);
+    
 };
 
 
