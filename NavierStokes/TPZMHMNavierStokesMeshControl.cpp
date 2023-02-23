@@ -884,11 +884,10 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsMHMMesh()
     // Malha computacional
     TPZCompMesh * MixedFluxPressureCmesh = fCMesh.operator->();
     MixedFluxPressureCmesh->SetDimModel(dim);
-    MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElem();
     MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElemWithMem();
     //gSinglePointMemory = true;
-    
     BuildMultiPhysicsMesh();
+    MixedFluxPressureCmesh->SetAllCreateFunctionsMultiphysicElem();
 
     {
         int dim = MixedFluxPressureCmesh->Dimension();
@@ -1804,11 +1803,17 @@ void TPZMHMNavierStokesMeshControl::BuildMultiPhysicsMesh()
     active_approx_spaces[4] = 1;
     active_approx_spaces[5] = 1;
 
+    std::set<int> matnomem;
+    for(auto it : mphysics->MaterialVec())
+    {
+        if(it.first != 1 && it.first != 2) matnomem.insert(it.first);
+    }
+    std::set<int> matmem = {1,2};
 //    int dimension = fGMesh->Dimension();
     //mphysics->SetDimModel(dimension);
     //mphysics->BuildMultiphysicsSpace(cmeshes);
     TPZManVector<int> active(cmeshes.size(),1);
-    mphysics->BuildMultiphysicsSpaceWithMemory(active,cmeshes);
+    mphysics->BuildMultiphysicsSpaceWithMemory(active,cmeshes, matmem, matnomem);
 
 }
 

@@ -445,7 +445,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
     }
 
     //Calculo do erro
-    std::cout << "Comuting Error " << std::endl;
+    std::cout << "Computing Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_Results_Linear.txt", std::ofstream::app);
     ofstream ErroOut2("Errors_Lite.txt", std::ofstream::app);
@@ -515,7 +515,7 @@ void MHMNavierStokesTest::SolveNonLinearProblem(TPZAutoPointer<TPZCompMesh> cmes
     //TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(compmeshes, cmesh_m);
 
     //Calculo do erro
-    std::cout << "Comuting Error " << std::endl;
+    std::cout << "Computing Error " << std::endl;
     TPZManVector<REAL,6> Errors;
     ofstream ErroOut("Error_NavierStokes.txt", std::ofstream::app);
     //papapapapap
@@ -3839,9 +3839,9 @@ void MHMNavierStokesTest::InsertInterfaces(TPZMultiphysicsCompMesh *cmesh_m){
         boundaries_ids.insert(fmatBCbott_z);
         boundaries_ids.insert(fmatBCtop_z);
     }
+    std::set<int> matids = {fmatID};
     
-    
-    TPZInterfaceInsertion InterfaceInsertion(cmesh_m, fmatLambda, boundaries_ids, feltype);
+    TPZInterfaceInsertion InterfaceInsertion(cmesh_m, fmatLambda, matids, boundaries_ids, feltype);
     TPZManVector<int64_t,3> Interfaces(2,0);
     Interfaces[0] = fmatInterfaceLeft;
     Interfaces[1] = fmatInterfaceRight;
