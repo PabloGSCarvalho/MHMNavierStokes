@@ -7,6 +7,7 @@
 
 #include "TPZNSAnalysis.h"
 #include "pzlog.h"
+#include "TPZVTKGenerator.h"
 #ifdef LOG4CXX
 static LoggerPtr logger(Logger::getLogger("NavierStokes.Analysis"));
 #endif
@@ -54,6 +55,7 @@ void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulation
     SetSimulationData(simulation_data);
     bool mustOptimizeBandwidth = simulation_data->GetOptimizeBandwidthQ();
     this->SetCompMesh(cmesh_M,mustOptimizeBandwidth);
+    this->Rhs() = TPZFMatrix<STATE>();
     TPZStepSolver<STATE> step;
     unsigned int n_threads = m_simulation_data->GetNthreads();
     
@@ -310,8 +312,8 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     scalnames.Push("P");
     vecnames.Push("V");
     //vecnames.Push("f");
-    //vecnames.Push("V_exact");
-    //scalnames.Push("P_exact");
+    vecnames.Push("V_exact");
+    scalnames.Push("P_exact");
     scalnames.Push("Div");
     scalnames.Push("Vorticity2D");
 
@@ -322,7 +324,8 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     }
 
 
-    this->DefineGraphMesh(dim, scalnames, vecnames, res_file);
+    std::set<int> matids = {1};
+    this->DefineGraphMesh(dim, matids, scalnames, vecnames, res_file);
     //std::cout<<this->Mesh()->Solution()<<std::endl;
     //this->PostProcess(div,dim);
     REAL time = m_simulation_data->GetTime();
@@ -330,8 +333,16 @@ void TPZNSAnalysis::PostProcessTimeStep(std::string & res_file){
     this->SetTime(time);
     REAL t_total = time + t_step;
 
-    if((fabs(t_total-1.)<=10.e-5)||(fabs(t_total-10.)<=10.e-5)||(fabs(t_total-20.)<=10.e-5)||(fabs(t_total-30.)<=10.e-5)||(fabs(t_total-40.)<=10.e-5)||(fabs(t_total-50.)<=10.e-5)){
+    if((fabs(t_total) <= 1.e-5)||(fabs(t_total-1.)<=10.e-5)||(fabs(t_total-10.)<=10.e-5)||(fabs(t_total-20.)<=10.e-5)||(fabs(t_total-30.)<=10.e-5)||(fabs(t_total-40.)<=10.e-5)||(fabs(t_total-50.)<=10.e-5)){
         this->PostProcess(div,dim);
+        TPZStack<std::string> fields;
+        for(auto it : scalnames) fields.Push(it);
+        for(auto it: vecnames) fields.Push(it);
+        TPZVTKGenerator vtk(this->Mesh(),
+                        fields,
+                        "saida_fran.vtk",
+                        1);
+        vtk.Do(0.);
     }
 
     if(m_simulation_data->GetDomainType()==TStokesAnalytic::EObstacles){
