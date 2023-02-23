@@ -28,8 +28,8 @@ void TPZMHMNavierStokesMaterial::FillDataRequirementsInterface(TPZMaterialDataT<
 }
 
 void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE> &data,
-                                 std::map<int, TPZMaterialDataT<STATE>> &datavecleft,
-                                 std::map<int, TPZMaterialDataT<STATE>> &datavecright, REAL weight,
+                                 const std::map<int, TPZMaterialDataT<STATE>> &datavecleft,
+                                 const std::map<int, TPZMaterialDataT<STATE>> &datavecright, REAL weight,
                                  TPZFMatrix<STATE> &ek,
                                                      TPZFMatrix<STATE> &ef) {
 
@@ -59,8 +59,8 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STAT
     if(datavecleft.find(vindex) == datavecleft.end()) DebugStop();
     if(datavecright.find(pindex) == datavecleft.end()) DebugStop();
 
-    TPZMaterialDataT<STATE> &vdataleft = datavecleft.find(vindex)->second;
-    TPZMaterialDataT<STATE> &pdataright = datavecright.find(pindex)->second;
+    const TPZMaterialDataT<STATE> &vdataleft = datavecleft.find(vindex)->second;
+    const TPZMaterialDataT<STATE> &pdataright = datavecright.find(pindex)->second;
 
     if (vdataleft.fVecShapeIndex.size() == 0) {
         DebugStop();
@@ -88,18 +88,18 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STAT
 //        tan = Tangential(datavecright[pindex].normal);
 //    }
 
-    int normvecRows = datavecleft[vindex].fDeformedDirections.Rows();
-    int normvecCols = datavecleft[vindex].fDeformedDirections.Cols();
+    int normvecRows = vdataleft.fDeformedDirections.Rows();
+    int normvecCols = vdataleft.fDeformedDirections.Cols();
     TPZFNMatrix<3,REAL> Normalvec(normvecRows,normvecCols,0.);
 
-    if(datavecleft[vindex].fNeedsDeformedDirectionsFad){
+    if(vdataleft.fNeedsDeformedDirectionsFad){
         for (int e = 0; e < normvecRows; e++) {
             for (int s = 0; s < normvecCols; s++) {
-                Normalvec(e,s)=datavecleft[vindex].fDeformedDirectionsFad(e,s).val();
+                Normalvec(e,s)=vdataleft.fDeformedDirectionsFad(e,s).val();
             }
         }
     }else{
-        Normalvec=datavecleft[vindex].fDeformedDirections;
+        Normalvec=vdataleft.fDeformedDirections;
     }
     //qwqw
     for(int i1 = 0; i1 < nshapeV; i1++)
@@ -141,7 +141,7 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STAT
         {
             // Var. Sigma, Sn :
             TPZFNMatrix<9, STATE> lambda_j(3,1,0.);
-            TPZFNMatrix<9, STATE> phiLamb = datavecright[pindex].phi;
+            TPZFNMatrix<9, STATE> phiLamb = pdataright.phi;
 
             for(int f =0; f< nstateVariablesL ; f++){
                 lambda_j.Zero();
@@ -162,7 +162,7 @@ void TPZMHMNavierStokesMaterial::ContributeInterface(const TPZMaterialDataT<STAT
     {
         // Var. Sigma, Sn :
         TPZFNMatrix<9, STATE> lambda_i(3,1,0.);
-        TPZFNMatrix<9, STATE> phiLamb = datavecright[pindex].phi;
+        TPZFNMatrix<9, STATE> phiLamb = pdataright.phi;
 
         // Tangencial comp. vector (t x t)Sn :
         for(int f =0; f< nstateVariablesL ; f++) {
@@ -194,7 +194,11 @@ void TPZMHMNavierStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STAT
         return;
     }
     int nshapeV , nshapeLambda;
-    
+    int bcmatid = bc.Id();
+    if(bcmatid == -3){
+        std::cout << bc.Val2() << std::endl;
+        bc.Val1().Print("val1");
+    }
     nshapeV = datavec[0].phi.Rows();
     nshapeLambda = datavec[1].phi.Rows();
     int nstateBC = 1;
@@ -216,8 +220,8 @@ void TPZMHMNavierStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STAT
     }
     
     //TPZFNMatrix<9, STATE> u_D(dim,1);
-    TPZVec<STATE> v_Dirichlet(3,0.);
-    TPZVec<STATE> v_Neumann(3,0.);
+    TPZManVector<STATE> v_Dirichlet(3,0.);
+    TPZManVector<STATE> v_Neumann(3,0.);
     STATE p_D =0.;
     
     TPZFMatrix<STATE> * phi;
@@ -484,7 +488,7 @@ void TPZMHMNavierStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STAT
 }
 
 void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
-                      std::map<int, TPZMaterialDataT<STATE>> &datavec,
+                      const std::map<int, TPZMaterialDataT<STATE>> &datavec,
                       REAL weight,
                       TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
                                                        TPZBndCondT<STATE> &bc) {
@@ -509,37 +513,40 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
     
     const int vindex = this->VIndex();
     const int pindex = this->PIndex();
-    
-    if (datavec[vindex].fVecShapeIndex.size() == 0) {
-        FillVecShapeIndex(datavec[vindex]);
+    const TPZMaterialDataT<STATE> &vdata = datavec.find(vindex)->second;
+    const TPZMaterialDataT<STATE> &pdata = datavec.find(pindex)->second;
+
+    if (vdata.fVecShapeIndex.size() == 0) {
+        DebugStop();
+//        FillVecShapeIndex(vdata);
     }
     
     
     // Setting the phis
     // V
-    TPZFMatrix<REAL> &phiV = datavec[vindex].phi;
-    TPZFMatrix<REAL> &dphiV = datavec[vindex].dphix;
+    const TPZFMatrix<REAL> &phiV = vdata.phi;
+    const TPZFMatrix<REAL> &dphiV = vdata.dphix;
     // P
-    TPZFMatrix<REAL> &phiP = datavec[pindex].phi;
-    TPZFMatrix<REAL> &dphiP = datavec[pindex].dphix;
+    const TPZFMatrix<REAL> &phiP = pdata.phi;
+    const TPZFMatrix<REAL> &dphiP = pdata.dphix;
     //Normal
     const TPZManVector<REAL,3> &normal = data.normal;
     
     TPZFNMatrix<220,REAL> dphiVx(fDimension,dphiV.Cols());
-    TPZAxesTools<REAL>::Axes2XYZ(dphiV, dphiVx, datavec[vindex].axes);
+    TPZAxesTools<REAL>::Axes2XYZ(dphiV, dphiVx, vdata.axes);
     
     TPZFNMatrix<220,REAL> dphiPx(fDimension,phiP.Cols());
-    TPZAxesTools<REAL>::Axes2XYZ(dphiP, dphiPx, datavec[pindex].axes);
+    TPZAxesTools<REAL>::Axes2XYZ(dphiP, dphiPx, pdata.axes);
     
     int nshapeV, nshapeP;
     nshapeP = phiP.Rows();
     // nshapeV = phiV.Rows()*NStateVariables();
-    nshapeV = datavec[vindex].fVecShapeIndex.NElements();
+    nshapeV = vdata.fVecShapeIndex.NElements();
     
     
     
-    TPZManVector<STATE> v_h = datavec[vindex].sol[0];
-    TPZManVector<STATE> p_h = datavec[pindex].sol[0];
+    TPZManVector<STATE> v_h = vdata.sol[0];
+    TPZManVector<STATE> p_h = pdata.sol[0];
     
     //Dirichlet
     
@@ -558,7 +565,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
             {
                 TPZManVector<STATE> vbc(3);
                 TPZFMatrix<STATE> gradu;
-                bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                bc.ForcingFunctionBC()(vdata.x,vbc,gradu);
                 v_2[0] = vbc[0];
                 v_2[1] = vbc[1];
                 p_D=vbc[2];
@@ -569,8 +576,8 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
             
             for(int i = 0; i < nshapeV; i++ )
             {
-                int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                int iphi = vdata.fVecShapeIndex[i].second;
+                int ivec = vdata.fVecShapeIndex[i].first;
                 TPZFNMatrix<9,STATE> GradVni(fDimension,1,0.),phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                 GradVni.Zero();
                 
@@ -579,9 +586,9 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 for (int e=0; e<fDimension; e++) {
                     
                     for (int f=0; f<fDimension; f++) {
-                        GradVi(e,f) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                        GradVi(e,f) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                         //termo transposto:
-                        GradVit(f,e) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                        GradVit(f,e) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                         
                     }
                 }
@@ -609,7 +616,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 
                 
                 for (int e=0; e<fDimension; e++) {
-                    phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                    phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                     phiVni(0,0)+=phiVi(e,0)*normal[e];
                     
                 }
@@ -664,13 +671,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     
                     
                     for(int j = 0; j < nshapeV; j++){
-                        int jphi = datavec[vindex].fVecShapeIndex[j].second;
-                        int jvec = datavec[vindex].fVecShapeIndex[j].first;
+                        int jphi = vdata.fVecShapeIndex[j].second;
+                        int jvec = vdata.fVecShapeIndex[j].first;
                         
                         TPZFNMatrix<9,STATE> GradVnj(fDimension,1),phiVtj(1,1,0.),phiVj(fDimension,1);
                         
                         for (int e=0; e<fDimension; e++) {
-                            phiVj(e,0)=datavec[vindex].fDeformedDirections(e,jvec)*datavec[vindex].phi(jphi,0);
+                            phiVj(e,0)=vdata.fDeformedDirections(e,jvec)*vdata.phi(jphi,0);
                         }
                         
                         
@@ -683,9 +690,9 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         for (int e=0; e<fDimension; e++) {
                             
                             for (int f=0; f<fDimension; f++) {
-                                GradVj(e,f) = datavec[vindex].fDeformedDirections(e,jvec)*dphiVx(f,jphi);
+                                GradVj(e,f) = vdata.fDeformedDirections(e,jvec)*dphiVx(f,jphi);
                                 //termo transposto:
-                                GradVjt(f,e) = datavec[vindex].fDeformedDirections(e,jvec)*dphiVx(f,jphi);
+                                GradVjt(f,e) = vdata.fDeformedDirections(e,jvec)*dphiVx(f,jphi);
                                 
                             }
                         }
@@ -721,13 +728,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         for(int i = 0; i < nshapeV; i++ )
                         {
                             
-                            int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                            int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                            int iphi = vdata.fVecShapeIndex[i].second;
+                            int ivec = vdata.fVecShapeIndex[i].first;
                             TPZFNMatrix<9,STATE> phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                             
                             
                             for (int e=0; e<fDimension; e++) {
-                                phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                                phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                                 phiVni(0,0)+=phiVi(e,0)*n[e];
                                 phiVti(0,0)+=phiVi(e,0)*t[e];
                             }
@@ -741,13 +748,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                             
                             for(int j = 0; j < nshapeV; j++){
                                 
-                                int jphi = datavec[vindex].fVecShapeIndex[j].second;
-                                int jvec = datavec[vindex].fVecShapeIndex[j].first;
+                                int jphi = vdata.fVecShapeIndex[j].second;
+                                int jvec = vdata.fVecShapeIndex[j].first;
                                 
                                 TPZFNMatrix<9,STATE> phiVj(fDimension,1),phiVnj(1,1,0.),phiVtj(1,1,0.);
                                 
                                 for (int e=0; e<fDimension; e++) {
-                                    phiVj(e,0)=datavec[vindex].fDeformedDirections(e,jvec)*datavec[vindex].phi(jphi,0);
+                                    phiVj(e,0)=vdata.fDeformedDirections(e,jvec)*vdata.phi(jphi,0);
                                     phiVnj(0,0)+=phiVj(e,0)*n[e];
                                     phiVtj(0,0)+=phiVj(e,0)*t[e];
                                     
@@ -776,7 +783,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    bc.ForcingFunctionBC()(vdata.x,vbc,gradu);
                     v_2[0] = vbc[0];
                     v_2[1] = vbc[1];
                     p_D=vbc[2];
@@ -786,12 +793,12 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 
                 for(int i = 0; i < nshapeV; i++ )
                 {
-                    int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                    int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                    int iphi = vdata.fVecShapeIndex[i].second;
+                    int ivec = vdata.fVecShapeIndex[i].first;
                     TPZFNMatrix<9,STATE> phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                     
                     for (int e=0; e<fDimension; e++) {
-                        phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*phiV(iphi,0);
+                        phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*phiV(iphi,0);
                     }
                     
                     TPZManVector<REAL> n = data.normal;
@@ -828,7 +835,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    bc.ForcingFunctionBC()(vdata.x,vbc,gradu);
                     v_2[0] = vbc[0];
                     v_2[1] = vbc[1];
                     p_D=vbc[2];
@@ -847,13 +854,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     for(int i = 0; i < nshapeV; i++ )
                     {
                         
-                        int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                        int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                        int iphi = vdata.fVecShapeIndex[i].second;
+                        int ivec = vdata.fVecShapeIndex[i].first;
                         TPZFNMatrix<9,STATE> phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                         
                         
                         for (int e=0; e<fDimension; e++) {
-                            phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                            phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                             phiVni(0,0)+=phiVi(e,0)*n[e];
                             phiVti(0,0)+=phiVi(e,0)*t[e];
                         }
@@ -866,13 +873,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         
                         for(int j = 0; j < nshapeV; j++){
                             
-                            int jphi = datavec[vindex].fVecShapeIndex[j].second;
-                            int jvec = datavec[vindex].fVecShapeIndex[j].first;
+                            int jphi = vdata.fVecShapeIndex[j].second;
+                            int jvec = vdata.fVecShapeIndex[j].first;
                             
                             TPZFNMatrix<9,STATE> phiVj(fDimension,1),phiVnj(1,1,0.),phiVtj(1,1,0.);
                             
                             for (int e=0; e<fDimension; e++) {
-                                phiVj(e,0)=datavec[vindex].fDeformedDirections(e,jvec)*datavec[vindex].phi(jphi,0);
+                                phiVj(e,0)=vdata.fDeformedDirections(e,jvec)*vdata.phi(jphi,0);
                                 phiVnj(0,0)+=phiVj(e,0)*n[e];
                                 phiVtj(0,0)+=phiVj(e,0)*t[e];
                                 
@@ -890,8 +897,8 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     
                     for(int i = 0; i < nshapeV; i++ )
                     {
-                        int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                        int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                        int iphi = vdata.fVecShapeIndex[i].second;
+                        int ivec = vdata.fVecShapeIndex[i].first;
                         TPZFNMatrix<9,STATE> GradVni(fDimension,1,0.),phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                         GradVni.Zero();
                         
@@ -900,9 +907,9 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         for (int e=0; e<fDimension; e++) {
                             
                             for (int f=0; f<fDimension; f++) {
-                                GradVi(e,f) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                                GradVi(e,f) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                                 //termo transposto:
-                                GradVit(f,e) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                                GradVit(f,e) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                                 
                             }
                         }
@@ -930,7 +937,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         
                         
                         for (int e=0; e<fDimension; e++) {
-                            phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                            phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                             phiVni(0,0)+=phiVi(e,0)*normal[e];
                         }
                         
@@ -954,13 +961,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         for(int i = 0; i < nshapeV; i++ )
                         {
                             
-                            int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                            int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                            int iphi = vdata.fVecShapeIndex[i].second;
+                            int ivec = vdata.fVecShapeIndex[i].first;
                             TPZFNMatrix<9,STATE> phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                             
                             
                             for (int e=0; e<fDimension; e++) {
-                                phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                                phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                                 phiVni(0,0)+=phiVi(e,0)*n[e];
                                 phiVti(0,0)+=phiVi(e,0)*t[e];
                             }
@@ -974,13 +981,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                             
                             for(int j = 0; j < nshapeV; j++){
                                 
-                                int jphi = datavec[vindex].fVecShapeIndex[j].second;
-                                int jvec = datavec[vindex].fVecShapeIndex[j].first;
+                                int jphi = vdata.fVecShapeIndex[j].second;
+                                int jvec = vdata.fVecShapeIndex[j].first;
                                 
                                 TPZFNMatrix<9,STATE> phiVj(fDimension,1),phiVnj(1,1,0.),phiVtj(1,1,0.);
                                 
                                 for (int e=0; e<fDimension; e++) {
-                                    phiVj(e,0)=datavec[vindex].fDeformedDirections(e,jvec)*datavec[vindex].phi(jphi,0);
+                                    phiVj(e,0)=vdata.fDeformedDirections(e,jvec)*vdata.phi(jphi,0);
                                     phiVnj(0,0)+=phiVj(e,0)*n[e];
                                     phiVtj(0,0)+=phiVj(e,0)*t[e];
                                     
@@ -1008,7 +1015,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 {
                     TPZManVector<STATE> vbc(3);
                     TPZFMatrix<STATE> gradu;
-                    bc.ForcingFunctionBC()(datavec[vindex].x,vbc,gradu);
+                    bc.ForcingFunctionBC()(vdata.x,vbc,gradu);
                     v_2[0] = vbc[0];
                     v_2[1] = vbc[1];
                     p_D=vbc[2];
@@ -1019,8 +1026,8 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                 
                 for(int i = 0; i < nshapeV; i++ )
                 {
-                    int iphi = datavec[vindex].fVecShapeIndex[i].second;
-                    int ivec = datavec[vindex].fVecShapeIndex[i].first;
+                    int iphi = vdata.fVecShapeIndex[i].second;
+                    int ivec = vdata.fVecShapeIndex[i].first;
                     TPZFNMatrix<9,STATE> GradVni(fDimension,1,0.),phiVi(fDimension,1),phiVni(1,1,0.),phiVti(1,1,0.);
                     GradVni.Zero();
                     
@@ -1029,9 +1036,9 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     for (int e=0; e<fDimension; e++) {
                         
                         for (int f=0; f<fDimension; f++) {
-                            GradVi(e,f) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                            GradVi(e,f) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                             //termo transposto:
-                            GradVit(f,e) = datavec[vindex].fDeformedDirections(e,ivec)*dphiVx(f,iphi);
+                            GradVit(f,e) = vdata.fDeformedDirections(e,ivec)*dphiVx(f,iphi);
                             
                         }
                     }
@@ -1059,7 +1066,7 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     
                     
                     for (int e=0; e<fDimension; e++) {
-                        phiVi(e,0)=datavec[vindex].fDeformedDirections(e,ivec)*datavec[vindex].phi(iphi,0);
+                        phiVi(e,0)=vdata.fDeformedDirections(e,ivec)*vdata.phi(iphi,0);
                         phiVni(0,0)+=phiVi(e,0)*normal[e];
                         
                     }
@@ -1116,11 +1123,11 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                     ef(i,0) += fTheta*factt;
                     
                     for(int j = 0; j < nshapeV; j++){
-                        int jphi = datavec[vindex].fVecShapeIndex[j].second;
-                        int jvec = datavec[vindex].fVecShapeIndex[j].first;
+                        int jphi = vdata.fVecShapeIndex[j].second;
+                        int jvec = vdata.fVecShapeIndex[j].first;
                         TPZFNMatrix<9,STATE> GradVnj(fDimension,1),phiVtj(1,1,0.),phiVnj(1,1,0.),phiVj(fDimension,1);
                         for (int e=0; e<fDimension; e++) {
-                            phiVj(e,0)=datavec[vindex].fDeformedDirections(e,jvec)*datavec[vindex].phi(jphi,0);
+                            phiVj(e,0)=vdata.fDeformedDirections(e,jvec)*vdata.phi(jphi,0);
                         }
                         
                         phiVnj(0,0)= n[0] * phiVj(0,0) + n[1] * phiVj(1,0);
@@ -1130,9 +1137,9 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
                         for (int e=0; e<fDimension; e++) {
                             
                             for (int f=0; f<fDimension; f++) {
-                                GradVj(e,f) = datavec[vindex].fDeformedDirections(e,jvec)*dphiVx(f,jphi);
+                                GradVj(e,f) = vdata.fDeformedDirections(e,jvec)*dphiVx(f,jphi);
                                 //termo transposto:
-                                GradVjt(f,e) = datavec[vindex].fDeformedDirections(e,jvec)*dphiVx(f,jphi);
+                                GradVjt(f,e) = vdata.fDeformedDirections(e,jvec)*dphiVx(f,jphi);
                             }
                         }
                         

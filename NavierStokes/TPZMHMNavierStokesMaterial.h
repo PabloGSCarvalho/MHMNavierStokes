@@ -118,7 +118,7 @@ public:
      * @since April 16, 2007
      */
     virtual void ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
-                          std::map<int, TPZMaterialDataT<STATE>> &datavec,
+                          const std::map<int, TPZMaterialDataT<STATE>> &datavec,
                           REAL weight,
                           TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
                                                                    TPZBndCondT<STATE> &bc) override;
@@ -135,8 +135,8 @@ public:
      * @since June 5, 2012
      */
     virtual void ContributeInterface(const TPZMaterialDataT<STATE> &data,
-                                     std::map<int, TPZMaterialDataT<STATE>> &dataleft,
-                                     std::map<int, TPZMaterialDataT<STATE>> &dataright, REAL weight,
+                                     const std::map<int, TPZMaterialDataT<STATE>> &dataleft,
+                                     const std::map<int, TPZMaterialDataT<STATE>> &dataright, REAL weight,
                                      TPZFMatrix<STATE> &ek,
                                      TPZFMatrix<STATE> &ef) override;
 
