@@ -1,6 +1,6 @@
 # @file MHMStokes/CMakeList.txt  -- First file to read for CMake
 
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.10.0)
 
 project (MHMStokes)
 
@@ -32,6 +32,12 @@ include_directories(${PZ_INCLUDE_DIRS})
 # Location to search files or libraries
 set(SEARCH_DIRS ENV PATH /usr/local/opt/ /usr/local/opt/qt5/lib/cmake/ /usr/include /usr/local/include /usr/local/include/boost /usr/local/include/log4cxx /usr/local/include/tbb /usr/lib /usr/lib64 /usr/local/lib ./. ./.. ./../libs ./../libs/fad ./../libs/metis ./../libs/metis/include ./../libs/metis/lib ./../externallibs ./../externallibs/fad ./../externallibs/pthread ./../externallibs/metis ./../externallibs/metis/include ./../externallibs/metis/lib ./..metis ./../metis/include ./../metis/lib ./externallibs/lib ./externallibs/include ./../externallibs/lib ./../externallibs/include)
 
+option(USING_UMFPACK "Whether the UMFPACK library will be linked in" OFF)
+if(USING_UMFPACK)
+		  find_package(suitesparse CONFIG)
+#		  target_link_libraries(pz PUBLIC SuiteSparse::umfpack)
+#		  target_compile_definitions(pz PUBLIC USING_UMFPACK)
+endif(USING_UMFPACK)
 
 if(WIN32)
 	#add a define saying it is a VC compiler
