@@ -20,7 +20,6 @@ TPZInterfaceInsertion::TPZInterfaceInsertion(){
     m_interface_id = 0;
     m_interfaceVector_ids.Resize(0);
     m_multiplier_id = 0;
-    m_multiplierBC_id = 0;
     m_cmesh = NULL;
     m_geometry = NULL;
     m_boundaries_ids.clear();
@@ -32,24 +31,14 @@ TPZInterfaceInsertion::~TPZInterfaceInsertion(){
     
 }
 
-/// Copy constructor
-TPZInterfaceInsertion::TPZInterfaceInsertion(const TPZInterfaceInsertion & other){
-    m_interface_id       = other.m_interface_id;
-    m_interfaceVector_ids     = other.m_interfaceVector_ids;
-    m_id_flux_wrap       = other.m_id_flux_wrap;
-    m_multiplier_id      = other.m_multiplier_id;
-    m_multiplierBC_id      = other.m_multiplierBC_id;
-    m_geometry           = other.m_geometry;
-    m_boundaries_ids     = other.m_boundaries_ids;
-    m_Eltype            = other.m_Eltype;
-}
 
 /// Constructor based on a computational mesh and fracture material id
-TPZInterfaceInsertion::TPZInterfaceInsertion(TPZCompMesh *cmesh, int mat_multiplier, std::set<int> & boundaries_ids, MElementType eltype){
+TPZInterfaceInsertion::TPZInterfaceInsertion(TPZCompMesh *cmesh, int mat_multiplier, std::set<int> &volmatids, std::set<int> & boundaries_ids, MElementType eltype){
     m_cmesh = cmesh;
     m_geometry = cmesh->Reference();
     m_multiplier_id = mat_multiplier;
     m_boundaries_ids = boundaries_ids;
+    m_vol_matids = volmatids;
     m_interface_id = 0;
     m_interfaceVector_ids.Resize(0);
     m_Eltype            = eltype;
@@ -82,7 +71,7 @@ void TPZInterfaceInsertion::SetWrapFluxIdentifier(int wrapFlux){
 }
 
 /// Get wrap Identifier
-int & TPZInterfaceInsertion::GetWrapFluxId(){
+int  TPZInterfaceInsertion::GetWrapFluxId(){
     return m_id_flux_wrap;
 }
 
@@ -92,19 +81,10 @@ void TPZInterfaceInsertion::SetMultiplierMatId(int multiId){
 }
 
 /// Get multiplier material id
-int & TPZInterfaceInsertion::GetMultiplierMatId(){
+int TPZInterfaceInsertion::GetMultiplierMatId(){
     return m_multiplier_id;
 }
 
-/// Set multiplier material id (BC)
-void TPZInterfaceInsertion::SetMultiplierBCMatId(int multiBCId){
-    m_multiplierBC_id  = multiBCId;
-}
-
-/// Get multiplier material id (BC)
-int & TPZInterfaceInsertion::GetMultiplierBCMatId(){
-    return m_multiplierBC_id;
-}
 
 /// Open the connects of a Interface, create dim-1 Interface elements (Hdiv version)
 void TPZInterfaceInsertion::InsertHdivBound(int mat_id_flux_wrap){
@@ -258,7 +238,11 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
                 DebugStop();
             }
             int64_t neigh_index = neigh.Element()->Index();
-            if (neigh.Element()->Dimension()!=2){
+            if (neigh.Element()->Dimension()!=dim){
+                continue;
+            }
+            int neighmat = neigh.Element()->MaterialId();
+            if(m_vol_matids.find(neighmat) == m_vol_matids.end()) {
                 continue;
             }
             
@@ -281,6 +265,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight(int matfrom)
             TPZCompElSide clarge = gelside.LowerLevelCompElementList2(false);
             if(!clarge) DebugStop();
             TPZGeoElSide glarge = clarge.Reference();
+            int glarge_matid = glarge.Element()->MaterialId();
+            if(m_vol_matids.find(glarge_matid) == m_vol_matids.end()) DebugStop();
             
             TPZGeoElBC gbc(gelside, m_interfaceVector_ids[1]);
             
@@ -348,6 +334,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
         
         for(int stack_i=0; stack_i <nneighs; stack_i++){
             TPZGeoElSide neigh = neighbourset[stack_i];
+            int neighmatid = neigh.Element()->MaterialId();
             TPZCompElSide celneigh = neigh.Reference();
             if (!celside ) {
                 DebugStop();
@@ -359,6 +346,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
               //  DebugStop();
                 TPZStack<TPZGeoElSide> subelements;
 
+                if(m_vol_matids.find(neighmatid) == m_vol_matids.end()) DebugStop();
                 TPZStack<TPZGeoElSide> subel;
                 neigh.GetAllSiblings(subel);
                 
@@ -385,7 +373,9 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfacesLeftNRight2(int matfrom)
                 if (neigh.Element()->Dimension()!=meshdim){
                     continue;
                 }
-                
+                if(m_vol_matids.find(neighmatid) == m_vol_matids.end()) {
+                    continue;
+                }
                 TPZGeoElBC gbc(gelside,m_interfaceVector_ids[stack_i]);
                 
                 TPZMultiphysicsInterfaceElement *elem_inter = new TPZMultiphysicsInterfaceElement(*cmesh,gbc.CreatedElement(),celneigh,celside);
@@ -444,7 +434,8 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfaces()
         
         TPZCompMesh *cmesh = m_geometry->Reference();
         TPZGeoMesh *gmesh = m_geometry;
-        std::set<int> velmatid;
+        const int dim = gmesh->Dimension();
+        std::set<int> velmatid = m_vol_matids;
         
         velmatid = m_boundaries_ids;
         velmatid.insert(m_multiplier_id);
@@ -464,7 +455,7 @@ void TPZInterfaceInsertion::AddMultiphysicsInterfaces()
                     LeftElIndices[0]=0;
                     RightElIndices[0]=0;
                     
-                    if (neighbour.Element()->Dimension() == 2 && gelside.Element()->Dimension() == 1) { //oioioi IDFlux -> ID
+                    if (neighbour.Element()->Dimension() == dim && gelside.Element()->Dimension() == dim-1) { //oioioi IDFlux -> ID
                         // create an interface element
                         TPZCompElSide celside = gelside.Reference();
                         TPZCompElSide celneigh = neighbour.Reference();
@@ -630,7 +621,7 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
         
         for(int stack_i=0; stack_i <nneighs; stack_i++){
             TPZGeoElSide neigh = neighbourset[stack_i];
-            
+            int neighmatid = neigh.Element()->MaterialId();
             TPZCompElSide celneigh = neigh.Reference();
             if (!celside || !celneigh) {
                 //    DebugStop();
@@ -639,7 +630,9 @@ void TPZInterfaceInsertion::AddMultiphysicsBCInterface2(int matfrom, int matBCin
             if (neigh.Element()->Dimension()!=meshdim){
                 continue;
             }
-            
+            if(m_vol_matids.find(neighmatid) == m_vol_matids.end()){
+                continue;
+            }
             if (neigh.Element()->HasSubElement()) {
                 
                 TPZStack<TPZGeoElSide > subelside;

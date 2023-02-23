@@ -36,11 +36,11 @@ private:
     /// Multiplier material id (interior)
     int m_multiplier_id;
     
-    /// Multiplier material id (BC)
-    int m_multiplierBC_id;
-
     /// Set of boundary material ids
     std::set<int> m_boundaries_ids;
+    
+    /// set of volume matids that will generate interfaces
+    std::set<int> m_vol_matids;
     
     /// Set mesh type
     MElementType m_Eltype;
@@ -57,17 +57,13 @@ public:
     ~TPZInterfaceInsertion();
     
     /// Copy constructor
-    TPZInterfaceInsertion(const TPZInterfaceInsertion & other);
+    TPZInterfaceInsertion(const TPZInterfaceInsertion & other) = default;
     
     /// Copy constructor
-    TPZInterfaceInsertion &operator=(const TPZInterfaceInsertion & other)
-    {
-        DebugStop();
-        return *this;
-    }
+    TPZInterfaceInsertion &operator=(const TPZInterfaceInsertion & other) = default;
     
     /// Constructor based on a computational mesh and Interface material id
-    TPZInterfaceInsertion(TPZCompMesh *m_cmesh, int Interface_id, std::set<int> & boundaries_ids, MElementType eltype);
+    TPZInterfaceInsertion(TPZCompMesh *cmesh, int mat_multiplier, std::set<int> &volmatids, std::set<int> & boundaries_ids, MElementType eltype);
     
     /// Set Interface Identifier
     void SetInterfaceId(int Interface_id);
@@ -85,19 +81,13 @@ public:
     void SetWrapFluxIdentifier(int wrapFlux);
     
     /// Get wrap Identifier
-    int & GetWrapFluxId();
+    int GetWrapFluxId();
 
     /// Set multiplier material id
     void SetMultiplierMatId(int multiplier);
     
     /// Get multiplier material id
-    int & GetMultiplierMatId();
-    
-    /// Set multiplier material id - BC
-    void SetMultiplierBCMatId(int multiplier_BC);
-    
-    /// Get multiplier material id - BC
-    int & GetMultiplierBCMatId();
+    int  GetMultiplierMatId();
     
     /// Add multiphysics interfaces for all boundaries and internal elements
     void AddMultiphysicsInterfaces();
