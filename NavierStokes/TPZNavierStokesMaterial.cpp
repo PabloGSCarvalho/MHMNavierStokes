@@ -117,7 +117,7 @@ void TPZNavierStokesMaterial::Print(std::ostream &out) {
 
 ////////////////////////////////////////////////////////////////////
 
-int TPZNavierStokesMaterial::VariableIndex(const std::string &name) {
+int TPZNavierStokesMaterial::VariableIndex(const std::string &name) const {
     
     if (!strcmp("P", name.c_str()))  return 0;
     if (!strcmp("Pressure", name.c_str()))  return 0;
@@ -131,6 +131,7 @@ int TPZNavierStokesMaterial::VariableIndex(const std::string &name) {
     if (!strcmp("P_CDG", name.c_str()))  return 7;
     if (!strcmp("P_exact_CDG", name.c_str()))  return 8;
     if (!strcmp("Vorticity2D", name.c_str()))  return 9;
+    if (!strcmp("Tension",name.c_str())) return 10;
     //    if (!strcmp("V_exactBC", name.c_str()))   return 5;
     
     std::cout  << " Var index not implemented " << std::endl;
@@ -140,7 +141,7 @@ int TPZNavierStokesMaterial::VariableIndex(const std::string &name) {
 
 ////////////////////////////////////////////////////////////////////
 
-int TPZNavierStokesMaterial::NSolutionVariables(int var) {
+int TPZNavierStokesMaterial::NSolutionVariables(int var) const {
     
     switch(var) {
             
@@ -164,6 +165,8 @@ int TPZNavierStokesMaterial::NSolutionVariables(int var) {
             return 1; // Exact pressure for CDG Navier-Stokes formulation
         case 9:
             return 1; // 2D - Vorticity (z-direction)
+        case 10:
+            return 9;
 
             //        case 5:
             //            return this->Dimension(); // V_exactBC, Vector
@@ -406,6 +409,25 @@ void TPZNavierStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>> &da
             Solout[0] = dsolxy(0,1)-dsolxy(1,0);
         }
         break;
+            
+        case 10:
+        {
+            TPZFNMatrix<10,STATE> gradUn = datavec[vindex].dsol[0];
+            TPZFNMatrix<9,STATE> DUn_j(3,3,0.), sigma(3,3,0.);
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                     DUn_j(e,f)= 0.5 * (gradUn(e,f) + gradUn(f,e));
+                    sigma(e,f) = 2.*fViscosity*DUn_j(e,f);
+                }
+                sigma(e,e) -= p_h[0];
+            }
+            for (int e=0; e<3; e++) {
+                for (int f=0; f<3; f++) {
+                    Solout[e*3+f] = sigma(e,f);
+                }
+            }
+        }
+            break;
 
         default:
         {
@@ -1151,7 +1173,7 @@ void TPZNavierStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
             ek(nshapeV+nshapeP, nshapeV+j) += fact;
             // Matrix D^T
             ek(nshapeV+j,nshapeV+nshapeP) += fact;
-            
+            ef(nshapeV+j,0) -= weight*phiP(j,0) *g_average;
         }
         
         ef(nshapeV+nshapeP) -= (p_n-p_average) * weight;
@@ -1164,7 +1186,6 @@ void TPZNavierStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
         ek(nshapeV+nshapeP+1, nshapeV+nshapeP) += -factG;
         // Matrix E^T
         ek(nshapeV+nshapeP,nshapeV+nshapeP+1) += -factG;
-        
     }
 
     if (datavec.size()>4) {

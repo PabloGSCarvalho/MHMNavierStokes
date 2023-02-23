@@ -180,11 +180,11 @@ public:
     void Print(std::ostream &out = std::cout);
     
     /** returns the variable index associated with the name */
-    int VariableIndex(const std::string &name);
+    int VariableIndex(const std::string &name) const override;
     
     /** returns the number of variables associated with the variable
      indexed by var.  var is obtained by calling VariableIndex */
-    int NSolutionVariables(int var);
+    int NSolutionVariables(int var) const override;
     
     /** Computes the divergence over the parametric space */
     void ComputeDivergenceOnMaster(TPZVec<TPZMaterialDataT<STATE>> &datavec, TPZFMatrix<STATE> &DivergenceofPhi);
