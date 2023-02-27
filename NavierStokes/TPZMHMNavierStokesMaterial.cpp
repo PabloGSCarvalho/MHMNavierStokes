@@ -499,12 +499,13 @@ void TPZMHMNavierStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<ST
     if(isnan(rhsnorm))
     {
         std::cout << "ef  has norm " << rhsnorm << std::endl;
+        DebugStop();
     }
     
     
 #ifdef PZDEBUG
     //2 = 1 Vel space + 1 Press space
-    int nref =  datavec.size();
+    auto nref =  datavec.size();
     if (nref != 2 ) {
         std::cout << " Erro. The size of the datavec is different from 2 \n";
         DebugStop();

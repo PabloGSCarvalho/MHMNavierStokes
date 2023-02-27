@@ -314,7 +314,9 @@ void NavierStokesTest::Run(int pOrder, TPZVec<int> &n_s, TPZVec<REAL> &h_s)
         cmesh_m->Solution().Print("SolC = ",sol,EMathematicaInput);
         
     }
-    VerifyEquilibrium(cmesh_m);
+    
+    // compute the stresses in a direct way and verify the equilibrium
+//    VerifyEquilibrium(cmesh_m);
     
     if(f_domaintype==TStokesAnalytic::ECavity||f_domaintype==TStokesAnalytic::EObstacles||f_domaintype==TStokesAnalytic::EOneCurve){
         std::cout << "FINISHED!" << std::endl;

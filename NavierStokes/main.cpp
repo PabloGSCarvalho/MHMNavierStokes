@@ -127,7 +127,11 @@ int main(int argc, char *argv[])
                         sim_data->Set_n_iterations(40);
                         sim_data->Set_epsilon_cor(0.0000001);
                         sim_data->Set_epsilon_res(0.0000001);
+#ifdef PZ_USING_MKL
                         sim_data->SetPardisoSolver();
+#else
+                        std::cout << "Pardiso is disactivated\n";
+#endif
                         sim_data->ActivatePostProcessing();
                         sim_data->SetProblemType(TStokesAnalytic::EStokes);
                         sim_data->SetDomainType(TStokesAnalytic::ECavity);
