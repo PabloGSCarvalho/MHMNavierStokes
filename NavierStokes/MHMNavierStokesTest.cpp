@@ -23,7 +23,7 @@
 #include "TPZGenGrid2D.h"
 #include "TPZLagrangeMultiplier.h"
 #include "pzelementgroup.h"
-#include "pzcondensedcompel.h"
+//#include "pzcondensedcompel.h"
 #include "TPZExtendGridDimension.h"
 #include "tpzgeoelrefpattern.h"
 #include "TPZMHMNavierStokesMeshControl.h"
@@ -328,7 +328,7 @@ void MHMNavierStokesTest::SolveProblem(TPZAutoPointer<TPZCompMesh> cmesh, TPZVec
 
     bool shapetest = f_sim_data->GetShapeTest();
     //calculo solution
-    bool shouldrenumber = f_sim_data->GetOptimizeBandwidthQ();
+    RenumType shouldrenumber = f_sim_data->GetOptimizeBandwidthQ();
     TPZLinearAnalysis an(cmesh,shouldrenumber);
 
     if(f_sim_data->IsPardisoSolverQ()){
@@ -3908,6 +3908,7 @@ void MHMNavierStokesTest::ComputeSkelNeighbours(){
     
 }
 
+#include "pzcondensedcompel.h"
 
 void MHMNavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
    
@@ -4012,7 +4013,7 @@ void MHMNavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
 //                break;
 //            }
 //        }
-        new TPZCondensedCompEl(elgr);
+        new TPZCondensedCompElT<STATE>(elgr);
     }
 
     

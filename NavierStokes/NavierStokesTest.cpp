@@ -3769,7 +3769,7 @@ void NavierStokesTest::GroupAndCondense(TPZMultiphysicsCompMesh *cmesh_m){
     int nenvel = elgroups.NElements();
     for (int64_t ienv=0; ienv<nenvel; ienv++) {
         TPZElementGroup *elgr = elgroups[ienv];
-        new TPZCondensedCompEl(elgr);
+        new TPZCondensedCompElT<STATE>(elgr);
     }
 
     

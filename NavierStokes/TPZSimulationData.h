@@ -21,6 +21,7 @@
 #include "TPZVTKGeoMesh.h"
 #include "pzcheckgeom.h"
 #include "TPZAnalyticSolution.h"
+#include "TPZAnalysis.h"
 
 
 /** @brief Object conatining several kind of informations being used anytime and anywhere */
@@ -93,7 +94,7 @@ protected:
     
     bool m_is_current_state_Q;
     
-    bool m_optimizeBandwidth_Q;
+    RenumType m_optimizeBandwidth_Q;
     
     /** @brief Directive that states if the current solution must be accepted inside the memory  */
     bool m_must_accept_solution_Q;
@@ -394,11 +395,11 @@ public:
         m_volumetric_material_id = volumetric_material_id;
     }
 
-    void SetOptimizeBandwidthQ(bool set_optimze){
+    void SetOptimizeBandwidthQ(RenumType set_optimze){
         m_optimizeBandwidth_Q = set_optimze;
     }
     
-    bool GetOptimizeBandwidthQ(){
+    RenumType GetOptimizeBandwidthQ(){
         return m_optimizeBandwidth_Q;
     }
 

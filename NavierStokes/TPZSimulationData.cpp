@@ -34,7 +34,7 @@ TPZSimulationData::TPZSimulationData()
     m_must_accept_solution_Q = false;
     m_volumetric_material_id.resize(1);
     m_volumetric_material_id[0]=1;
-    m_optimizeBandwidth_Q = false;
+    m_optimizeBandwidth_Q = RenumType::ENone;
     m_run_post_porcessing = false;
     m_is_pardiso_Q = false;
     m_is_static_condensation_Q = true;

@@ -33,7 +33,7 @@
 #include "TPZInterfaceEl.h"
 #include "TPZMultiphysicsInterfaceEl.h"
 #include "pzelementgroup.h"
-#include "pzcondensedcompel.h"
+//#include "pzcondensedcompel.h"
 #include "pzcompelwithmem.h"
 #include "TPZVTKGeoMesh.h"
 #include "TPZNullMaterial.h"
@@ -1457,6 +1457,7 @@ void TPZMHMNavierStokesMeshControl::CreateMultiPhysicsBJSInterfaceElements(){
 
 }
 
+//#include "pzcondensedcompel.h"
 
 void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
 {
@@ -1555,6 +1556,7 @@ void TPZMHMNavierStokesMeshControl::GroupandCondenseSubMeshes()
     
 }
 
+#include "pzcondensedcompel.h"
 
 void TPZMHMNavierStokesMeshControl::GroupAndCondense(TPZCompMesh *cmesh_m){
     
@@ -1651,7 +1653,7 @@ void TPZMHMNavierStokesMeshControl::GroupAndCondense(TPZCompMesh *cmesh_m){
                 int con_index = elgroups[ienv]->GetElGroup()[0]->ConnectIndex(nc-3);
                 elgroups[ienv]->GetElGroup()[0]->Connect(nc-3).IncrementElConnected(); //pressão média
         }
-        new TPZCondensedCompEl(elgr);
+        new TPZCondensedCompElT<STATE>(elgr);
     }
     
     

@@ -53,7 +53,7 @@ TPZNSAnalysis::TPZNSAnalysis(const TPZNSAnalysis & other){
 void TPZNSAnalysis::ConfigureAnalysis(DecomposeType decomposition, TPZSimulationData * simulation_data, TPZCompMesh * cmesh_M, TPZVec<TPZCompMesh *> & mesh_vec, TPZVec<std::string> & var_names){
     
     SetSimulationData(simulation_data);
-    bool mustOptimizeBandwidth = simulation_data->GetOptimizeBandwidthQ();
+    RenumType mustOptimizeBandwidth = simulation_data->GetOptimizeBandwidthQ();
     this->SetCompMesh(cmesh_M,mustOptimizeBandwidth);
     this->Rhs() = TPZFMatrix<STATE>();
     TPZStepSolver<STATE> step;

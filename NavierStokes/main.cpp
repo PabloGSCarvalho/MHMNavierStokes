@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     
 //    TPZMaterial::gBigNumber = 1.e12;
 //    gRefDBase.InitializeAllUniformRefPatterns();
-    Simulation_case sim_case = Stokes;
+    Simulation_case sim_case = MHMProblem;
 #ifdef PZ_LOG
     TPZLogger::InitializePZLOG();
 #endif
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
                         sim_data->SetDivPlusOrder(idivp+1);
 
-                        sim_data->SetOptimizeBandwidthQ(true);
+                        sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
                         //sim_data->SetStaticCondensation(false);
                         sim_data->Set_n_iterations(40);
                         sim_data->Set_epsilon_cor(0.0000001);
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 
                         sim_data->SetDivPlusOrder(idivp+1);
 
-                        sim_data->SetOptimizeBandwidthQ(true);
+                        sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
                         //sim_data->SetStaticCondensation(false);
                         sim_data->Set_n_iterations(40);
                         sim_data->Set_epsilon_cor(0.0000001);
@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
             sim_data->SetNthreads(24);
             //simdata.SetShapeTest(); // Test for shape functions
 
-            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
             //sim_data->SetStaticCondensation(false);
             sim_data->Set_n_iterations(40);
             sim_data->Set_epsilon_cor(0.0000001);
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
             sim_data->SetPermeability(1.); //Material 2 => Darcy
             sim_data->SetNthreads(8);
 
-            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
             //sim_data->SetStaticCondensation(false);
             sim_data->Set_n_iterations(40);
             sim_data->Set_epsilon_cor(0.0000001);
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
             sim_data->SetPermeability(.1); //Material 2 => Darcy
             sim_data->SetNthreads(24);
 
-            sim_data->SetOptimizeBandwidthQ(true);
+            sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
             //sim_data->SetStaticCondensation(false);
             sim_data->Set_n_iterations(40);
             sim_data->Set_epsilon_cor(0.0000001);
@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
                     sim_data->SetPermeability(1.); //Material 2 => Darcy
                     sim_data->SetNthreads(8);
 
-                    sim_data->SetOptimizeBandwidthQ(true);
+                    sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
                     //sim_data->SetStaticCondensation(false);
                     sim_data->Set_n_iterations(40);
                     sim_data->Set_epsilon_cor(0.0000001);
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
                 sim_data->SetViscosity(.1);
 
                 sim_data->SetNthreads(0);
-                sim_data->SetOptimizeBandwidthQ(true);
+                sim_data->SetOptimizeBandwidthQ(RenumType::EDefault);
                 sim_data->Set_n_iterations(20);
                 sim_data->Set_epsilon_cor(0.0002);
                 sim_data->Set_epsilon_res(0.0002);
